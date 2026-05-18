@@ -6,7 +6,7 @@ from datetime import datetime
 try:
     from supabase import create_client
 except ImportError:
-    print("pip install supabase")
+    print("pip install supabase requests")
     sys.exit(1)
 
 SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL')
@@ -32,8 +32,9 @@ def log_run(status, msg, fetched=0, updated=0, error=None):
             'error_details': error,
             'created_at': datetime.now().isoformat()
         }).execute()
-    except:
-        pass
+        print(f"✅ Logged {status}")
+    except Exception as e:
+        print(f"Log error: {e}")
 
 def main():
     print("Scraper started")
@@ -71,8 +72,8 @@ def main():
                         'viral_score': video['viral_score'],
                     }).eq('tiktok_id', video['tiktok_id']).execute()
                     updated += 1
-            except:
-                pass
+            except Exception as e:
+                print(f"Error: {e}")
         
         print(f"Saved {updated} videos")
         log_run('success', 'Scraper completed', len(videos), updated)
