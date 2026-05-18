@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { Eye, Heart, Share2, Play, ExternalLink } from 'lucide-react'
 import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
@@ -9,9 +11,9 @@ interface ProductCardProps {
   productName: string
   niche: string
   viralScore: number
-  viewCount: bigint
-  likeCount: bigint
-  shareCount?: bigint
+  viewCount: number
+  likeCount: number
+  shareCount?: number
   authorHandle: string
   thumbnailUrl?: string | null
   videoUrl?: string | null

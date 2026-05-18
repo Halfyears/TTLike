@@ -115,9 +115,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
             productName={product.productName}
             niche={product.niche}
             viralScore={product.viralScore}
-            viewCount={BigInt(product.views)}
-            likeCount={BigInt(product.likes)}
-            shareCount={BigInt(product.shares)}
+            viewCount={product.views}
+            likeCount={product.likes}
+            shareCount={product.shares}
             authorHandle={product.author}
             thumbnailUrl={product.cover_url}
             videoUrl={product.video_url}

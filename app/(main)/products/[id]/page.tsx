@@ -88,10 +88,10 @@ export default async function ProductDetailPage({ params }: Props) {
 
               <div className="grid grid-cols-4 gap-3">
                 {[
-                  { icon: Eye, label: 'Views', value: formatNumber(product.viewCount) },
-                  { icon: Heart, label: 'Likes', value: formatNumber(product.likeCount) },
-                  { icon: Share2, label: 'Shares', value: formatNumber(product.shareCount) },
-                  { icon: TrendingUp, label: 'Comments', value: formatNumber(product.commentCount) },
+                  { icon: Eye, label: 'Views', value: formatNumber(Number(product.viewCount)) },
+                  { icon: Heart, label: 'Likes', value: formatNumber(Number(product.likeCount)) },
+                  { icon: Share2, label: 'Shares', value: formatNumber(Number(product.shareCount)) },
+                  { icon: TrendingUp, label: 'Comments', value: formatNumber(Number(product.commentCount)) },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="text-center p-3 bg-gray-50 rounded-lg">
                     <Icon className="h-4 w-4 text-pink-400 mx-auto mb-1" />
