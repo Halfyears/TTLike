@@ -35,7 +35,7 @@ export function Navbar({ user }: NavbarProps) {
     <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white/95 backdrop-blur-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl text-gray-900">
+          <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2 font-bold text-xl text-gray-900">
             <Zap className="h-6 w-6 text-pink-500" />
             <span>TTLike</span>
           </Link>
