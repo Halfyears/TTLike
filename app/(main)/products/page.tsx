@@ -35,8 +35,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     cover_url: string | null; video_url: string | null;
   }> = []
 
-  let dataSource = 'mock'
-  let dbError: string | null = null
   try {
     const url = new URL('/rest/v1/tiktok_videos', process.env.NEXT_PUBLIC_SUPABASE_URL)
     url.searchParams.set('select', '*')
@@ -60,7 +58,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
     const rows = await res.json()
     if (Array.isArray(rows) && rows.length > 0) {
-      dataSource = 'db'
       products = rows.map((r: Record<string, unknown>) => ({
         id: String(r.id),
         productName: String(r.product_name ?? r.title ?? ''),
@@ -75,8 +72,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       }))
     }
   } catch (err) {
-    dbError = err instanceof Error ? err.message : String(err)
-    console.error('[products] fetch failed:', dbError)
+    console.error('[products] fetch failed:', err)
   }
 
   if (products.length === 0) {
@@ -92,11 +88,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Product Database</h1>
         <p className="text-gray-600">AI-curated viral products updated every 6 hours</p>
-        {/* Debug banner — remove once DB data is confirmed working */}
-        <div className={`mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${dataSource === 'db' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-          {dataSource === 'db' ? `✓ DB: ${products.length} videos` : `⚠ Mock data`}
-          {dbError && <span className="ml-1 text-red-600 truncate max-w-xs" title={dbError}>Error: {dbError.slice(0, 80)}</span>}
-        </div>
       </div>
 
       {/* Filters */}
