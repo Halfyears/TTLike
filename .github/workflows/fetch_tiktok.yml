@@ -5,33 +5,28 @@ on:
     - cron: '0 */6 * * *'
   workflow_dispatch:
 
+# Use Node.js 24 to avoid the Node 20 deprecation warning
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 10
+
     steps:
       - uses: actions/checkout@v4
-      
-      - uses: actions/setup-python@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
+          cache: pip
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests supabase python-dotenv
-      
+        run: pip install supabase requests python-dotenv
+
       - name: Run scraper
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-        run: |
-          python scripts/fetch_tiktok.py
-      
-      - name: Commit changes
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add -A
-          git commit -m "chore: update tiktok data" || echo "No changes"
-          git push || echo "No changes to push"
+        run: python scripts/fetch_tiktok.py
