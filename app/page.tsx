@@ -1,65 +1,62 @@
+import Link from "next/link";
 import Image from "next/image";
+
+export const metadata = { title: 'TTLike · TikTok Viral Intelligence Platform' };
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex flex-col min-h-screen bg-zinc-50 font-sans text-zinc-950">
+      {/* 导航栏 */}
+      <header className="flex items-center justify-between px-8 py-6 max-w-6xl w-full mx-auto border-b border-zinc-200/50">
+        <div className="flex items-center gap-2">
+          <span className="text-xl font-bold tracking-tight text-pink-600 font-mono">TTLIKE</span>
+          <span className="text-xs bg-zinc-200/60 text-zinc-600 px-2 py-0.5 rounded-full font-mono font-medium">v1.0</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <Link 
+          href="/auth/login" 
+          className="text-sm font-medium text-zinc-600 hover:text-zinc-950 transition-colors"
+        >
+          Sign In
+        </Link>
+      </header>
+
+      {/* 主战场 */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 max-w-3xl mx-auto text-center -mt-12">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-50 border border-pink-100 text-pink-700 text-xs font-medium mb-6 animate-fade-in">
+          <span>⚡ Next-gen TikTok UGC Engine Active</span>
+        </div>
+        
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-zinc-900 leading-[1.15] mb-6">
+          Generate Viral TikTok UGC Scripts <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-600">
+            Driven by Intelligent AI
+          </span>
+        </h1>
+        
+        <p className="text-md sm:text-lg text-zinc-500 max-w-xl mx-auto leading-relaxed mb-10">
+          Unlock 5 tailored UGC video variations in seconds. Built for scale, backed by enterprise-grade prompt engines, optimized for high-converting asset creation.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center gap-4 w-full justify-center">
+          <Link
+            href="/auth/signup"
+            className="flex h-12 items-center justify-center rounded-lg bg-zinc-900 px-8 text-sm font-medium text-white transition-colors hover:bg-zinc-800 w-full sm:w-auto shadow-sm"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Get Started Free
+          </Link>
+          <Link
+            href="/auth/login"
+            className="flex h-12 items-center justify-center rounded-lg border border-zinc-200 bg-white px-8 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900 w-full sm:w-auto"
           >
-            Documentation
-          </a>
+            Access Dashboard
+          </Link>
         </div>
       </main>
+
+      {/* 页脚 */}
+      <footer className="py-6 text-center text-xs text-zinc-400 font-mono border-t border-zinc-100">
+        &copy; {new Date().getFullYear()} TTLIKE. Lab-Grade Content Intelligence.
+      </footer>
     </div>
   );
 }
