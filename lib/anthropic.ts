@@ -1,9 +1,4 @@
-import 'server-only' // 🌟 盾牌：强行隔离前端，彻底干掉 Forbidden 报错
-import Anthropic from '@anthropic-ai/sdk'
-
-export const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-})
+import 'server-only'
 
 export async function generateScripts(params: {
   hookType: string
@@ -44,28 +39,34 @@ Format your response as JSON array with this structure:
 
 Return only valid JSON, no markdown.`
 
-  // 🌟 修复点 1：使用标准且最新的 Claude 3.5 Sonnet 模型代号
-  const message = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-latest', 
-    max_tokens: 4096,
-    messages: [{ role: 'user', content: userPrompt }],
-    system: systemPrompt,
+  // 🌟 使用 Google 官方免费端点请求 Gemini 2.5 Flash
+  const apiKey = process.env.GEMINI_API_KEY
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+      generationConfig: {
+        responseMimeType: 'application/json', // 强行让 Gemini 吐出标准的纯 JSON
+      }
+    })
   })
 
-  const content = message.content[0]
-  if (content.type !== 'text') throw new Error('Unexpected response type')
-
-  // 🌟 修复点 2：超级稳健的 JSON 清理器，防止 Claude 吐出的 markdown 导致系统崩溃
-  let rawText = content.text.trim()
-  if (rawText.startsWith('```')) {
-    rawText = rawText.replace(/^```json\s*/i, '').replace(/```$/, '').trim()
+  if (!response.ok) {
+    const errData = await response.json()
+    throw new Error(errData.error?.message || 'Gemini API 请求失败')
   }
+
+  const resData = await response.json()
+  const rawText = resData.candidates[0].content.parts[0].text.trim()
 
   try {
     const scripts = JSON.parse(rawText)
     return scripts
-  } catch (parseError) {
-    console.error('JSON Parse failed. Raw text was:', content.text)
-    throw new Error('AI returned an invalid JSON format')
+  } catch (e) {
+    console.error('JSON 解析失败，原始文本为:', rawText)
+    throw new Error('AI 返回的格式无法被系统解析')
   }
 }
