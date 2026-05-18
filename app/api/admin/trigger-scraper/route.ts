@@ -19,7 +19,7 @@ export async function POST() {
   const token = process.env.GH_TOKEN
   if (!token) {
     return NextResponse.json(
-      { error: 'GITHUB_TOKEN not configured. Add it to your environment variables.' },
+      { error: 'GH_TOKEN not configured. Add it to your environment variables.' },
       { status: 503 }
     )
   }
