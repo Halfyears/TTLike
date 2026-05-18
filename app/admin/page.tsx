@@ -50,7 +50,7 @@ export default function AdminDashboardPage() {
           <div className="space-y-3">
             {[
               { label: 'Database', status: 'Connect in .env.local', ok: false },
-              { label: 'Claude AI', status: 'Set ANTHROPIC_API_KEY', ok: false },
+              { label: 'Gemini AI', status: 'Set GEMINI_API_KEY', ok: false },
               { label: 'Supabase', status: 'Set SUPABASE keys', ok: false },
               { label: 'Stripe', status: 'Disabled (Beta Phase)', ok: true },
             ].map(({ label, status, ok }) => (

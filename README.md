@@ -10,7 +10,7 @@
 
 - **Viral Product Intelligence** — AI tracks 10,000+ TikTok videos to find breakout products
 - **Hook Pattern Analysis** — 7 hook types with templates and real examples
-- **AI Script Generator** — Generate 5 UGC script variations with Claude AI
+- **AI Script Generator** — Generate 5 UGC script variations with Gemini 2.5 Flash
 - **Trending Dashboard** — Real-time trending topics and growing products
 - **Admin Panel** — Full backend management with KPI tracking
 - **Blog System** — SEO-optimized blog with Markdown support
@@ -25,7 +25,7 @@
 | Language | TypeScript |
 | Auth | Supabase Auth |
 | Database | Supabase (PostgreSQL) + Prisma ORM |
-| AI | Anthropic Claude (claude-sonnet-4-6) |
+| AI | Google Gemini 2.5 Flash |
 | Payments | Stripe + PayPal (disabled in Beta) |
 | Deployment | Vercel |
 
@@ -48,7 +48,7 @@ cp .env.local.example .env.local
 
 Required for basic dev:
 - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `ANTHROPIC_API_KEY` (for AI scripts)
+- `GEMINI_API_KEY` (for AI scripts — free at [aistudio.google.com](https://aistudio.google.com/apikey))
 
 ### 3. Set Up Database
 
@@ -87,7 +87,7 @@ TTLike/
 │   └── ui/              # Button, Card, Input, Badge...
 ├── lib/
 │   ├── supabase/        # Client + Server + Proxy helpers
-│   ├── anthropic.ts     # Claude AI
+│   ├── anthropic.ts     # Gemini 2.5 Flash AI
 │   ├── prisma.ts        # Prisma client
 │   ├── stripe.ts        # Stripe (beta-disabled)
 │   └── constants.ts     # IS_BETA_PHASE, PAYMENT_ENABLED
@@ -165,4 +165,4 @@ See [prisma/schema.prisma](prisma/schema.prisma) for full schema.
 
 ---
 
-Built with Next.js 16, Supabase, Prisma, and Claude AI. MIT License.
+Built with Next.js 16, Supabase, Prisma, and Gemini 2.5 Flash. MIT License.
