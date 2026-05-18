@@ -31,7 +31,8 @@ export async function searchVideos(q: string, niche?: string, sort: 'viral_score
   let query = supabase.from('tiktok_videos').select('*').order(sort, { ascending: false }).limit(limit)
   if (q) query = query.ilike('title', `%${q}%`)
   if (niche && niche !== 'All') query = query.eq('niche', niche)
-  const { data } = await query
+  const { data, error } = await query
+  if (error) throw new Error(`tiktok_videos query failed: ${error.message}`)
   return (data ?? []) as VideoRow[]
 }
 

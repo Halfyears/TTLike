@@ -35,6 +35,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     cover_url: string | null; video_url: string | null;
   }> = []
 
+  let dbError: string | null = null
   try {
     const rows = await searchVideos(q ?? '', niche, sortKey)
     if (rows.length > 0) {
@@ -51,7 +52,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         video_url: r.video_url,
       }))
     }
-  } catch { /* DB not available */ }
+  } catch (err) {
+    dbError = err instanceof Error ? err.message : String(err)
+    console.error('[products] DB read failed:', dbError)
+  }
 
   if (products.length === 0) {
     const mock = MOCK_PRODUCTS

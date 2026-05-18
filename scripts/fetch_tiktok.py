@@ -108,7 +108,15 @@ def main():
             on_conflict='tiktok_id',
         ).execute()
 
-        updated = len(result.data) if result.data else len(videos)
+        if not result.data:
+            raise RuntimeError(
+                "Upsert returned no data. Possible causes:\n"
+                "  1. tiktok_videos table does not exist — run prisma/migrations/tiktok_videos_v2.sql in Supabase SQL Editor\n"
+                "  2. Column mismatch — make sure the migration was run after the schema change\n"
+                f"  Raw result: {result}"
+            )
+
+        updated = len(result.data)
         print(f"✅ Upserted {updated} rows into tiktok_videos")
         log_run('success', f'Upserted {updated} videos', len(videos), updated)
 
