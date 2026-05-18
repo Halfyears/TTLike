@@ -39,7 +39,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <div className="px-3 py-2 text-xs text-gray-500 font-medium truncate">
             {user.email}
           </div>
-          <form action="/auth/signout" method="post">
+          <form action="/api/auth/signout" method="post">
             <button type="submit"
               className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-red-500 transition-colors">
               <LogOut className="h-4 w-4" /> Sign Out
