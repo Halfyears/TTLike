@@ -3,6 +3,7 @@ import { ProductCard } from '@/components/ProductCard'
 import { searchVideos } from '@/lib/supabase/videos'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Product Database · TTLike' }
 
 const MOCK_PRODUCTS = Array.from({ length: 24 }, (_, i) => ({
