@@ -1,3 +1,4 @@
+import 'server-only' // 🌟 盾牌：强行隔离前端，彻底干掉 Forbidden 报错
 import Anthropic from '@anthropic-ai/sdk'
 
 export const anthropic = new Anthropic({
@@ -43,8 +44,9 @@ Format your response as JSON array with this structure:
 
 Return only valid JSON, no markdown.`
 
+  // 🌟 修复点 1：使用标准且最新的 Claude 3.5 Sonnet 模型代号
   const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: 'claude-3-5-sonnet-latest', 
     max_tokens: 4096,
     messages: [{ role: 'user', content: userPrompt }],
     system: systemPrompt,
@@ -53,6 +55,17 @@ Return only valid JSON, no markdown.`
   const content = message.content[0]
   if (content.type !== 'text') throw new Error('Unexpected response type')
 
-  const scripts = JSON.parse(content.text)
-  return scripts
+  // 🌟 修复点 2：超级稳健的 JSON 清理器，防止 Claude 吐出的 markdown 导致系统崩溃
+  let rawText = content.text.trim()
+  if (rawText.startsWith('```')) {
+    rawText = rawText.replace(/^```json\s*/i, '').replace(/```$/, '').trim()
+  }
+
+  try {
+    const scripts = JSON.parse(rawText)
+    return scripts
+  } catch (parseError) {
+    console.error('JSON Parse failed. Raw text was:', content.text)
+    throw new Error('AI returned an invalid JSON format')
+  }
 }
