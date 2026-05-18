@@ -140,7 +140,7 @@ export default function ScraperPage() {
         <h2 className="text-white font-semibold mb-3">Manual Trigger</h2>
         <p className="text-gray-400 text-sm mb-4">
           Dispatches a GitHub Actions workflow run immediately. Requires{' '}
-          <code className="text-pink-400 bg-gray-900 px-1 rounded text-xs">GITHUB_TOKEN</code>{' '}
+          <code className="text-pink-400 bg-gray-900 px-1 rounded text-xs">GH_TOKEN</code>{' '}
           in your environment.
         </p>
         <button
