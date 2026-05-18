@@ -1,36 +1,37 @@
-name: Fetch TikTok Trending Data
+name: Fetch TikTok Data
 
 on:
   schedule:
-    # Every 6 hours: 00:00, 06:00, 12:00, 18:00 UTC
-    - cron: '0 0,6,12,18 * * *'
-  # Allow manual trigger from GitHub Actions tab
+    - cron: '0 */6 * * *'
   workflow_dispatch:
 
 jobs:
-  fetch:
-    name: Fetch & Upsert TikTok Videos
+  scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+    
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-          cache: pip
-
+      
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
-          pip install supabase python-dotenv requests
-
-      - name: Run TikTok fetcher
+          python -m pip install --upgrade pip
+          pip install requests supabase python-dotenv
+      
+      - name: Run scraper
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          TIKTOK_API_KEY: ${{ secrets.TIKTOK_API_KEY }}
-        run: python scripts/fetch_tiktok.py
+        run: |
+          python scripts/fetch_tiktok.py
+      
+      - name: Commit changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m "chore: update tiktok data" || echo "No changes"
+          git push || echo "No changes to push"
