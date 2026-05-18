@@ -3,7 +3,8 @@
 TikTok trending data fetcher.
 
 Pulls trending product videos from TikTok's public discover/trending endpoints
-and upserts them into Supabase (tiktok_videos table).
+and upserts them into Supabase (tiktok_videos table). Every run is logged to
+the scraper_logs table (success or error).
 
 Required env vars:
   SUPABASE_URL          — your project URL
@@ -17,13 +18,10 @@ Run manually:
 
 import os
 import sys
-import json
 import math
-import time
 import uuid
 import logging
 import datetime
-from typing import Any
 
 import requests
 from dotenv import load_dotenv
@@ -42,7 +40,33 @@ SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 TIKTOK_API_KEY = os.getenv("TIKTOK_API_KEY", "")
 
-NICHES = ["Health", "Beauty", "Home", "Kitchen", "Tech", "Fitness", "Pets", "Travel"]
+# ---------------------------------------------------------------------------
+# Scraper logging
+# ---------------------------------------------------------------------------
+
+def log_run(
+    supabase: Client,
+    *,
+    status: str,
+    message: str,
+    videos_fetched: int = 0,
+    videos_updated: int = 0,
+    error_details: str | None = None,
+) -> None:
+    """Write a row to scraper_logs. Swallow errors so a logging failure never
+    crashes the scraper itself."""
+    try:
+        supabase.table("scraper_logs").insert({
+            "status": status,
+            "message": message,
+            "videos_fetched": videos_fetched,
+            "videos_updated": videos_updated,
+            "error_details": error_details,
+            "created_at": datetime.datetime.utcnow().isoformat() + "Z",
+        }).execute()
+    except Exception as exc:
+        log.warning(f"Could not write scraper_logs: {exc}")
+
 
 # ---------------------------------------------------------------------------
 # TikTok data source
@@ -185,7 +209,6 @@ def upsert_videos(supabase: Client, videos: list[dict]) -> int:
             "publishedAt": v.get("publishedAt"),
         })
 
-    # Upsert on videoId (unique key in schema)
     result = (
         supabase.table("tiktok_videos")
         .upsert(rows, on_conflict="videoId")
@@ -202,16 +225,35 @@ def main() -> None:
     log.info("Connecting to Supabase…")
     supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
-    if TIKTOK_API_KEY:
-        log.info("Fetching from TikTok Research API…")
-        videos = fetch_trending_videos_api()
-    else:
-        log.warning("TIKTOK_API_KEY not set — using mock data")
-        videos = fetch_trending_videos_mock()
+    try:
+        if TIKTOK_API_KEY:
+            log.info("Fetching from TikTok Research API…")
+            videos = fetch_trending_videos_api()
+        else:
+            log.warning("TIKTOK_API_KEY not set — using mock data")
+            videos = fetch_trending_videos_mock()
 
-    log.info(f"Fetched {len(videos)} videos")
-    count = upsert_videos(supabase, videos)
-    log.info(f"Upserted {count} rows into tiktok_videos")
+        log.info(f"Fetched {len(videos)} videos")
+        count = upsert_videos(supabase, videos)
+        log.info(f"✅ Upserted {count} rows into tiktok_videos")
+
+        log_run(
+            supabase,
+            status="success",
+            message=f"Fetched {len(videos)} videos, upserted {count} rows",
+            videos_fetched=len(videos),
+            videos_updated=count,
+        )
+
+    except Exception as exc:
+        log.error(f"❌ Scraper failed: {exc}")
+        log_run(
+            supabase,
+            status="error",
+            message="Scraper run failed",
+            error_details=str(exc),
+        )
+        sys.exit(1)
 
 
 if __name__ == "__main__":

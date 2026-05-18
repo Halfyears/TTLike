@@ -11,6 +11,7 @@ const translations = {
       blog: 'Blog',
       affiliates: 'Affiliates',
       backToApp: 'Back to App',
+      scraper: 'Scraper',
     },
     admin: {
       title: 'TTLike Admin',
@@ -33,6 +34,7 @@ const translations = {
       blog: '博客管理',
       affiliates: '推广管理',
       backToApp: '返回应用',
+      scraper: '爬虫监控',
     },
     admin: {
       title: 'TTLike 管理后台',
