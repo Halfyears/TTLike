@@ -4,8 +4,9 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Card, CardContent } from '@/components/ui/Card'
+import { ScriptCard } from '@/components/ScriptCard'
 import { HOOK_TYPES, NICHES } from '@/lib/constants'
-import { Zap, Copy, Check, ChevronDown, ChevronUp } from 'lucide-react'
+import { Zap } from 'lucide-react'
 
 interface Script {
   title: string
@@ -24,8 +25,6 @@ export function AIScriptGenerator() {
   const [scripts, setScripts] = useState<Script[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(0)
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault()
@@ -43,18 +42,11 @@ export function AIScriptGenerator() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to generate scripts')
       setScripts(data.scripts)
-      setExpandedIndex(0)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setLoading(false)
     }
-  }
-
-  async function copyScript(text: string, index: number) {
-    await navigator.clipboard.writeText(text)
-    setCopiedIndex(index)
-    setTimeout(() => setCopiedIndex(null), 2000)
   }
 
   return (
@@ -135,54 +127,9 @@ export function AIScriptGenerator() {
       {scripts.length > 0 && (
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Generated Scripts ({scripts.length})</h2>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {scripts.map((script, i) => (
-              <Card key={i} className={expandedIndex === i ? 'ring-2 ring-pink-400' : ''}>
-                <div
-                  className="flex items-center justify-between p-4 cursor-pointer"
-                  onClick={() => setExpandedIndex(expandedIndex === i ? null : i)}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="h-6 w-6 rounded-full bg-pink-100 text-pink-600 text-xs font-bold flex items-center justify-center">
-                      {i + 1}
-                    </span>
-                    <h3 className="font-medium text-gray-900 text-sm">{script.title}</h3>
-                  </div>
-                  {expandedIndex === i ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
-                </div>
-
-                {expandedIndex === i && (
-                  <CardContent className="pt-0 px-4 pb-4 space-y-3">
-                    <div className="bg-pink-50 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-pink-700 mb-1">Hook (0-3s)</p>
-                      <p className="text-sm text-pink-900 italic">&ldquo;{script.hook}&rdquo;</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-gray-600 mb-1">Body (3-25s)</p>
-                      <p className="text-sm text-gray-700 whitespace-pre-line">{script.body}</p>
-                    </div>
-                    <div className="bg-green-50 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-green-700 mb-1">CTA (25-30s)</p>
-                      <p className="text-sm text-green-800">{script.cta}</p>
-                    </div>
-
-                    <div className="border-t border-gray-100 pt-3">
-                      <p className="text-xs font-semibold text-gray-600 mb-2">Full Script</p>
-                      <pre className="text-xs text-gray-600 whitespace-pre-wrap font-mono bg-gray-50 rounded p-3 leading-relaxed">
-                        {script.fullScript}
-                      </pre>
-                    </div>
-
-                    <Button
-                      variant="secondary" size="sm"
-                      onClick={() => copyScript(script.fullScript, i)}
-                      className="w-full"
-                    >
-                      {copiedIndex === i ? <><Check className="h-3.5 w-3.5 mr-1.5" /> Copied!</> : <><Copy className="h-3.5 w-3.5 mr-1.5" /> Copy Full Script</>}
-                    </Button>
-                  </CardContent>
-                )}
-              </Card>
+              <ScriptCard key={i} script={script} index={i} />
             ))}
           </div>
         </div>

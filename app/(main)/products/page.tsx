@@ -1,11 +1,6 @@
-import { Suspense } from 'react'
-import { Search, SlidersHorizontal } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/Card'
-import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
-import { Badge } from '@/components/ui/Badge'
-import { formatNumber } from '@/lib/utils'
+import { Search } from 'lucide-react'
+import { ProductCard } from '@/components/ProductCard'
 import Link from 'next/link'
-import { TrendingUp, Eye, Heart } from 'lucide-react'
 
 export const metadata = { title: 'Product Database · TTLike' }
 
@@ -13,10 +8,13 @@ const MOCK_PRODUCTS = Array.from({ length: 24 }, (_, i) => ({
   id: String(i + 1),
   productName: ['Posture Corrector Pro', 'LED Strip Lights Kit', 'Portable Blender Mini', 'Silk Sleep Mask', 'Magnetic Phone Stand', 'Jade Roller Set', 'Resistance Bands Set', 'Cold Brew Coffee Maker', 'Plant Misting Bottle', 'Foam Roller Set', 'Wireless Ear Clips', 'Scalp Massager', 'Eye Mask Heating', 'Foot Massage Roller', 'Bamboo Organizer', 'UV Nail Lamp', 'Pet Hair Remover', 'Car Phone Holder', 'Smart Jump Rope', 'Glass Straw Set', 'Aromatherapy Diffuser', 'Knee Support Brace', 'Face Sculptor Tool', 'Travel Pillow'][i],
   niche: ['Health', 'Home', 'Kitchen', 'Beauty', 'Tech', 'Beauty', 'Fitness', 'Kitchen', 'Home', 'Fitness', 'Tech', 'Beauty', 'Health', 'Health', 'Home', 'Beauty', 'Pets', 'Tech', 'Fitness', 'Kitchen', 'Home', 'Health', 'Beauty', 'Travel'][i],
-  viralScore: 60 + Math.floor(Math.random() * 38),
-  viewCount: BigInt((500_000 + Math.floor(Math.random() * 3_000_000))),
-  likeCount: BigInt((10_000 + Math.floor(Math.random() * 200_000))),
+  viralScore: 60 + ((i * 7 + 13) % 38),
+  viewCount: BigInt(500_000 + (i * 127_391) % 3_000_000),
+  likeCount: BigInt(10_000 + (i * 19_231) % 200_000),
+  shareCount: BigInt(1_000 + (i * 3_741) % 50_000),
   authorHandle: `@tiktok_seller_${i}`,
+  thumbnailUrl: null as string | null,
+  videoUrl: null as string | null,
 }))
 
 const NICHES = ['All', 'Health', 'Beauty', 'Home', 'Kitchen', 'Tech', 'Fitness', 'Pets', 'Travel']
@@ -81,22 +79,19 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {filtered.map(product => (
-          <Link key={product.id} href={`/products/${product.id}`}>
-            <Card hover className="h-full">
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between mb-3">
-                  <Badge>{product.niche}</Badge>
-                  <ViralScoreBadge score={product.viralScore} showLabel={false} />
-                </div>
-                <h3 className="font-semibold text-gray-900 text-sm mb-3 line-clamp-2">{product.productName}</h3>
-                <div className="flex items-center gap-3 text-xs text-gray-500">
-                  <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{formatNumber(product.viewCount)}</span>
-                  <span className="flex items-center gap-1"><Heart className="h-3 w-3" />{formatNumber(product.likeCount)}</span>
-                </div>
-                <p className="text-xs text-gray-400 mt-2">{product.authorHandle}</p>
-              </CardContent>
-            </Card>
-          </Link>
+          <ProductCard
+            key={product.id}
+            id={product.id}
+            productName={product.productName}
+            niche={product.niche}
+            viralScore={product.viralScore}
+            viewCount={product.viewCount}
+            likeCount={product.likeCount}
+            shareCount={product.shareCount}
+            authorHandle={product.authorHandle}
+            thumbnailUrl={product.thumbnailUrl}
+            videoUrl={product.videoUrl}
+          />
         ))}
       </div>
     </div>
