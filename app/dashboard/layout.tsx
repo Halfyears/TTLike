@@ -22,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {/* Sidebar */}
       <aside className="hidden md:flex w-60 flex-col bg-white border-r border-gray-100 fixed h-full">
         <div className="p-5 border-b border-gray-100">
-          <Link href="/" className="flex items-center gap-2 font-bold text-gray-900">
+          <Link href="/dashboard" className="flex items-center gap-2 font-bold text-gray-900">
             <Zap className="h-5 w-5 text-pink-500" /> TTLike
           </Link>
         </div>
