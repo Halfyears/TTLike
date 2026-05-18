@@ -27,12 +27,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid request', details: parsed.error.flatten() }, { status: 400 })
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json(
-        { error: 'AI service not configured. Please set ANTHROPIC_API_KEY in your environment.' },
-        { status: 503 }
-      )
-    }
+    if (!process.env.GEMINI_API_KEY) {
+  return NextResponse.json(
+    { error: 'AI service not configured. Please set GEMINI_API_KEY in your environment.' },
+    { status: 503 }
+  )
+}
 
     const scripts = await generateScripts(parsed.data)
 
