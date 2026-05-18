@@ -16,7 +16,7 @@ export async function POST() {
 
   if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const token = process.env.GITHUB_TOKEN
+  const token = process.env.GH_TOKEN
   if (!token) {
     return NextResponse.json(
       { error: 'GITHUB_TOKEN not configured. Add it to your environment variables.' },
