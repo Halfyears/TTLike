@@ -13,11 +13,48 @@ const QUICK_ACTIONS = [
   { href: '/hooks', icon: BookOpen, label: 'Hook Library', desc: 'Browse proven hook patterns', color: 'text-violet-500 bg-violet-50' },
 ]
 
+const FALLBACK_PRODUCTS = [
+  { id: '1', name: 'Posture Corrector Pro', niche: 'Health', score: 94 },
+  { id: '2', name: 'LED Strip Lights Kit', niche: 'Home', score: 89 },
+  { id: '3', name: 'Portable Blender Mini', niche: 'Kitchen', score: 86 },
+]
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   const firstName = user?.user_metadata?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'there'
+
+  // Top products from DB
+  let topProducts: Array<{ id: string; name: string; niche: string; score: number }> = []
+  try {
+    const { data } = await supabase
+      .from('tiktok_videos')
+      .select('id, product_name, title, niche, viral_score')
+      .order('viral_score', { ascending: false })
+      .limit(3)
+    if (data && data.length > 0) {
+      topProducts = data.map(r => ({
+        id: r.id,
+        name: r.product_name ?? r.title,
+        niche: r.niche ?? 'General',
+        score: Math.round(r.viral_score),
+      }))
+    }
+  } catch { /* fallback below */ }
+
+  if (topProducts.length === 0) topProducts = FALLBACK_PRODUCTS
+
+  // User script count
+  let scriptCount = 0
+  try {
+    const { count } = await supabase
+      .from('user_analytics')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user?.id ?? '')
+      .eq('event', 'script_generated')
+    scriptCount = count ?? 0
+  } catch { /* ignore */ }
 
   return (
     <div className="max-w-5xl">
@@ -55,9 +92,9 @@ export default async function DashboardPage() {
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Activity</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
         {[
-          { label: 'Scripts Generated', value: '0', sub: 'Today' },
-          { label: 'Products Viewed', value: '0', sub: 'This week' },
-          { label: 'Hooks Saved', value: '0', sub: 'Total' },
+          { label: 'Scripts Generated', value: scriptCount.toString(), sub: 'Total' },
+          { label: 'Products Viewed', value: '—', sub: 'This week' },
+          { label: 'Hooks Saved', value: '—', sub: 'Total' },
           { label: 'Plan', value: 'Free', sub: 'All features included' },
         ].map(stat => (
           <Card key={stat.label}>
@@ -70,7 +107,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* Trending products preview */}
+      {/* Top products */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900">Today&apos;s Top Products</h2>
         <Link href="/products" className="text-pink-500 text-sm font-medium flex items-center gap-1 hover:text-pink-600">
@@ -78,12 +115,8 @@ export default async function DashboardPage() {
         </Link>
       </div>
       <div className="space-y-2">
-        {[
-          { name: 'Posture Corrector Pro', niche: 'Health', score: 94 },
-          { name: 'LED Strip Lights Kit', niche: 'Home', score: 89 },
-          { name: 'Portable Blender Mini', niche: 'Kitchen', score: 86 },
-        ].map((product, i) => (
-          <Link key={product.name} href={`/products/${i + 1}`}>
+        {topProducts.map((product, i) => (
+          <Link key={product.id} href={`/products/${product.id}`}>
             <Card hover>
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">

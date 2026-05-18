@@ -1,5 +1,6 @@
 import { Search } from 'lucide-react'
 import { ProductCard } from '@/components/ProductCard'
+import { searchVideos } from '@/lib/supabase/videos'
 import Link from 'next/link'
 
 export const metadata = { title: 'Product Database · TTLike' }
@@ -9,12 +10,12 @@ const MOCK_PRODUCTS = Array.from({ length: 24 }, (_, i) => ({
   productName: ['Posture Corrector Pro', 'LED Strip Lights Kit', 'Portable Blender Mini', 'Silk Sleep Mask', 'Magnetic Phone Stand', 'Jade Roller Set', 'Resistance Bands Set', 'Cold Brew Coffee Maker', 'Plant Misting Bottle', 'Foam Roller Set', 'Wireless Ear Clips', 'Scalp Massager', 'Eye Mask Heating', 'Foot Massage Roller', 'Bamboo Organizer', 'UV Nail Lamp', 'Pet Hair Remover', 'Car Phone Holder', 'Smart Jump Rope', 'Glass Straw Set', 'Aromatherapy Diffuser', 'Knee Support Brace', 'Face Sculptor Tool', 'Travel Pillow'][i],
   niche: ['Health', 'Home', 'Kitchen', 'Beauty', 'Tech', 'Beauty', 'Fitness', 'Kitchen', 'Home', 'Fitness', 'Tech', 'Beauty', 'Health', 'Health', 'Home', 'Beauty', 'Pets', 'Tech', 'Fitness', 'Kitchen', 'Home', 'Health', 'Beauty', 'Travel'][i],
   viralScore: 60 + ((i * 7 + 13) % 38),
-  viewCount: BigInt(500_000 + (i * 127_391) % 3_000_000),
-  likeCount: BigInt(10_000 + (i * 19_231) % 200_000),
-  shareCount: BigInt(1_000 + (i * 3_741) % 50_000),
-  authorHandle: `@tiktok_seller_${i}`,
-  thumbnailUrl: null as string | null,
-  videoUrl: null as string | null,
+  views: 500_000 + (i * 127_391) % 3_000_000,
+  likes: 10_000 + (i * 19_231) % 200_000,
+  shares: 1_000 + (i * 3_741) % 50_000,
+  author: `@tiktok_seller_${i}`,
+  cover_url: null as string | null,
+  video_url: null as string | null,
 }))
 
 const NICHES = ['All', 'Health', 'Beauty', 'Home', 'Kitchen', 'Tech', 'Fitness', 'Pets', 'Travel']
@@ -25,17 +26,46 @@ interface ProductsPageProps {
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const { q, niche, sort } = await searchParams
+  const sortKey = sort === 'views' ? 'views' : 'viral_score'
 
-  const filtered = MOCK_PRODUCTS
-    .filter(p => (!q || p.productName.toLowerCase().includes(q.toLowerCase())))
-    .filter(p => (!niche || niche === 'All' || p.niche === niche))
-    .sort((a, b) => sort === 'views' ? Number(b.viewCount - a.viewCount) : b.viralScore - a.viralScore)
+  // Try real DB data; fall back to mock if table is empty
+  let products: Array<{
+    id: string; productName: string; niche: string; viralScore: number;
+    views: number; likes: number; shares: number; author: string;
+    cover_url: string | null; video_url: string | null;
+  }> = []
+
+  try {
+    const rows = await searchVideos(q ?? '', niche, sortKey)
+    if (rows.length > 0) {
+      products = rows.map(r => ({
+        id: r.id,
+        productName: r.product_name ?? r.title,
+        niche: r.niche ?? 'General',
+        viralScore: r.viral_score,
+        views: r.views,
+        likes: r.likes,
+        shares: r.shares,
+        author: r.author,
+        cover_url: r.cover_url,
+        video_url: r.video_url,
+      }))
+    }
+  } catch { /* DB not available */ }
+
+  if (products.length === 0) {
+    const mock = MOCK_PRODUCTS
+      .filter(p => !q || p.productName.toLowerCase().includes(q.toLowerCase()))
+      .filter(p => !niche || niche === 'All' || p.niche === niche)
+      .sort((a, b) => sort === 'views' ? b.views - a.views : b.viralScore - a.viralScore)
+    products = mock.map(m => ({ ...m, productName: m.productName, author: m.author }))
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Product Database</h1>
-        <p className="text-gray-600">AI-curated viral products updated daily</p>
+        <p className="text-gray-600">AI-curated viral products updated every 6 hours</p>
       </div>
 
       {/* Filters */}
@@ -75,22 +105,22 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         ))}
       </div>
 
-      <p className="text-sm text-gray-500 mb-4">{filtered.length} products found</p>
+      <p className="text-sm text-gray-500 mb-4">{products.length} products found</p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filtered.map(product => (
+        {products.map(product => (
           <ProductCard
             key={product.id}
             id={product.id}
             productName={product.productName}
             niche={product.niche}
             viralScore={product.viralScore}
-            viewCount={product.viewCount}
-            likeCount={product.likeCount}
-            shareCount={product.shareCount}
-            authorHandle={product.authorHandle}
-            thumbnailUrl={product.thumbnailUrl}
-            videoUrl={product.videoUrl}
+            viewCount={BigInt(product.views)}
+            likeCount={BigInt(product.likes)}
+            shareCount={BigInt(product.shares)}
+            authorHandle={product.author}
+            thumbnailUrl={product.cover_url}
+            videoUrl={product.video_url}
           />
         ))}
       </div>
