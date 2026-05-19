@@ -96,11 +96,6 @@ function DeleteModal({
           </button>
         </div>
 
-        {/* Notice */}
-        <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 leading-relaxed">
-          Your scripts are anonymously retained as part of the platform&apos;s shared knowledge base to help other users — no personal data is stored.
-        </div>
-
         {/* Actions */}
         <div className="flex gap-2 pt-1">
           <button
@@ -295,11 +290,6 @@ export function ScriptHistory() {
 
   return (
     <div className="space-y-4">
-      {/* Note about data retention */}
-      <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 text-xs text-blue-700 leading-relaxed">
-        <strong>Auto-saved:</strong> Every script you generate is saved here automatically. Removed scripts are anonymously kept in the platform&apos;s knowledge base to improve suggestions for all users.
-      </div>
-
       {/* Search + filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
