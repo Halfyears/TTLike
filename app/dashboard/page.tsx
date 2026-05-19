@@ -59,74 +59,66 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-1">Welcome back, {firstName}!</h1>
-      <p className="text-gray-600 mb-8">What do you want to do today?</p>
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-0.5">Welcome back, {firstName}!</h1>
+      <p className="text-gray-500 text-sm mb-6">What do you want to do today?</p>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+      {/* Quick Actions — compact 2×2 on mobile, descriptive on desktop */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
         {QUICK_ACTIONS.map(({ href, icon: Icon, label, desc, color }) => (
           <Link key={href} href={href}>
-            <Card hover className="h-full">
-              <CardContent className="p-5 flex items-start gap-4">
-                <div className={`shrink-0 h-10 w-10 rounded-lg ${color} flex items-center justify-center`}>
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 text-sm">{label}</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4 h-full">
+              <div className={`shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-lg ${color} flex items-center justify-center`}>
+                <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-900 text-xs sm:text-sm leading-tight">{label}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5 hidden sm:block leading-tight">{desc}</p>
+              </div>
+            </div>
           </Link>
         ))}
       </div>
 
-      {/* Stats */}
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Your Activity</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+      {/* Your Activity — always 1×4 single row */}
+      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Your Activity</h2>
+      <div className="grid grid-cols-4 gap-2 mb-6">
         {[
-          { label: 'Scripts Generated', value: scriptCount.toString(), sub: 'Total' },
-          { label: 'Products Viewed', value: '—', sub: 'This week' },
-          { label: 'Hooks Saved', value: '—', sub: 'Total' },
-          { label: 'Plan', value: 'Free', sub: 'All features included' },
+          { label: 'Scripts', value: scriptCount.toString(), sub: 'Generated' },
+          { label: 'Viewed', value: '—', sub: 'Products' },
+          { label: 'Saved', value: '—', sub: 'Hooks' },
+          { label: 'Plan', value: 'Free', sub: 'Beta' },
         ].map(stat => (
-          <Card key={stat.label}>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{stat.label}</div>
-              <div className="text-xs text-pink-500 mt-0.5">{stat.sub}</div>
-            </CardContent>
-          </Card>
+          <div key={stat.label} className="bg-white rounded-xl border border-gray-100 p-2.5 sm:p-4 text-center">
+            <div className="text-lg sm:text-2xl font-bold text-gray-900 leading-none">{stat.value}</div>
+            <div className="text-[10px] sm:text-xs text-gray-500 mt-1 leading-tight">{stat.label}</div>
+            <div className="text-[10px] text-pink-400 leading-tight hidden sm:block">{stat.sub}</div>
+          </div>
         ))}
       </div>
 
-      {/* Top products */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">Today&apos;s Top Products</h2>
-        <Link href="/products" className="text-pink-500 text-sm font-medium flex items-center gap-1 hover:text-pink-600">
-          View all <ArrowRight className="h-4 w-4" />
+      {/* Today's Top Products — compact rows */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Top Products</h2>
+        <Link href="/products" className="text-pink-500 text-xs font-semibold flex items-center gap-0.5 hover:text-pink-600">
+          All <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
       {topProducts.length === 0 ? (
-        <p className="text-sm text-gray-400 py-4">No data yet — the scraper runs at noon and midnight Pacific.</p>
+        <p className="text-sm text-gray-400 py-3">No data yet — scraper runs at noon and midnight Pacific.</p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {topProducts.map((product, i) => (
             <Link key={product.id} href={`/products/${product.id}`}>
-              <Card hover>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-black text-gray-200 w-6">#{i + 1}</span>
-                    <div>
-                      <p className="font-medium text-sm text-gray-900">{product.name}</p>
-                      <p className="text-xs text-gray-500">{product.niche}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs font-semibold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full">
-                    <Zap className="h-3 w-3" /> {product.score}
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 px-3 py-2.5 hover:shadow-sm transition-shadow">
+                <span className="text-base font-black text-gray-200 w-5 shrink-0">#{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-xs sm:text-sm text-gray-900 truncate">{product.name}</p>
+                  <p className="text-[10px] text-gray-400">{product.niche}</p>
+                </div>
+                <div className="flex items-center gap-1 text-xs font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full shrink-0">
+                  <Zap className="h-2.5 w-2.5" /> {product.score}
+                </div>
+              </div>
             </Link>
           ))}
         </div>
