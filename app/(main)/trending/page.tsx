@@ -1,4 +1,4 @@
-import { TrendingUp, Flame, ArrowUpRight, ChevronRight } from 'lucide-react'
+import { TrendingUp, Flame, ChevronRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
@@ -8,41 +8,42 @@ import { createClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Trending · TTLike' }
 
-const TRENDING_TOPICS = [
-  { id: '1', topic: '#TikTokMadeMeBuyIt', category: 'Meta',    videoCount: 45200, growthRate: 34.5, viralScore: 96 },
-  { id: '2', topic: 'Posture Correction',   category: 'Health',  videoCount: 12400, growthRate: 28.3, viralScore: 94 },
-  { id: '3', topic: 'LED Room Makeover',    category: 'Home',    videoCount:  9870, growthRate: 22.1, viralScore: 91 },
-  { id: '4', topic: 'Budget Kitchen Finds', category: 'Kitchen', videoCount:  8560, growthRate: 19.8, viralScore: 89 },
-  { id: '5', topic: 'Skincare Routine',     category: 'Beauty',  videoCount: 34200, growthRate: 15.2, viralScore: 87 },
-  { id: '6', topic: 'Home Gym Setup',       category: 'Fitness', videoCount:  7890, growthRate: 41.7, viralScore: 93 },
-  { id: '7', topic: 'Under $20 Finds',      category: 'General', videoCount: 23100, growthRate: 25.6, viralScore: 90 },
-  { id: '8', topic: 'Pet Products',         category: 'Pets',    videoCount:  6540, growthRate: 17.3, viralScore: 84 },
-  { id: '9', topic: 'Amazon Must Haves',    category: 'General', videoCount: 19800, growthRate: 12.4, viralScore: 82 },
-  { id:'10', topic: 'Travel Essentials',    category: 'Travel',  videoCount:  5670, growthRate: 38.2, viralScore: 88 },
-  { id:'11', topic: 'Meal Prep Gadgets',    category: 'Kitchen', videoCount:  4560, growthRate: 29.4, viralScore: 86 },
-  { id:'12', topic: 'Sleep Quality',        category: 'Health',  videoCount:  7230, growthRate: 33.1, viralScore: 92 },
-]
-
 export default async function TrendingPage() {
-  // Real top products from DB
-  let topProducts: Array<{ id: string; name: string; niche: string; score: number; views: number }> = []
-  try {
-    const supabase = await createClient()
-    const { data } = await supabase
-      .from('tiktok_videos')
-      .select('id, product_name, title, niche, viral_score, views')
-      .order('viral_score', { ascending: false })
-      .limit(6)
-    if (data) {
-      topProducts = data.map(r => ({
-        id: r.id,
-        name: String(r.product_name ?? r.title ?? ''),
-        niche: String(r.niche ?? 'General'),
-        score: Math.round(r.viral_score ?? 0),
-        views: Number(r.views ?? 0),
-      }))
-    }
-  } catch { /* ignore */ }
+  const supabase = await createClient()
+
+  // Fetch all videos to compute real niche stats
+  const { data: allVideos } = await supabase
+    .from('tiktok_videos')
+    .select('id, niche, viral_score, views')
+    .order('viral_score', { ascending: false })
+
+  // Group by niche
+  const nicheMap: Record<string, { count: number; totalScore: number; totalViews: number }> = {}
+  for (const v of allVideos ?? []) {
+    const niche = v.niche ?? 'General'
+    if (!nicheMap[niche]) nicheMap[niche] = { count: 0, totalScore: 0, totalViews: 0 }
+    nicheMap[niche].count++
+    nicheMap[niche].totalScore += Number(v.viral_score ?? 0)
+    nicheMap[niche].totalViews += Number(v.views ?? 0)
+  }
+
+  const nicheStats = Object.entries(nicheMap)
+    .map(([niche, s]) => ({
+      niche,
+      count: s.count,
+      avgScore: Math.round(s.totalScore / s.count),
+      totalViews: s.totalViews,
+    }))
+    .sort((a, b) => b.avgScore - a.avgScore)
+
+  // Top products sidebar
+  const { data: topProducts } = await supabase
+    .from('tiktok_videos')
+    .select('id, product_name, title, niche, viral_score, views')
+    .order('viral_score', { ascending: false })
+    .limit(6)
+
+  const hasData = nicheStats.length > 0
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
@@ -53,40 +54,57 @@ export default async function TrendingPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* Trending Topics */}
+        {/* Trending Niches — real data */}
         <div className="lg:col-span-2">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Flame className="h-5 w-5 text-red-500" /> Trending Topics
+            <Flame className="h-5 w-5 text-red-500" /> Trending Niches
           </h2>
-          <div className="space-y-3">
-            {TRENDING_TOPICS.map((topic, i) => (
-              <Card key={topic.id} hover>
-                <CardContent className="p-4">
+
+          {!hasData ? (
+            <div className="space-y-3">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 animate-pulse">
                   <div className="flex items-center gap-4">
-                    <div className={`text-2xl font-black w-8 text-center shrink-0 ${i < 3 ? 'text-pink-500' : 'text-gray-300'}`}>
-                      {i + 1}
+                    <div className="h-6 w-6 bg-gray-100 rounded" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-100 rounded w-1/3" />
+                      <div className="h-3 bg-gray-100 rounded w-1/4" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <h3 className="font-semibold text-gray-900 text-sm">{topic.topic}</h3>
-                        <Badge>{topic.category}</Badge>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>{topic.videoCount.toLocaleString()} videos</span>
-                        <span className="flex items-center gap-0.5 text-green-600 font-medium">
-                          <ArrowUpRight className="h-3 w-3" /> {topic.growthRate}% this week
-                        </span>
-                      </div>
-                    </div>
-                    <ViralScoreBadge score={topic.viralScore} showLabel={false} />
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                </div>
+              ))}
+              <p className="text-center text-sm text-gray-400 pt-2">Scraper runs at noon &amp; midnight Pacific — check back soon.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {nicheStats.map((stat, i) => (
+                <Link key={stat.niche} href={`/products?niche=${stat.niche}`}>
+                  <Card hover>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`text-2xl font-black w-8 text-center shrink-0 ${i < 3 ? 'text-pink-500' : 'text-gray-300'}`}>
+                          {i + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <h3 className="font-semibold text-gray-900 text-sm">{stat.niche}</h3>
+                            <Badge>{stat.count} videos</Badge>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {(stat.totalViews / 1_000_000).toFixed(1)}M total views
+                          </div>
+                        </div>
+                        <ViralScoreBadge score={stat.avgScore} showLabel={false} />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Sidebar — real DB products */}
+        {/* Sidebar — real top products */}
         <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -97,9 +115,9 @@ export default async function TrendingPage() {
             </Link>
           </div>
 
-          {topProducts.length === 0 ? (
+          {!topProducts || topProducts.length === 0 ? (
             <div className="rounded-xl border border-gray-100 bg-white p-6 text-center">
-              <p className="text-sm text-gray-400">Scraper runs at noon &amp; midnight Pacific.</p>
+              <p className="text-sm text-gray-400">No data yet — check back after the next scraper run.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -109,13 +127,15 @@ export default async function TrendingPage() {
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{product.name}</p>
-                          <Badge className="mt-1.5">{product.niche}</Badge>
+                          <p className="font-semibold text-gray-900 text-sm leading-tight truncate">
+                            {String(product.product_name ?? product.title ?? '')}
+                          </p>
+                          <Badge className="mt-1.5">{product.niche ?? 'General'}</Badge>
                           <p className="text-xs text-gray-400 mt-1.5">
-                            {(product.views / 1_000_000).toFixed(1)}M views
+                            {(Number(product.views ?? 0) / 1_000_000).toFixed(1)}M views
                           </p>
                         </div>
-                        <ViralScoreBadge score={product.score} showLabel={false} className="shrink-0 mt-0.5" />
+                        <ViralScoreBadge score={Math.round(Number(product.viral_score ?? 0))} showLabel={false} className="shrink-0 mt-0.5" />
                       </div>
                     </CardContent>
                   </Card>
