@@ -79,22 +79,45 @@ def detect_niche(text: str) -> str:
     return 'General'
 
 # ── RapidAPI fetch ────────────────────────────────────────────────────────────
+HEADERS = {
+    'x-rapidapi-key': RAPIDAPI_KEY,
+    'x-rapidapi-host': RAPIDAPI_HOST,
+}
+
+# Endpoint candidates in priority order
+HASHTAG_ENDPOINTS = [
+    ('GET', f'https://{RAPIDAPI_HOST}/challenge/posts', lambda tag, count: {'name': tag, 'count': count, 'cursor': 0}),
+    ('GET', f'https://{RAPIDAPI_HOST}/hashtag/posts',   lambda tag, count: {'name': tag, 'count': count, 'cursor': 0}),
+    ('GET', f'https://{RAPIDAPI_HOST}/feed/list',       lambda tag, count: {'keywords': tag, 'count': count, 'cursor': 0}),
+]
+
 def fetch_hashtag(tag: str, count: int = 10) -> list[dict]:
-    url = f'https://{RAPIDAPI_HOST}/hashtag/posts'
-    headers = {
-        'x-rapidapi-key': RAPIDAPI_KEY,
-        'x-rapidapi-host': RAPIDAPI_HOST,
-        'Content-Type': 'application/json',
-    }
-    params = {'name': tag, 'count': count, 'cursor': 0}
+    last_err = None
+    for method, url, make_params in HASHTAG_ENDPOINTS:
+        try:
+            resp = requests.request(method, url, headers=HEADERS, params=make_params(tag, count), timeout=30)
+            if resp.status_code == 404:
+                log(f"  404 at {url} — trying next endpoint")
+                continue
+            resp.raise_for_status()
+            body = resp.json()
+            break
+        except Exception as e:
+            last_err = e
+            log(f"  endpoint error ({url}): {e}")
+    else:
+        raise last_err or RuntimeError('all endpoints failed')
 
-    resp = requests.get(url, headers=headers, params=params, timeout=30)
-    resp.raise_for_status()
-    body = resp.json()
-
-    # tiktok-scraper7 returns data.videos or data.itemList
     data = body.get('data', {})
-    raw_videos = data.get('videos') or data.get('itemList') or []
+    raw_videos = (
+        data.get('videos')
+        or data.get('itemList')
+        or data.get('aweme_list')
+        or (body.get('aweme_list') if isinstance(body, dict) else None)
+        or []
+    )
+    if not raw_videos:
+        log(f"  WARNING: no video list found. Keys: {list(data.keys()) if isinstance(data, dict) else type(data)}")
 
     videos = []
     for v in raw_videos:
