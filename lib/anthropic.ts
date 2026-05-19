@@ -4,16 +4,18 @@ type Script = { title: string; hook: string; body: string; cta: string; fullScri
 
 export async function generateScripts(params: {
   hookTypes: string[]          // one script generated per hook type, max 5
+  niches: string[]             // target niche(s)
   productName: string
   productDescription: string
   targetAudience: string
-  niche: string
+  niche?: string               // legacy single-niche fallback
   keywords?: string
   brandName?: string
   offer?: string
   ctaType?: string
 }): Promise<Script[]> {
-  const { hookTypes, productName, niche, keywords, brandName, offer, ctaType } = params
+  const { hookTypes, productName, keywords, brandName, offer, ctaType } = params
+  const niche = params.niches?.length ? params.niches.join(', ') : (params.niche ?? 'General')
 
   const productDescription = params.productDescription?.trim() ||
     `A trending ${niche} product on TikTok — ${productName}`

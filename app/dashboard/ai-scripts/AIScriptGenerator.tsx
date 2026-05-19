@@ -48,7 +48,7 @@ export function AIScriptGenerator() {
   const [productName, setProductName] = useState('')
   const [productDescription, setProductDescription] = useState('')
   const [targetAudience, setTargetAudience] = useState('')
-  const [niche, setNiche] = useState('')
+  const [niches, setNiches] = useState<string[]>([])
   const [nicheOptions, setNicheOptions] = useState<string[]>([])
   const [hookTypes, setHookTypes] = useState<string[]>(['SURPRISE'])
   const [keywords, setKeywords] = useState('')
@@ -74,7 +74,7 @@ export function AIScriptGenerator() {
     const vid = searchParams.get('from_video')
     if (title) setProductName(title)
     if (kw) setKeywords(kw)
-    if (n) setNiche(n)
+    if (n) setNiches([n])
     if (vid) setSourceVideoId(vid)
   }, [searchParams])
 
@@ -93,8 +93,13 @@ export function AIScriptGenerator() {
       if (!res.ok) throw new Error((data as { error?: string }).error ?? 'Failed')
       if (data.description) setProductDescription(data.description)
       if (data.targetAudience) setTargetAudience(data.targetAudience)
-      if (data.niche) setNiche(data.niche)
-      if (data.nicheOptions) setNicheOptions(data.nicheOptions)
+      // Pre-select AI-suggested niches (best match + options, max 3)
+      if (data.nicheOptions?.length) {
+        setNicheOptions(data.nicheOptions)
+        setNiches(data.nicheOptions.slice(0, 1))   // pre-select top suggestion
+      } else if (data.niche) {
+        setNiches([data.niche])
+      }
     } catch {
       setSuggestError('Could not auto-generate suggestions — fill in manually.')
     } finally {
@@ -128,7 +133,7 @@ export function AIScriptGenerator() {
           productName,
           productDescription,
           targetAudience,
-          niche,
+          niches,
           hookTypes,
           keywords: keywords || undefined,
           brandName: brandName || undefined,
@@ -146,13 +151,13 @@ export function AIScriptGenerator() {
     } finally {
       setLoading(false)
     }
-  }, [productName, productDescription, targetAudience, niche, hookTypes, keywords, brandName, offer, ctaType, sourceVideoId])
+  }, [productName, productDescription, targetAudience, niches, hookTypes, keywords, brandName, offer, ctaType, sourceVideoId])
 
-  // All known niche options: preset + AI suggestions + current DB value
+  // All known niche options: AI suggestions first, then presets, de-duped
   const allNicheOptions = Array.from(new Set([
-    ...NICHES,
     ...nicheOptions,
-    ...(niche && !NICHES.includes(niche) ? [niche] : []),
+    ...niches.filter(n => !NICHES.includes(n)),  // any DB-sourced values
+    ...NICHES,
   ]))
 
   return (
@@ -168,44 +173,60 @@ export function AIScriptGenerator() {
               value={productName} onChange={e => setProductName(e.target.value)} required
             />
 
-            {/* ── Niche — with AI suggestion chips ── */}
+            {/* ── Niche — multi-select chips ── */}
             <div className="flex flex-col gap-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">Niche</label>
-                {suggesting && (
-                  <span className="flex items-center gap-1 text-xs text-pink-500 animate-pulse">
-                    <Sparkles className="h-3 w-3" /> AI suggesting…
+                <label className="text-sm font-medium text-gray-700">
+                  Niche
+                  <span className="ml-1.5 inline-flex items-center gap-0.5 text-[10px] font-semibold uppercase tracking-wide text-pink-500 bg-pink-50 border border-pink-200 rounded px-1.5 py-0.5">
+                    <Sparkles className="h-2.5 w-2.5" /> AI
                   </span>
-                )}
+                </label>
+                <div className="flex items-center gap-2">
+                  {suggesting && (
+                    <span className="flex items-center gap-1 text-xs text-pink-500 animate-pulse">
+                      <Sparkles className="h-3 w-3" /> AI suggesting…
+                    </span>
+                  )}
+                  {niches.length > 0 && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                      {niches.length} selected
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* Suggestion chips */}
-              {nicheOptions.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {nicheOptions.map(opt => (
+              <div className="flex flex-wrap gap-1.5">
+                {allNicheOptions.map(opt => {
+                  const selected = niches.includes(opt)
+                  const isAiSuggested = nicheOptions.includes(opt)
+                  return (
                     <button
                       key={opt} type="button"
-                      onClick={() => setNiche(opt)}
+                      onClick={() => {
+                        if (selected) {
+                          if (niches.length > 1) setNiches(niches.filter(n => n !== opt))
+                        } else {
+                          setNiches([...niches, opt])
+                        }
+                      }}
                       className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        niche === opt
+                        selected
                           ? 'bg-pink-500 text-white border-pink-500'
-                          : 'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100'
+                          : isAiSuggested
+                            ? 'bg-pink-50 text-pink-700 border-pink-300 hover:bg-pink-100'
+                            : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300 hover:text-pink-600'
                       }`}
                     >
+                      {isAiSuggested && !selected && <span className="mr-1">✦</span>}
                       {opt}
                     </button>
-                  ))}
-                </div>
-              )}
-
-              <select
-                value={niche} onChange={e => setNiche(e.target.value)}
-                className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-                required
-              >
-                <option value="">Select niche…</option>
-                {allNicheOptions.map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-gray-400">
+                Select one or more · <span className="text-pink-400">✦ AI suggested</span>
+              </p>
             </div>
 
             {/* ── Product Description — auto-filled + editable ── */}
@@ -219,7 +240,7 @@ export function AIScriptGenerator() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => fetchSuggestions(productName, niche, keywords)}
+                  onClick={() => fetchSuggestions(productName, niches[0] ?? '', keywords)}
                   disabled={suggesting || !productName}
                   className="flex items-center gap-1 text-xs text-gray-400 hover:text-pink-500 disabled:opacity-40 transition-colors"
                 >

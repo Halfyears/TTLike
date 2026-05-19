@@ -16,7 +16,8 @@ const scriptRequestSchema = z.object({
   productName:        z.string().min(1, 'Product name is required').max(100),
   productDescription: z.string().max(1000).optional().default(''),
   targetAudience:     z.string().max(200).optional().default(''),
-  niche:              z.string().max(100).optional().default('General'),
+  niches:             z.array(z.string().max(100)).min(1).max(10).optional(),
+  niche:              z.string().max(100).optional().default('General'), // legacy fallback
   // Accept array (new) or single string (legacy fallback)
   hookTypes:          z.array(z.enum(HOOK_VALUES)).min(1).max(5).optional(),
   hookType:           z.enum(HOOK_VALUES).optional(),
@@ -52,12 +53,16 @@ export async function POST(request: Request) {
     }
 
     const d = parsed.data
-    // Normalise: hookTypes takes priority; fall back to legacy hookType or default
+    // Normalise hookTypes
     const hookTypes: string[] = d.hookTypes?.length
       ? d.hookTypes
-      : d.hookType
-        ? [d.hookType]
-        : ['SURPRISE']
+      : d.hookType ? [d.hookType] : ['SURPRISE']
+
+    // Normalise niches
+    const niches: string[] = d.niches?.length
+      ? d.niches
+      : d.niche ? [d.niche] : ['General']
+    const nicheLabel = niches.join(', ')
 
     // Cache key: sorted hook types joined (e.g. "QUESTION+SURPRISE")
     const cacheKey = [...hookTypes].sort().join('+')
@@ -74,18 +79,18 @@ export async function POST(request: Request) {
         scripts = applyPersonalization(cached.scripts, d.brandName, d.offer, d.ctaType)
         fromCache = true
       } else {
-        scripts = await generateScripts({ ...d, hookTypes })
+        scripts = await generateScripts({ ...d, hookTypes, niches })
         saveCachedScripts(supabase, d.sourceVideoId, cacheKey, scripts)
       }
     } else {
-      scripts = await generateScripts({ ...d, hookTypes })
+      scripts = await generateScripts({ ...d, hookTypes, niches })
     }
 
     // ── Save to user history ──────────────────────────────────────────────────
     supabase.from('generated_scripts').insert({
       user_id:         user.id,
       product_name:    d.productName,
-      niche:           d.niche,
+      niche:           nicheLabel,
       hook_type:       cacheKey,
       scripts,
       source_video_id: d.sourceVideoId ?? null,
