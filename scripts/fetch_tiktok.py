@@ -95,7 +95,7 @@ def _api_get(path: str, params: dict) -> dict:
 
 def fetch_hashtag(tag: str, count: int = 10) -> list[dict]:
     # Step 1: resolve challenge_id
-    info_body = _api_get('challenge/info', {'name': tag})
+    info_body = _api_get('challenge/info', {'challenge_name': tag})
     log(f"  challenge/info body: {_json.dumps(info_body)[:300]}")
 
     data = info_body.get('data', {})
@@ -116,7 +116,7 @@ def fetch_hashtag(tag: str, count: int = 10) -> list[dict]:
             log(f"  challenge/posts body: {_json.dumps(posts_body)[:300]}")
     else:
         log(f"  no challenge_id — trying feed/list keyword search")
-        feed_body = _api_get('feed/list', {'keywords': tag, 'count': count, 'cursor': 0})
+        feed_body = _api_get('feed/list', {'keywords': tag, 'count': count, 'cursor': 0, 'region': 'US'})
         log(f"  feed/list body: {_json.dumps(feed_body)[:300]}")
         d = feed_body.get('data', {})
         raw_videos = d.get('videos') or d.get('itemList') or d.get('aweme_list') or []
