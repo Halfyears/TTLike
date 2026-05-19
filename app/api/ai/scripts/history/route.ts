@@ -19,6 +19,7 @@ export async function GET(request: Request) {
       .from('generated_scripts')
       .select('id, product_name, niche, hook_type, script_count, keywords, brand_name, offer, created_at, scripts', { count: 'exact' })
       .eq('user_id', user.id)
+      .is('deleted_at', null)          // hide soft-deleted rows
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -45,9 +46,11 @@ export async function DELETE(request: Request) {
     const { id } = await request.json()
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
+    // Soft delete — sets deleted_at timestamp; row is never hard-deleted.
+    // The script data remains in the system as a shared resource.
     const { error } = await supabase
       .from('generated_scripts')
-      .delete()
+      .update({ deleted_at: new Date().toISOString() })
       .eq('id', id)
       .eq('user_id', user.id)
 
