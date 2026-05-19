@@ -6,6 +6,8 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from '@/lib/constants'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: `${SITE_NAME} · AI TikTok Viral Intelligence for Dropshippers`,
   description: SITE_DESCRIPTION,
@@ -16,12 +18,24 @@ export const metadata: Metadata = {
   alternates: { canonical: SITE_URL },
 }
 
-const MOCK_TRENDING = [
-  { id: '1', productName: 'Posture Corrector Pro', niche: 'Health', viralScore: 94, views: 2300000 },
-  { id: '2', productName: 'LED Strip Lights Kit', niche: 'Home', viralScore: 89, views: 1800000 },
-  { id: '3', productName: 'Portable Blender Mini', niche: 'Kitchen', viralScore: 86, views: 1500000 },
-  { id: '4', productName: 'Silk Sleep Mask Set', niche: 'Beauty', viralScore: 82, views: 1200000 },
-]
+async function getTopVideos() {
+  try {
+    const url = new URL('/rest/v1/tiktok_videos', process.env.NEXT_PUBLIC_SUPABASE_URL)
+    url.searchParams.set('select', 'id,product_name,title,niche,viral_score,views')
+    url.searchParams.set('order', 'viral_score.desc')
+    url.searchParams.set('limit', '4')
+    const res = await fetch(url.toString(), {
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+      },
+      cache: 'no-store',
+    })
+    if (!res.ok) return []
+    const rows = await res.json()
+    return Array.isArray(rows) ? rows : []
+  } catch { return [] }
+}
 
 const FEATURES = [
   { icon: TrendingUp, title: 'Viral Product Intelligence', desc: 'Discover products going viral before they peak. AI tracks 10,000+ TikTok videos daily.' },
@@ -30,7 +44,8 @@ const FEATURES = [
   { icon: ShoppingBag, title: 'Product-Market Fit Score', desc: 'Know which products are actually converting, not just getting views.' },
 ]
 
-export default function HomePage() {
+export default async function HomePage() {
+  const trending = await getTopVideos()
   return (
     <>
       <script
@@ -105,25 +120,33 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {MOCK_TRENDING.map(product => (
-              <Link key={product.id} href={`/products/${product.id}`}>
-                <Card hover className="h-full">
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{product.niche}</span>
-                      <ViralScoreBadge score={product.viralScore} />
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mb-2">{product.productName}</h3>
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <TrendingUp className="h-3 w-3 text-pink-400" />
-                      {(product.views / 1_000_000).toFixed(1)}M views
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+          {trending.length === 0 ? (
+            <p className="text-sm text-gray-400 py-8 text-center">Loading real-time data — check back soon.</p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {trending.map((product: Record<string, unknown>) => (
+                <Link key={String(product.id)} href={`/products/${product.id}`}>
+                  <Card hover className="h-full">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                          {String(product.niche ?? 'General')}
+                        </span>
+                        <ViralScoreBadge score={Math.round(Number(product.viral_score ?? 0))} />
+                      </div>
+                      <h3 className="font-semibold text-gray-900 mb-2">
+                        {String(product.product_name ?? product.title ?? '')}
+                      </h3>
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <TrendingUp className="h-3 w-3 text-pink-400" />
+                        {(Number(product.views ?? 0) / 1_000_000).toFixed(1)}M views
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 

@@ -13,11 +13,6 @@ const QUICK_ACTIONS = [
   { href: '/hooks', icon: BookOpen, label: 'Hook Library', desc: 'Browse proven hook patterns', color: 'text-violet-500 bg-violet-50' },
 ]
 
-const FALLBACK_PRODUCTS = [
-  { id: '1', name: 'Posture Corrector Pro', niche: 'Health', score: 94 },
-  { id: '2', name: 'LED Strip Lights Kit', niche: 'Home', score: 89 },
-  { id: '3', name: 'Portable Blender Mini', niche: 'Kitchen', score: 86 },
-]
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -41,9 +36,7 @@ export default async function DashboardPage() {
         score: Math.round(r.viral_score),
       }))
     }
-  } catch { /* fallback below */ }
-
-  if (topProducts.length === 0) topProducts = FALLBACK_PRODUCTS
+  } catch { /* ignore */ }
 
   // User script count
   let scriptCount = 0
@@ -114,26 +107,30 @@ export default async function DashboardPage() {
           View all <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
-      <div className="space-y-2">
-        {topProducts.map((product, i) => (
-          <Link key={product.id} href={`/products/${product.id}`}>
-            <Card hover>
-              <CardContent className="p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-lg font-black text-gray-200 w-6">#{i + 1}</span>
-                  <div>
-                    <p className="font-medium text-sm text-gray-900">{product.name}</p>
-                    <p className="text-xs text-gray-500">{product.niche}</p>
+      {topProducts.length === 0 ? (
+        <p className="text-sm text-gray-400 py-4">No data yet — the scraper runs at noon and midnight Pacific.</p>
+      ) : (
+        <div className="space-y-2">
+          {topProducts.map((product, i) => (
+            <Link key={product.id} href={`/products/${product.id}`}>
+              <Card hover>
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-black text-gray-200 w-6">#{i + 1}</span>
+                    <div>
+                      <p className="font-medium text-sm text-gray-900">{product.name}</p>
+                      <p className="text-xs text-gray-500">{product.niche}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-1 text-xs font-semibold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full">
-                  <Zap className="h-3 w-3" /> {product.score}
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+                  <div className="flex items-center gap-1 text-xs font-semibold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full">
+                    <Zap className="h-3 w-3" /> {product.score}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

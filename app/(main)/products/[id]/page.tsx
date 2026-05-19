@@ -1,59 +1,62 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Eye, Heart, Share2, ExternalLink, Zap, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Eye, Heart, Share2, MessageCircle, ExternalLink, Zap, TrendingUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { formatNumber } from '@/lib/utils'
 
-const MOCK_PRODUCTS: Record<string, {
-  id: string; productName: string; niche: string; viralScore: number;
-  viewCount: bigint; likeCount: bigint; shareCount: bigint; commentCount: bigint;
-  authorName: string; authorHandle: string; hashtags: string[];
-  description: string; hookType: string; hookText: string;
-  whyItWorks: string; scriptTemplate: string; keyInsights: string[];
-}> = Object.fromEntries(
-  Array.from({ length: 24 }, (_, i) => [
-    String(i + 1),
-    {
-      id: String(i + 1),
-      productName: ['Posture Corrector Pro', 'LED Strip Lights Kit', 'Portable Blender Mini', 'Silk Sleep Mask'][i % 4],
-      niche: ['Health', 'Home', 'Kitchen', 'Beauty'][i % 4],
-      viralScore: 70 + (i % 30),
-      viewCount: BigInt(1_000_000 + i * 150_000),
-      likeCount: BigInt(50_000 + i * 5_000),
-      shareCount: BigInt(5_000 + i * 500),
-      commentCount: BigInt(2_000 + i * 200),
-      authorName: `Creator ${i + 1}`,
-      authorHandle: `@creator_${i + 1}`,
-      hashtags: ['#tiktokshop', '#viral', `#${['health', 'home', 'kitchen', 'beauty'][i % 4]}`],
-      description: `This product has been trending on TikTok for the past 2 weeks. High engagement rate and strong purchase intent signals detected.`,
-      hookType: ['SURPRISE', 'QUESTION', 'EMOTIONAL', 'FOMO'][i % 4],
-      hookText: [
-        "I can't believe I spent years with bad posture until I found this...",
-        "Did you know LED lights can increase your productivity by 30%?",
-        "This little blender changed my morning routine completely...",
-        "Everyone is talking about this silk sleep mask and here's why...",
-      ][i % 4],
-      whyItWorks: 'Strong visual transformation angle, relatable pain point, clear before/after narrative. The product demonstrates visible results quickly, creating high satisfaction and shareability.',
-      scriptTemplate: `[0-3s] Hook: "${['I can\'t believe...', 'Did you know...', 'This changed...', 'Everyone is...'][i % 4]}"\n[3-15s] Problem agitation - describe the pain point\n[15-25s] Product reveal and demo\n[25-30s] CTA: "Link in bio - limited stock!"`,
-      keyInsights: [
-        'Transformation angle outperforms product features',
-        'First 3 seconds must show the problem',
-        'UGC style outperforms polished ads 3:1',
-        'Add urgency to boost CTR',
-      ],
-    }
-  ])
-)
+export const dynamic = 'force-dynamic'
 
 interface Props { params: Promise<{ id: string }> }
 
+async function getVideo(id: string) {
+  const url = new URL(`/rest/v1/tiktok_videos`, process.env.NEXT_PUBLIC_SUPABASE_URL)
+  url.searchParams.set('select', '*')
+  url.searchParams.set('id', `eq.${id}`)
+  url.searchParams.set('limit', '1')
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+    },
+    cache: 'no-store',
+  })
+  if (!res.ok) return null
+  const rows = await res.json()
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null
+}
+
+async function getSimilar(niche: string, excludeId: string) {
+  const url = new URL(`/rest/v1/tiktok_videos`, process.env.NEXT_PUBLIC_SUPABASE_URL)
+  url.searchParams.set('select', 'id,product_name,title,viral_score')
+  url.searchParams.set('niche', `eq.${niche}`)
+  url.searchParams.set('id', `neq.${excludeId}`)
+  url.searchParams.set('order', 'viral_score.desc')
+  url.searchParams.set('limit', '3')
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+    },
+    cache: 'no-store',
+  })
+  if (!res.ok) return []
+  const rows = await res.json()
+  return Array.isArray(rows) ? rows : []
+}
+
 export default async function ProductDetailPage({ params }: Props) {
   const { id } = await params
-  const product = MOCK_PRODUCTS[id]
-  if (!product) notFound()
+  const v = await getVideo(id)
+  if (!v) notFound()
+
+  const productName = v.product_name ?? v.title ?? 'Untitled'
+  const niche = v.niche ?? 'General'
+  const similar = await getSimilar(niche, id)
 
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10">
@@ -66,32 +69,30 @@ export default async function ProductDetailPage({ params }: Props) {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <CardContent className="p-6">
+              {/* Thumbnail */}
+              {v.cover_url && (
+                <div className="mb-4 rounded-lg overflow-hidden aspect-video bg-gray-100">
+                  <img src={v.cover_url} alt={productName} className="w-full h-full object-cover" />
+                </div>
+              )}
+
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Badge>{product.niche}</Badge>
-                    <Badge variant="info">{product.hookType}</Badge>
+                    <Badge>{niche}</Badge>
                   </div>
-                  <h1 className="text-2xl font-bold text-gray-900">{product.productName}</h1>
-                  <p className="text-gray-500 text-sm mt-1">{product.authorHandle}</p>
+                  <h1 className="text-2xl font-bold text-gray-900">{productName}</h1>
+                  <p className="text-gray-500 text-sm mt-1">{v.author}</p>
                 </div>
-                <ViralScoreBadge score={product.viralScore} />
-              </div>
-
-              <p className="text-gray-600 text-sm leading-relaxed mb-4">{product.description}</p>
-
-              <div className="flex flex-wrap gap-1 mb-4">
-                {product.hashtags.map(tag => (
-                  <span key={tag} className="text-xs text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full">{tag}</span>
-                ))}
+                <ViralScoreBadge score={Math.round(v.viral_score ?? 0)} />
               </div>
 
               <div className="grid grid-cols-4 gap-3">
                 {[
-                  { icon: Eye, label: 'Views', value: formatNumber(Number(product.viewCount)) },
-                  { icon: Heart, label: 'Likes', value: formatNumber(Number(product.likeCount)) },
-                  { icon: Share2, label: 'Shares', value: formatNumber(Number(product.shareCount)) },
-                  { icon: TrendingUp, label: 'Comments', value: formatNumber(Number(product.commentCount)) },
+                  { icon: Eye, label: 'Views', value: formatNumber(Number(v.views ?? 0)) },
+                  { icon: Heart, label: 'Likes', value: formatNumber(Number(v.likes ?? 0)) },
+                  { icon: Share2, label: 'Shares', value: formatNumber(Number(v.shares ?? 0)) },
+                  { icon: MessageCircle, label: 'Comments', value: formatNumber(Number(v.comments ?? 0)) },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="text-center p-3 bg-gray-50 rounded-lg">
                     <Icon className="h-4 w-4 text-pink-400 mx-auto mb-1" />
@@ -100,46 +101,40 @@ export default async function ProductDetailPage({ params }: Props) {
                   </div>
                 ))}
               </div>
+
+              {v.video_url && (
+                <div className="mt-4">
+                  <a href={v.video_url} target="_blank" rel="noopener noreferrer">
+                    <Button variant="secondary" className="w-full">
+                      <ExternalLink className="h-4 w-4 mr-2" /> Watch on TikTok
+                    </Button>
+                  </a>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* AI Breakdown */}
+          {/* Viral Score Breakdown */}
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-4">
-                <Zap className="h-5 w-5 text-pink-500" />
-                <h2 className="text-lg font-semibold">AI Viral Breakdown</h2>
+                <TrendingUp className="h-5 w-5 text-pink-500" />
+                <h2 className="text-lg font-semibold">Viral Score Breakdown</h2>
               </div>
-
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Opening Hook</h3>
-                  <div className="bg-pink-50 border border-pink-100 rounded-lg p-3 text-sm text-pink-800 italic">
-                    &ldquo;{product.hookText}&rdquo;
-                  </div>
+              <div className="space-y-3 text-sm text-gray-600">
+                <div className="flex justify-between">
+                  <span>Engagement rate</span>
+                  <span className="font-medium text-gray-900">
+                    {v.views > 0 ? (((v.likes + v.shares * 3 + v.comments * 2) / v.views) * 100).toFixed(2) : '0'}%
+                  </span>
                 </div>
-
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Why It Works</h3>
-                  <p className="text-sm text-gray-600">{product.whyItWorks}</p>
+                <div className="flex justify-between">
+                  <span>Share amplification</span>
+                  <span className="font-medium text-gray-900">{formatNumber(Number(v.shares ?? 0))} shares</span>
                 </div>
-
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Key Insights</h3>
-                  <ul className="space-y-1">
-                    {product.keyInsights.map(insight => (
-                      <li key={insight} className="flex items-start gap-2 text-sm text-gray-600">
-                        <span className="text-pink-500 mt-0.5">•</span>{insight}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Script Template</h3>
-                  <pre className="bg-gray-50 rounded-lg p-3 text-xs text-gray-700 whitespace-pre-wrap font-mono">
-                    {product.scriptTemplate}
-                  </pre>
+                <div className="flex justify-between">
+                  <span>Viral score</span>
+                  <span className="font-bold text-pink-600">{(v.viral_score ?? 0).toFixed(1)} / 100</span>
                 </div>
               </div>
             </CardContent>
@@ -152,7 +147,7 @@ export default async function ProductDetailPage({ params }: Props) {
             <CardContent className="p-5">
               <h3 className="font-semibold text-gray-900 mb-4">Generate Script</h3>
               <p className="text-sm text-gray-600 mb-4">Use AI to create 5 custom scripts for this product</p>
-              <Link href={`/dashboard/ai-scripts?product=${encodeURIComponent(product.productName)}&hook=${product.hookType}`}>
+              <Link href={`/dashboard/ai-scripts?product=${encodeURIComponent(productName)}&niche=${encodeURIComponent(niche)}`}>
                 <Button className="w-full">
                   <Zap className="h-4 w-4 mr-2" /> Generate Scripts
                 </Button>
@@ -160,21 +155,25 @@ export default async function ProductDetailPage({ params }: Props) {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-5">
-              <h3 className="font-semibold text-gray-900 mb-3">Similar Products</h3>
-              <div className="space-y-2">
-                {Object.values(MOCK_PRODUCTS).slice(0, 4).filter(p => p.id !== id && p.niche === product.niche).slice(0, 3).map(p => (
-                  <Link key={p.id} href={`/products/${p.id}`} className="block">
-                    <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                      <span className="text-sm text-gray-700 font-medium truncate">{p.productName}</span>
-                      <ViralScoreBadge score={p.viralScore} showLabel={false} className="shrink-0 ml-2" />
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          {similar.length > 0 && (
+            <Card>
+              <CardContent className="p-5">
+                <h3 className="font-semibold text-gray-900 mb-3">Similar Products</h3>
+                <div className="space-y-2">
+                  {similar.map((p: Record<string, unknown>) => (
+                    <Link key={String(p.id)} href={`/products/${p.id}`} className="block">
+                      <div className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors">
+                        <span className="text-sm text-gray-700 font-medium truncate">
+                          {String(p.product_name ?? p.title ?? '')}
+                        </span>
+                        <ViralScoreBadge score={Math.round(Number(p.viral_score ?? 0))} showLabel={false} className="shrink-0 ml-2" />
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

@@ -5,19 +5,6 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Product Database · TTLike' }
 
-const MOCK_PRODUCTS = Array.from({ length: 24 }, (_, i) => ({
-  id: String(i + 1),
-  productName: ['Posture Corrector Pro', 'LED Strip Lights Kit', 'Portable Blender Mini', 'Silk Sleep Mask', 'Magnetic Phone Stand', 'Jade Roller Set', 'Resistance Bands Set', 'Cold Brew Coffee Maker', 'Plant Misting Bottle', 'Foam Roller Set', 'Wireless Ear Clips', 'Scalp Massager', 'Eye Mask Heating', 'Foot Massage Roller', 'Bamboo Organizer', 'UV Nail Lamp', 'Pet Hair Remover', 'Car Phone Holder', 'Smart Jump Rope', 'Glass Straw Set', 'Aromatherapy Diffuser', 'Knee Support Brace', 'Face Sculptor Tool', 'Travel Pillow'][i],
-  niche: ['Health', 'Home', 'Kitchen', 'Beauty', 'Tech', 'Beauty', 'Fitness', 'Kitchen', 'Home', 'Fitness', 'Tech', 'Beauty', 'Health', 'Health', 'Home', 'Beauty', 'Pets', 'Tech', 'Fitness', 'Kitchen', 'Home', 'Health', 'Beauty', 'Travel'][i],
-  viralScore: 60 + ((i * 7 + 13) % 38),
-  views: 500_000 + (i * 127_391) % 3_000_000,
-  likes: 10_000 + (i * 19_231) % 200_000,
-  shares: 1_000 + (i * 3_741) % 50_000,
-  author: `@tiktok_seller_${i}`,
-  cover_url: null as string | null,
-  video_url: null as string | null,
-}))
-
 const NICHES = ['All', 'Health', 'Beauty', 'Home', 'Kitchen', 'Tech', 'Fitness', 'Pets', 'Travel']
 
 interface ProductsPageProps {
@@ -28,7 +15,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const { q, niche, sort } = await searchParams
   const sortKey = sort === 'views' ? 'views' : 'viral_score'
 
-  // Try real DB data; fall back to mock if table is empty
   let products: Array<{
     id: string; productName: string; niche: string; viralScore: number;
     views: number; likes: number; shares: number; author: string;
@@ -51,43 +37,32 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       cache: 'no-store',
     })
 
-    if (!res.ok) {
-      const text = await res.text()
-      throw new Error(`HTTP ${res.status}: ${text}`)
-    }
-
-    const rows = await res.json()
-    if (Array.isArray(rows) && rows.length > 0) {
-      products = rows.map((r: Record<string, unknown>) => ({
-        id: String(r.id),
-        productName: String(r.product_name ?? r.title ?? ''),
-        niche: String(r.niche ?? 'General'),
-        viralScore: Number(r.viral_score ?? 0),
-        views: Number(r.views ?? 0),
-        likes: Number(r.likes ?? 0),
-        shares: Number(r.shares ?? 0),
-        author: String(r.author ?? ''),
-        cover_url: r.cover_url ? String(r.cover_url) : null,
-        video_url: r.video_url ? String(r.video_url) : null,
-      }))
+    if (res.ok) {
+      const rows = await res.json()
+      if (Array.isArray(rows)) {
+        products = rows.map((r: Record<string, unknown>) => ({
+          id: String(r.id),
+          productName: String(r.product_name ?? r.title ?? ''),
+          niche: String(r.niche ?? 'General'),
+          viralScore: Number(r.viral_score ?? 0),
+          views: Number(r.views ?? 0),
+          likes: Number(r.likes ?? 0),
+          shares: Number(r.shares ?? 0),
+          author: String(r.author ?? ''),
+          cover_url: r.cover_url ? String(r.cover_url) : null,
+          video_url: r.video_url ? String(r.video_url) : null,
+        }))
+      }
     }
   } catch (err) {
     console.error('[products] fetch failed:', err)
-  }
-
-  if (products.length === 0) {
-    const mock = MOCK_PRODUCTS
-      .filter(p => !q || p.productName.toLowerCase().includes(q.toLowerCase()))
-      .filter(p => !niche || niche === 'All' || p.niche === niche)
-      .sort((a, b) => sort === 'views' ? b.views - a.views : b.viralScore - a.viralScore)
-    products = mock.map(m => ({ ...m, productName: m.productName, author: m.author }))
   }
 
   return (
     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Product Database</h1>
-        <p className="text-gray-600">AI-curated viral products updated every 6 hours</p>
+        <p className="text-gray-600">AI-curated viral products updated twice daily</p>
       </div>
 
       {/* Filters */}
@@ -129,23 +104,30 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
       <p className="text-sm text-gray-500 mb-4">{products.length} products found</p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {products.map(product => (
-          <ProductCard
-            key={product.id}
-            id={product.id}
-            productName={product.productName}
-            niche={product.niche}
-            viralScore={product.viralScore}
-            viewCount={product.views}
-            likeCount={product.likes}
-            shareCount={product.shares}
-            authorHandle={product.author}
-            thumbnailUrl={product.cover_url}
-            videoUrl={product.video_url}
-          />
-        ))}
-      </div>
+      {products.length === 0 ? (
+        <div className="text-center py-20 text-gray-400">
+          <p className="text-lg font-medium mb-2">No products yet</p>
+          <p className="text-sm">The scraper runs at noon and midnight Pacific — check back soon.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {products.map(product => (
+            <ProductCard
+              key={product.id}
+              id={product.id}
+              productName={product.productName}
+              niche={product.niche}
+              viralScore={product.viralScore}
+              viewCount={product.views}
+              likeCount={product.likes}
+              shareCount={product.shares}
+              authorHandle={product.author}
+              thumbnailUrl={product.cover_url}
+              videoUrl={product.video_url}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
