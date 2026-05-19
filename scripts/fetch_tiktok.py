@@ -84,49 +84,45 @@ HEADERS = {
     'x-rapidapi-host': RAPIDAPI_HOST,
 }
 
-# Endpoint candidates in priority order
-HASHTAG_ENDPOINTS = [
-    ('GET', f'https://{RAPIDAPI_HOST}/challenge/posts', lambda tag, count: {'name': tag, 'count': count, 'cursor': 0}),
-    ('GET', f'https://{RAPIDAPI_HOST}/hashtag/posts',   lambda tag, count: {'name': tag, 'count': count, 'cursor': 0}),
-    ('GET', f'https://{RAPIDAPI_HOST}/feed/list',       lambda tag, count: {'keywords': tag, 'count': count, 'cursor': 0}),
-]
+BASE = f'https://{RAPIDAPI_HOST}'
+
+def get_challenge_id(tag: str) -> str:
+    """Resolve hashtag name → numeric challenge_id."""
+    resp = requests.get(f'{BASE}/challenge/info', headers=HEADERS, params={'name': tag}, timeout=30)
+    resp.raise_for_status()
+    body = resp.json()
+    # field path varies: data.challengeInfo.challenge.id or data.challenge.id
+    data = body.get('data', {})
+    ch = data.get('challengeInfo', data).get('challenge', data.get('challenge', {}))
+    cid = ch.get('id') or ch.get('challengeId') or data.get('id')
+    if not cid:
+        raise ValueError(f"challenge_id not found for #{tag}. keys: {list(data.keys())}")
+    return str(cid)
 
 def fetch_hashtag(tag: str, count: int = 10) -> list[dict]:
-    last_err = None
-    for method, url, make_params in HASHTAG_ENDPOINTS:
-        try:
-            resp = requests.request(method, url, headers=HEADERS, params=make_params(tag, count), timeout=30)
-            if resp.status_code == 404:
-                log(f"  404 at {url} — trying next endpoint")
-                continue
-            resp.raise_for_status()
-            body = resp.json()
-            break
-        except Exception as e:
-            last_err = e
-            log(f"  endpoint error ({url}): {e}")
-    else:
-        raise last_err or RuntimeError('all endpoints failed')
+    challenge_id = get_challenge_id(tag)
+    log(f"  challenge_id={challenge_id}")
 
-    # Log top-level keys always so we can see the real structure
-    log(f"  DEBUG body keys: {list(body.keys()) if isinstance(body, dict) else type(body)}")
-    data = body.get('data', body)  # some endpoints put videos at root
-    if isinstance(data, dict):
-        log(f"  DEBUG data keys: {list(data.keys())}")
-    elif isinstance(data, list):
-        log(f"  DEBUG data is list, len={len(data)}")
+    resp = requests.get(
+        f'{BASE}/challenge/posts',
+        headers=HEADERS,
+        params={'challenge_id': challenge_id, 'count': count, 'cursor': 0},
+        timeout=30,
+    )
+    resp.raise_for_status()
+    body = resp.json()
 
+    data = body.get('data', {})
     raw_videos = (
-        (data.get('videos') if isinstance(data, dict) else None)
-        or (data.get('itemList') if isinstance(data, dict) else None)
-        or (data.get('aweme_list') if isinstance(data, dict) else None)
-        or (body.get('aweme_list') if isinstance(body, dict) else None)
-        or (data if isinstance(data, list) else None)
-        or []
+        data.get('videos')
+        or data.get('itemList')
+        or data.get('aweme_list')
+        or body.get('aweme_list')
+        or (data if isinstance(data, list) else [])
     )
     if not raw_videos:
         import json as _json
-        log(f"  WARNING: no video list found. Raw body (truncated): {_json.dumps(body)[:500]}")
+        raise ValueError(f"no video list in response: {_json.dumps(body)[:300]}")
 
     videos = []
     for v in raw_videos:
