@@ -228,14 +228,14 @@ export default async function ProductDetailPage({ params }: Props) {
           </Card>
         </div>
 
-        {/* ── RIGHT: AI 爆款拆解面板 ── */}
+        {/* ── RIGHT: AI Viral Breakdown ── */}
         <div className="lg:col-span-2 space-y-4">
           <Card className="border-pink-100">
             <CardContent className="p-5">
               {/* Panel header */}
               <div className="flex items-center gap-2 mb-4 pb-3 border-b border-pink-50">
                 <span className="text-lg">🚀</span>
-                <h2 className="text-sm font-bold text-gray-900">AI 爆款拆解面板</h2>
+                <h2 className="text-sm font-bold text-gray-900">AI Viral Breakdown</h2>
               </div>
 
               <div className="space-y-3">
@@ -284,7 +284,7 @@ export default async function ProductDetailPage({ params }: Props) {
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-3">
                   <FileText className="h-4 w-4 text-gray-400" />
-                  <h3 className="text-sm font-semibold text-gray-900">📝 AI Extracted Script</h3>
+                  <h3 className="text-sm font-semibold text-gray-900">📝 Extracted Caption</h3>
                 </div>
                 <p className="text-xs text-gray-600 leading-relaxed bg-gray-50 rounded-lg p-3 italic">
                   &ldquo;{insights.caption}&rdquo;
