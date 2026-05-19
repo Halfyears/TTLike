@@ -108,16 +108,25 @@ def fetch_hashtag(tag: str, count: int = 10) -> list[dict]:
     else:
         raise last_err or RuntimeError('all endpoints failed')
 
-    data = body.get('data', {})
+    # Log top-level keys always so we can see the real structure
+    log(f"  DEBUG body keys: {list(body.keys()) if isinstance(body, dict) else type(body)}")
+    data = body.get('data', body)  # some endpoints put videos at root
+    if isinstance(data, dict):
+        log(f"  DEBUG data keys: {list(data.keys())}")
+    elif isinstance(data, list):
+        log(f"  DEBUG data is list, len={len(data)}")
+
     raw_videos = (
-        data.get('videos')
-        or data.get('itemList')
-        or data.get('aweme_list')
+        (data.get('videos') if isinstance(data, dict) else None)
+        or (data.get('itemList') if isinstance(data, dict) else None)
+        or (data.get('aweme_list') if isinstance(data, dict) else None)
         or (body.get('aweme_list') if isinstance(body, dict) else None)
+        or (data if isinstance(data, list) else None)
         or []
     )
     if not raw_videos:
-        log(f"  WARNING: no video list found. Keys: {list(data.keys()) if isinstance(data, dict) else type(data)}")
+        import json as _json
+        log(f"  WARNING: no video list found. Raw body (truncated): {_json.dumps(body)[:500]}")
 
     videos = []
     for v in raw_videos:
