@@ -1,26 +1,22 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Zap, Search, TrendingUp, BookOpen, ArrowRight } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/Card'
+import { Zap, Search, TrendingUp, BookOpen, ArrowRight, ChevronRight } from 'lucide-react'
 import { IS_BETA_PHASE } from '@/lib/constants'
 
 export const metadata = { title: 'Dashboard · TTLike' }
 
 const QUICK_ACTIONS = [
-  { href: '/dashboard/ai-scripts', icon: Zap, label: 'Generate AI Scripts', desc: 'Create viral UGC scripts in seconds', color: 'text-pink-500 bg-pink-50' },
-  { href: '/products', icon: Search, label: 'Browse Products', desc: 'Find your next winning product', color: 'text-blue-500 bg-blue-50' },
-  { href: '/trending', icon: TrendingUp, label: 'View Trending', desc: 'See what\'s going viral today', color: 'text-green-500 bg-green-50' },
-  { href: '/hooks', icon: BookOpen, label: 'Hook Library', desc: 'Browse proven hook patterns', color: 'text-violet-500 bg-violet-50' },
+  { href: '/dashboard/ai-scripts', icon: Zap,        label: 'AI Scripts',  color: 'bg-pink-500' },
+  { href: '/products',             icon: Search,      label: 'Products',    color: 'bg-blue-500' },
+  { href: '/trending',             icon: TrendingUp,  label: 'Trending',    color: 'bg-emerald-500' },
+  { href: '/hooks',                icon: BookOpen,    label: 'Hook Library',color: 'bg-violet-500' },
 ]
-
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-
   const firstName = user?.user_metadata?.name?.split(' ')[0] ?? user?.email?.split('@')[0] ?? 'there'
 
-  // Top products from DB
   let topProducts: Array<{ id: string; name: string; niche: string; score: number }> = []
   try {
     const { data } = await supabase
@@ -38,7 +34,6 @@ export default async function DashboardPage() {
     }
   } catch { /* ignore */ }
 
-  // User script count
   let scriptCount = 0
   try {
     const { count } = await supabase
@@ -50,79 +45,100 @@ export default async function DashboardPage() {
   } catch { /* ignore */ }
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-2xl mx-auto">
+
+      {/* Beta banner */}
       {IS_BETA_PHASE && (
-        <div className="mb-6 p-4 bg-gradient-to-r from-pink-50 to-violet-50 border border-pink-100 rounded-xl">
-          <p className="text-sm font-medium text-pink-700">
-            🎉 You&apos;re in Beta! All Pro features are free. No credit card needed.
+        <div className="mb-4 px-3 py-2.5 bg-pink-50 border border-pink-100 rounded-xl">
+          <p className="text-xs font-medium text-pink-600">
+            🎉 Beta — All Pro features free. No credit card needed.
           </p>
         </div>
       )}
 
-      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-0.5">Welcome back, {firstName}!</h1>
-      <p className="text-gray-500 text-sm mb-6">What do you want to do today?</p>
+      {/* Welcome */}
+      <div className="mb-5">
+        <h1 className="text-xl font-bold text-gray-900">Welcome back, {firstName}!</h1>
+        <p className="text-sm text-gray-400 mt-0.5">What do you want to do today?</p>
+      </div>
 
-      {/* Quick Actions — compact 2×2 on mobile, descriptive on desktop */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        {QUICK_ACTIONS.map(({ href, icon: Icon, label, desc, color }) => (
+      {/* ── PRIMARY CTA ── */}
+      <Link href="/dashboard/ai-scripts" className="block mb-3">
+        <div className="w-full flex items-center justify-between bg-gradient-to-r from-pink-500 to-violet-600 text-white rounded-2xl px-5 py-4 shadow-md hover:shadow-lg transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
+              <Zap className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-bold text-base">Generate AI Scripts</p>
+              <p className="text-xs text-pink-100 mt-0.5">Create 5 viral scripts with Claude AI</p>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 opacity-70 shrink-0" />
+        </div>
+      </Link>
+
+      {/* ── SECONDARY ACTIONS — 3 compact tiles ── */}
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        {QUICK_ACTIONS.slice(1).map(({ href, icon: Icon, label, color }) => (
           <Link key={href} href={href}>
-            <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-3 sm:p-4 h-full">
-              <div className={`shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-lg ${color} flex items-center justify-center`}>
-                <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+            <div className="flex flex-col items-center gap-2 bg-white rounded-xl border border-gray-100 py-3 px-2 hover:shadow-sm transition-shadow">
+              <div className={`h-9 w-9 rounded-lg ${color} flex items-center justify-center`}>
+                <Icon className="h-4 w-4 text-white" />
               </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-gray-900 text-xs sm:text-sm leading-tight">{label}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5 hidden sm:block leading-tight">{desc}</p>
-              </div>
+              <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{label}</span>
             </div>
           </Link>
         ))}
       </div>
 
-      {/* Your Activity — always 1×4 single row */}
-      <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Your Activity</h2>
-      <div className="grid grid-cols-4 gap-2 mb-6">
+      {/* ── YOUR ACTIVITY — horizontal scroll row ── */}
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Your Activity</p>
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4 mb-6 scrollbar-hide">
         {[
-          { label: 'Scripts', value: scriptCount.toString(), sub: 'Generated' },
-          { label: 'Viewed', value: '—', sub: 'Products' },
-          { label: 'Saved', value: '—', sub: 'Hooks' },
-          { label: 'Plan', value: 'Free', sub: 'Beta' },
+          { label: 'Scripts',  value: scriptCount.toString(), accent: 'text-pink-500' },
+          { label: 'Products', value: '—',                   accent: 'text-blue-500' },
+          { label: 'Hooks',    value: '—',                   accent: 'text-violet-500' },
+          { label: 'Plan',     value: 'Free',                accent: 'text-emerald-500' },
         ].map(stat => (
-          <div key={stat.label} className="bg-white rounded-xl border border-gray-100 p-2.5 sm:p-4 text-center">
-            <div className="text-lg sm:text-2xl font-bold text-gray-900 leading-none">{stat.value}</div>
-            <div className="text-[10px] sm:text-xs text-gray-500 mt-1 leading-tight">{stat.label}</div>
-            <div className="text-[10px] text-pink-400 leading-tight hidden sm:block">{stat.sub}</div>
+          <div key={stat.label} className="shrink-0 w-20 sm:w-auto bg-white rounded-xl border border-gray-100 p-3 text-center">
+            <div className={`text-xl font-black ${stat.accent}`}>{stat.value}</div>
+            <div className="text-[11px] text-gray-400 mt-0.5 font-medium">{stat.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Today's Top Products — compact rows */}
+      {/* ── TOP PRODUCTS ── */}
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Top Products</h2>
-        <Link href="/products" className="text-pink-500 text-xs font-semibold flex items-center gap-0.5 hover:text-pink-600">
-          All <ArrowRight className="h-3 w-3" />
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Top Products</p>
+        <Link href="/products" className="flex items-center gap-0.5 text-pink-500 text-xs font-semibold hover:text-pink-600">
+          View all <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
+
       {topProducts.length === 0 ? (
-        <p className="text-sm text-gray-400 py-3">No data yet — scraper runs at noon and midnight Pacific.</p>
+        <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
+          <p className="text-sm text-gray-400">Scraper runs at noon &amp; midnight Pacific.</p>
+        </div>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {topProducts.map((product, i) => (
             <Link key={product.id} href={`/products/${product.id}`}>
-              <div className="flex items-center gap-2.5 bg-white rounded-xl border border-gray-100 px-3 py-2.5 hover:shadow-sm transition-shadow">
-                <span className="text-base font-black text-gray-200 w-5 shrink-0">#{i + 1}</span>
+              <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 px-4 py-3 hover:shadow-sm transition-shadow">
+                <span className="text-sm font-black text-gray-200 w-4 shrink-0">{i + 1}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-xs sm:text-sm text-gray-900 truncate">{product.name}</p>
-                  <p className="text-[10px] text-gray-400">{product.niche}</p>
+                  <p className="font-semibold text-sm text-gray-900 truncate leading-tight">{product.name}</p>
+                  <p className="text-xs text-gray-400">{product.niche}</p>
                 </div>
-                <div className="flex items-center gap-1 text-xs font-bold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full shrink-0">
-                  <Zap className="h-2.5 w-2.5" /> {product.score}
+                <div className="flex items-center gap-1 bg-pink-50 text-pink-600 text-xs font-bold px-2 py-1 rounded-full shrink-0">
+                  <Zap className="h-3 w-3" />{product.score}
                 </div>
               </div>
             </Link>
           ))}
         </div>
       )}
+
     </div>
   )
 }
