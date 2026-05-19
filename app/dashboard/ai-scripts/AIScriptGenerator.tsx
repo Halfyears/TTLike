@@ -55,10 +55,12 @@ export function AIScriptGenerator() {
   const [brandName, setBrandName] = useState('')
   const [offer, setOffer] = useState('')
   const [ctaType, setCtaType] = useState('bio')
+  const [sourceVideoId, setSourceVideoId] = useState('')
 
   const [scripts, setScripts] = useState<Script[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [fromCache, setFromCache] = useState(false)
 
   const [suggesting, setSuggesting] = useState(false)
   const [suggestError, setSuggestError] = useState('')
@@ -69,9 +71,11 @@ export function AIScriptGenerator() {
     const title = searchParams.get('suggested_title') ?? searchParams.get('product')
     const kw = searchParams.get('keywords')
     const n = searchParams.get('niche')
+    const vid = searchParams.get('from_video')
     if (title) setProductName(title)
     if (kw) setKeywords(kw)
     if (n) setNiche(n)
+    if (vid) setSourceVideoId(vid)
   }, [searchParams])
 
   // ── Auto-fetch suggestions when product name is known ─────────────────────
@@ -130,17 +134,19 @@ export function AIScriptGenerator() {
           brandName: brandName || undefined,
           offer: offer || undefined,
           ctaType,
+          sourceVideoId: sourceVideoId || undefined,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to generate scripts')
       setScripts(data.scripts)
+      setFromCache(!!data.fromCache)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setLoading(false)
     }
-  }, [productName, productDescription, targetAudience, niche, hookType, keywords, brandName, offer, ctaType])
+  }, [productName, productDescription, targetAudience, niche, hookType, keywords, brandName, offer, ctaType, sourceVideoId])
 
   // All known niche options: preset + AI suggestions + current DB value
   const allNicheOptions = Array.from(new Set([
@@ -344,9 +350,14 @@ export function AIScriptGenerator() {
       {/* ── Results ── */}
       {scripts.length > 0 && (
         <div>
-          <div className="flex items-center gap-3 mb-5">
+          <div className="flex items-center gap-3 mb-5 flex-wrap">
             <h2 className="text-xl font-bold text-gray-900">Generated Scripts</h2>
             <span className="px-2.5 py-0.5 rounded-full bg-pink-100 text-pink-600 text-xs font-bold">{scripts.length}</span>
+            {fromCache && (
+              <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-medium">
+                ⚡ Instant — served from shared cache
+              </span>
+            )}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
             {scripts.map((script, i) => (

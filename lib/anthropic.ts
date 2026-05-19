@@ -10,7 +10,7 @@ export async function generateScripts(params: {
   brandName?: string
   offer?: string
   ctaType?: string
-}): Promise<string[]> {
+}): Promise<Array<{ title: string; hook: string; body: string; cta: string; fullScript: string }>> {
   const {
     hookType, productName, niche, keywords, brandName, offer, ctaType,
   } = params
