@@ -1,37 +1,158 @@
 #!/usr/bin/env python3
+"""
+TTLike TikTok Scraper — RapidAPI (tiktok-scraper7)
+Fetches real viral product videos from TikTok via RapidAPI.
+
+Required env vars:
+  NEXT_PUBLIC_SUPABASE_URL  — Supabase project URL
+  SUPABASE_SERVICE_KEY      — Supabase service-role key
+  RAPIDAPI_KEY              — RapidAPI key
+"""
+
 import os
 import sys
-from datetime import datetime
+import math
+import requests
+from datetime import datetime, timezone
 
+# ── deps ──────────────────────────────────────────────────────────────────────
 try:
     from supabase import create_client
 except ImportError:
-    print("ERROR: supabase package not installed. Run: pip install supabase")
+    print("ERROR: pip install supabase")
     sys.exit(1)
 
-# ── env vars ──────────────────────────────────────────────────────────────────
+# ── config ────────────────────────────────────────────────────────────────────
 SUPABASE_URL = os.environ.get('NEXT_PUBLIC_SUPABASE_URL', '').strip()
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '').strip()
+RAPIDAPI_KEY = os.environ.get('RAPIDAPI_KEY', '').strip()
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("ERROR: Missing environment variables.")
-    print(f"  NEXT_PUBLIC_SUPABASE_URL = {'SET' if SUPABASE_URL else 'MISSING'}")
-    print(f"  SUPABASE_SERVICE_KEY     = {'SET' if SUPABASE_KEY else 'MISSING'}")
-    print()
-    print("Fix: Add these as GitHub Secrets at:")
-    print("  https://github.com/Halfyears/TTLike/settings/secrets/actions")
+RAPIDAPI_HOST = 'tiktok-scraper7.p.rapidapi.com'
+
+# Hashtags to scrape — product-focused
+HASHTAGS = [
+    'tiktokfinds',
+    'tiktokshop',
+    'tiktokmademebuyit',
+    'amazonfinds',
+    'viralproducts',
+]
+
+VIDEOS_PER_HASHTAG = 10   # stays within 300 req/month budget at 5 tags × 10 = 50/run
+
+# ── validation ────────────────────────────────────────────────────────────────
+missing = [k for k, v in {
+    'NEXT_PUBLIC_SUPABASE_URL': SUPABASE_URL,
+    'SUPABASE_SERVICE_KEY': SUPABASE_KEY,
+    'RAPIDAPI_KEY': RAPIDAPI_KEY,
+}.items() if not v]
+
+if missing:
+    print(f"ERROR: Missing env vars: {', '.join(missing)}")
     sys.exit(1)
 
-try:
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    print(f"Connected to Supabase: {SUPABASE_URL[:40]}…")
-except Exception as e:
-    print(f"ERROR: Could not connect to Supabase: {e}")
-    sys.exit(1)
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# ── logging ───────────────────────────────────────────────────────────────────
+# ── helpers ───────────────────────────────────────────────────────────────────
+def log(msg: str) -> None:
+    ts = datetime.now(timezone.utc).strftime('%H:%M:%S')
+    print(f"[{ts}] {msg}")
 
-def log_run(status, msg, fetched=0, updated=0, error=None):
+def viral_score(views: int, likes: int, shares: int, comments: int) -> float:
+    if views == 0:
+        return 0.0
+    engagement = (likes + shares * 3 + comments * 2) / views
+    view_score = min(50.0, math.log10(max(views, 1)) * 10)
+    eng_score = min(50.0, engagement * 1000)
+    return round(view_score + eng_score, 2)
+
+def detect_niche(text: str) -> str:
+    t = text.lower()
+    if any(w in t for w in ['health', 'fitness', 'workout', 'posture', 'yoga', 'gym']): return 'Fitness'
+    if any(w in t for w in ['beauty', 'makeup', 'skincare', 'glow', 'serum', 'lash']): return 'Beauty'
+    if any(w in t for w in ['kitchen', 'cooking', 'food', 'recipe', 'blender', 'chef']): return 'Kitchen'
+    if any(w in t for w in ['home', 'decor', 'room', 'house', 'clean', 'organiz']): return 'Home'
+    if any(w in t for w in ['tech', 'gadget', 'phone', 'device', 'smart', 'led', 'light']): return 'Tech'
+    if any(w in t for w in ['pet', 'dog', 'cat', 'animal']): return 'Pets'
+    if any(w in t for w in ['travel', 'trip', 'vacation', 'luggage', 'pillow']): return 'Travel'
+    if any(w in t for w in ['health', 'wellness', 'massage', 'pain', 'sleep']): return 'Health'
+    return 'General'
+
+# ── RapidAPI fetch ────────────────────────────────────────────────────────────
+def fetch_hashtag(tag: str, count: int = 10) -> list[dict]:
+    url = f'https://{RAPIDAPI_HOST}/hashtag/posts'
+    headers = {
+        'x-rapidapi-key': RAPIDAPI_KEY,
+        'x-rapidapi-host': RAPIDAPI_HOST,
+        'Content-Type': 'application/json',
+    }
+    params = {'name': tag, 'count': count, 'cursor': 0}
+
+    resp = requests.get(url, headers=headers, params=params, timeout=30)
+    resp.raise_for_status()
+    body = resp.json()
+
+    # tiktok-scraper7 returns data.videos or data.itemList
+    data = body.get('data', {})
+    raw_videos = data.get('videos') or data.get('itemList') or []
+
+    videos = []
+    for v in raw_videos:
+        try:
+            # Author
+            author = v.get('author', {})
+            author_handle = f"@{author.get('unique_id', author.get('uniqueId', ''))}"
+            author_name = author.get('nickname', author_handle)
+            cover = author.get('avatar', author.get('avatarThumb', ''))
+
+            # Stats — field names vary across API versions
+            plays   = int(v.get('play_count')  or v.get('playCount')  or 0)
+            likes   = int(v.get('digg_count')  or v.get('diggCount')  or 0)
+            shares  = int(v.get('share_count') or v.get('shareCount') or 0)
+            comments = int(v.get('comment_count') or v.get('commentCount') or 0)
+
+            title = v.get('title') or v.get('desc') or ''
+            video_id = str(v.get('video_id') or v.get('id') or '')
+            video_url = f"https://www.tiktok.com/@{author.get('unique_id', '')}/video/{video_id}"
+            thumbnail = v.get('origin_cover') or v.get('cover') or v.get('originCover') or ''
+            author_avatar = cover
+
+            niche = detect_niche(title)
+            score = viral_score(plays, likes, shares, comments)
+
+            if not video_id:
+                continue
+
+            videos.append({
+                'tiktok_id': video_id,
+                'title': title[:500],
+                'author': author_name,
+                'views': plays,
+                'likes': likes,
+                'shares': shares,
+                'comments': comments,
+                'viral_score': score,
+                'video_url': video_url,
+                'cover_url': thumbnail or None,
+                'author_avatar_url': author_avatar or None,
+                'niche': niche,
+                'product_name': None,
+            })
+        except Exception as e:
+            log(f"  skip video: {e}")
+
+    return videos
+
+# ── Supabase upsert ───────────────────────────────────────────────────────────
+def upsert(videos: list[dict]) -> int:
+    if not videos:
+        return 0
+    result = supabase.table('tiktok_videos').upsert(
+        videos, on_conflict='tiktok_id'
+    ).execute()
+    return len(result.data) if result.data else 0
+
+def log_run(status: str, msg: str, fetched: int = 0, updated: int = 0, error: str | None = None) -> None:
     try:
         supabase.table('scraper_logs').insert({
             'status': status,
@@ -39,93 +160,38 @@ def log_run(status, msg, fetched=0, updated=0, error=None):
             'videos_fetched': fetched,
             'videos_updated': updated,
             'error_details': error,
-            'created_at': datetime.utcnow().isoformat() + 'Z',
+            'created_at': datetime.now(timezone.utc).isoformat(),
         }).execute()
-        print(f"Logged: [{status}] {msg}")
     except Exception as e:
-        # Don't crash the scraper if logging fails
-        print(f"WARNING: Could not write to scraper_logs: {e}")
-        print("Make sure you ran prisma/migrations/scraper_logs.sql in Supabase SQL Editor.")
-
-# ── mock data ─────────────────────────────────────────────────────────────────
-
-def generate_mock_videos():
-    products = [
-        ('Posture Corrector Pro', 'Health'),
-        ('LED Strip Lights Kit', 'Home'),
-        ('Portable Blender Mini', 'Kitchen'),
-        ('Silk Sleep Mask', 'Beauty'),
-        ('Magnetic Phone Stand', 'Tech'),
-        ('Resistance Bands Set', 'Fitness'),
-        ('Jade Roller Set', 'Beauty'),
-        ('Cold Brew Coffee Maker', 'Kitchen'),
-        ('Smart Jump Rope', 'Fitness'),
-        ('Aromatherapy Diffuser', 'Home'),
-        ('UV Nail Lamp', 'Beauty'),
-        ('Pet Hair Remover', 'Pets'),
-        ('Car Phone Holder', 'Tech'),
-        ('Glass Straw Set', 'Kitchen'),
-        ('Knee Support Brace', 'Health'),
-        ('Foot Massage Roller', 'Health'),
-        ('Scalp Massager', 'Beauty'),
-        ('Bamboo Organizer', 'Home'),
-        ('Travel Pillow', 'Travel'),
-        ('Foam Roller Set', 'Fitness'),
-    ]
-    videos = []
-    for i, (name, niche) in enumerate(products, start=1):
-        views = 100_000 + i * 50_000
-        videos.append({
-            'tiktok_id': f'mock_video_{i:03d}',
-            'title': f'{name} — TikTok Viral',
-            'author': f'@creator_{i}',
-            'views': views,
-            'likes': views // 20,
-            'shares': views // 100,
-            'comments': views // 50,
-            'viral_score': round(50.0 + i * 2.2, 1),
-            'video_url': f'https://www.tiktok.com/@creator_{i}/video/mock_{i}',
-            'cover_url': None,
-            'author_avatar_url': None,
-            'niche': niche,
-            'product_name': name,
-        })
-    return videos
+        log(f"WARNING: could not write scraper_logs: {e}")
 
 # ── main ──────────────────────────────────────────────────────────────────────
+def main() -> None:
+    log("=== TTLike Scraper (RapidAPI) ===")
 
-def main():
-    print("=== TTLike Scraper ===")
-    print(f"Started at {datetime.utcnow().isoformat()}Z")
+    all_videos: dict[str, dict] = {}   # deduplicate by tiktok_id
 
-    try:
-        videos = generate_mock_videos()
-        print(f"Generated {len(videos)} videos")
+    for tag in HASHTAGS:
+        log(f"Fetching #{tag} …")
+        try:
+            videos = fetch_hashtag(tag, VIDEOS_PER_HASHTAG)
+            for v in videos:
+                all_videos[v['tiktok_id']] = v
+            log(f"  → {len(videos)} videos (total unique: {len(all_videos)})")
+        except Exception as e:
+            log(f"  ❌ #{tag} failed: {e}")
 
-        # Single upsert call — much faster and atomic
-        result = supabase.table('tiktok_videos').upsert(
-            videos,
-            on_conflict='tiktok_id',
-        ).execute()
+    unique = list(all_videos.values())
+    log(f"Total unique videos: {len(unique)}")
 
-        if not result.data:
-            raise RuntimeError(
-                "Upsert returned no data. Possible causes:\n"
-                "  1. tiktok_videos table does not exist — run prisma/migrations/tiktok_videos_v2.sql in Supabase SQL Editor\n"
-                "  2. Column mismatch — make sure the migration was run after the schema change\n"
-                f"  Raw result: {result}"
-            )
-
-        updated = len(result.data)
-        print(f"✅ Upserted {updated} rows into tiktok_videos")
-        log_run('success', f'Upserted {updated} videos', len(videos), updated)
-
-    except Exception as e:
-        print(f"❌ Scraper failed: {e}")
-        import traceback
-        traceback.print_exc()
-        log_run('error', 'Scraper failed', error=str(e))
+    if not unique:
+        log("❌ No videos fetched — check RAPIDAPI_KEY and API quota")
+        log_run('error', 'No videos fetched', error='All hashtag requests returned 0 results')
         sys.exit(1)
+
+    updated = upsert(unique)
+    log(f"✅ Upserted {updated} rows into tiktok_videos")
+    log_run('success', f'Fetched {len(unique)} videos, upserted {updated}', len(unique), updated)
 
 if __name__ == '__main__':
     main()
