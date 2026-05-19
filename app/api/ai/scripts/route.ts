@@ -11,16 +11,16 @@ import {
 import { z } from 'zod'
 
 const scriptRequestSchema = z.object({
-  productName:     z.string().min(1).max(100),
+  productName:        z.string().min(1, 'Product name is required').max(100),
   productDescription: z.string().max(1000).optional().default(''),
-  targetAudience:  z.string().max(200).optional().default(''),
-  niche:           z.string().min(1).max(100),
-  hookType:        z.enum(['SURPRISE', 'QUESTION', 'EMOTIONAL', 'FOMO', 'CONTRARIAN', 'STORY', 'EDUCATIONAL']),
-  keywords:        z.string().max(300).optional(),
-  brandName:       z.string().max(100).optional(),
-  offer:           z.string().max(200).optional(),
-  ctaType:         z.enum(['bio', 'comment', 'dm', 'shop']).optional().default('bio'),
-  sourceVideoId:   z.string().uuid().optional(),
+  targetAudience:     z.string().max(200).optional().default(''),
+  niche:              z.string().max(100).optional().default('General'),
+  hookType:           z.enum(['SURPRISE', 'QUESTION', 'EMOTIONAL', 'FOMO', 'CONTRARIAN', 'STORY', 'EDUCATIONAL']).default('SURPRISE'),
+  keywords:           z.string().max(300).optional(),
+  brandName:          z.string().max(100).optional(),
+  offer:              z.string().max(200).optional(),
+  ctaType:            z.enum(['bio', 'comment', 'dm', 'shop']).optional().default('bio'),
+  sourceVideoId:      z.string().uuid().optional().or(z.literal('').transform(() => undefined)),
 })
 
 export async function POST(request: Request) {
@@ -32,7 +32,12 @@ export async function POST(request: Request) {
     const body = await request.json()
     const parsed = scriptRequestSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid request', details: parsed.error.flatten() }, { status: 400 })
+      const fields = parsed.error.flatten().fieldErrors
+      const first = Object.entries(fields).map(([k, v]) => `${k}: ${v?.[0]}`).join(', ')
+      return NextResponse.json(
+        { error: `Invalid request — ${first || 'check your inputs'}` },
+        { status: 400 },
+      )
     }
 
     if (!process.env.GEMINI_API_KEY) {
