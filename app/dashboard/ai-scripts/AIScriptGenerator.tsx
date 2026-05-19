@@ -54,8 +54,8 @@ export function AIScriptGenerator() {
       {/* Form */}
       <Card>
         <CardContent className="p-6">
-          <form onSubmit={handleGenerate} className="space-y-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleGenerate} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
                 id="productName" label="Product Name" placeholder="e.g., Posture Corrector Pro"
                 value={productName} onChange={e => setProductName(e.target.value)} required
@@ -91,7 +91,7 @@ export function AIScriptGenerator() {
 
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Hook Style</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2">
                 {HOOK_TYPES.map(hook => (
                   <button
                     key={hook.value} type="button"
@@ -126,8 +126,11 @@ export function AIScriptGenerator() {
       {/* Results */}
       {scripts.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Generated Scripts ({scripts.length})</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="flex items-center gap-3 mb-5">
+            <h2 className="text-xl font-bold text-gray-900">Generated Scripts</h2>
+            <span className="px-2.5 py-0.5 rounded-full bg-pink-100 text-pink-600 text-xs font-bold">{scripts.length}</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5">
             {scripts.map((script, i) => (
               <ScriptCard key={i} script={script} index={i} />
             ))}

@@ -66,22 +66,22 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-8">
-        <form className="flex-1 flex gap-2">
+      <div className="mb-6">
+        <form className="flex gap-2">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               name="q" defaultValue={q}
               placeholder="Search products..."
-              className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
             />
           </div>
           <select name="sort" defaultValue={sort}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
-            <option value="viral">By Viral Score</option>
-            <option value="views">By Views</option>
+            className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shrink-0">
+            <option value="viral">Viral Score</option>
+            <option value="views">Views</option>
           </select>
-          <button type="submit" className="px-4 py-2 bg-pink-500 text-white text-sm font-medium rounded-lg hover:bg-pink-600">
+          <button type="submit" className="px-4 py-2.5 bg-pink-500 text-white text-sm font-medium rounded-lg hover:bg-pink-600 shrink-0">
             Search
           </button>
         </form>
@@ -110,7 +110,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           <p className="text-sm">The scraper runs at noon and midnight Pacific — check back soon.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {products.map(product => (
             <ProductCard
               key={product.id}

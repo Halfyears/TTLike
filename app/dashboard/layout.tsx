@@ -19,7 +19,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
+      {/* Sidebar — desktop only */}
       <aside className="hidden md:flex w-60 flex-col bg-white border-r border-gray-100 fixed h-full">
         <div className="p-5 border-b border-gray-100">
           <Link href="/dashboard" className="flex items-center gap-2 font-bold text-gray-900">
@@ -45,8 +45,25 @@ export default async function DashboardLayout({ children }: { children: React.Re
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 md:ml-60">
-        <div className="p-6">{children}</div>
+      <div className="flex-1 md:ml-60 flex flex-col min-h-screen">
+        {/* Mobile top bar */}
+        <header className="md:hidden sticky top-0 z-40 flex items-center justify-between bg-white border-b border-gray-100 px-4 h-14">
+          <Link href="/dashboard" className="flex items-center gap-2 font-bold text-gray-900">
+            <Zap className="h-5 w-5 text-pink-500" /> TTLike
+          </Link>
+          {/* Mobile nav icons */}
+          <nav className="flex items-center gap-1">
+            {sidebarLinks.map(({ href, icon: Icon, label }) => (
+              <Link key={href} href={href}
+                title={label}
+                className="flex items-center justify-center h-9 w-9 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 transition-colors">
+                <Icon className="h-4 w-4" />
+              </Link>
+            ))}
+          </nav>
+        </header>
+
+        <div className="p-4 sm:p-6 flex-1">{children}</div>
       </div>
     </div>
   )

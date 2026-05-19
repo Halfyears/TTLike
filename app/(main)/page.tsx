@@ -66,24 +66,25 @@ export default async function HomePage() {
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-pink-900/30 via-transparent to-violet-900/20" />
-        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-24 text-center">
-          <div className="inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 text-pink-400 text-sm px-4 py-1.5 rounded-full mb-8">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-14 sm:pt-20 pb-16 sm:pb-24 text-center">
+          <div className="inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 text-pink-400 text-xs sm:text-sm px-3 sm:px-4 py-1.5 rounded-full mb-6 sm:mb-8">
             <span className="h-2 w-2 rounded-full bg-pink-400 animate-pulse" />
             Beta · 100% Free · No Credit Card
           </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-6">
-            Find Viral TikTok Products<br />
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-5 sm:mb-6">
+            Find Viral TikTok Products<br className="hidden sm:block" />
+            {' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-violet-400">
               Before They Blow Up
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto mb-10">
+          <p className="text-base sm:text-xl text-gray-300 max-w-2xl mx-auto mb-8 sm:mb-10 px-2">
             AI-powered intelligence for TikTok sellers. Discover trending products, decode viral hooks, and generate UGC scripts in seconds.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4 sm:px-0">
             <Link href="/auth/signup">
               <Button size="lg" className="w-full sm:w-auto">
                 Start for Free <ArrowRight className="ml-2 h-5 w-5" />
@@ -96,7 +97,7 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="mt-12 flex flex-wrap justify-center gap-8 text-sm text-gray-400">
+          <div className="mt-10 sm:mt-12 grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-4 sm:gap-8 text-sm text-gray-400 px-4">
             {[['10K+', 'Products Tracked'], ['94%', 'Viral Accuracy'], ['5 sec', 'Script Generation'], ['100%', 'Free in Beta']].map(([val, label]) => (
               <div key={label} className="text-center">
                 <div className="text-2xl font-bold text-white">{val}</div>
@@ -108,14 +109,14 @@ export default async function HomePage() {
       </section>
 
       {/* Trending Products */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-10 sm:py-16 bg-gray-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-6 sm:mb-8">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900">Trending Right Now</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Trending Right Now</h2>
               <p className="text-gray-600 text-sm mt-1">Products going viral on TikTok today</p>
             </div>
-            <Link href="/products" className="text-pink-500 text-sm font-medium flex items-center gap-1 hover:text-pink-600">
+            <Link href="/products" className="text-pink-500 text-sm font-medium flex items-center gap-1 hover:text-pink-600 shrink-0 ml-4">
               View all <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -123,7 +124,7 @@ export default async function HomePage() {
           {trending.length === 0 ? (
             <p className="text-sm text-gray-400 py-8 text-center">Loading real-time data — check back soon.</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {trending.map((product: Record<string, unknown>) => (
                 <Link key={String(product.id)} href={`/products/${product.id}`}>
                   <Card hover className="h-full">
@@ -151,13 +152,13 @@ export default async function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="py-16">
+      <section className="py-10 sm:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900 mb-3">Everything You Need to Win on TikTok</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">One platform for product research, hook analysis, and AI content creation.</p>
+          <div className="text-center mb-8 sm:mb-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">Everything You Need to Win on TikTok</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto text-sm sm:text-base">One platform for product research, hook analysis, and AI content creation.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
               <Card key={title} className="p-6">
                 <div className="flex items-start gap-4">

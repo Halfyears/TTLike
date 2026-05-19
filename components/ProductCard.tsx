@@ -69,13 +69,13 @@ export function ProductCard({
       </div>
 
       {/* Card body */}
-      <div className="p-4 flex flex-col gap-2 flex-1">
+      <div className="p-3 sm:p-4 flex flex-col gap-1.5 sm:gap-2 flex-1">
         <div className="flex items-center justify-between">
           <Badge>{niche}</Badge>
         </div>
 
         <Link href={`/products/${id}`}>
-          <h3 className="font-semibold text-gray-900 text-sm leading-snug hover:text-pink-600 transition-colors line-clamp-2">
+          <h3 className="font-semibold text-gray-900 text-xs sm:text-sm leading-snug hover:text-pink-600 transition-colors line-clamp-2">
             {productName}
           </h3>
         </Link>
