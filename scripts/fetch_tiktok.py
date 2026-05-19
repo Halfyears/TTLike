@@ -86,43 +86,42 @@ HEADERS = {
 
 BASE = f'https://{RAPIDAPI_HOST}'
 
-def get_challenge_id(tag: str) -> str:
-    """Resolve hashtag name → numeric challenge_id."""
-    resp = requests.get(f'{BASE}/challenge/info', headers=HEADERS, params={'name': tag}, timeout=30)
+import json as _json
+
+def _api_get(path: str, params: dict) -> dict:
+    resp = requests.get(f'{BASE}/{path}', headers=HEADERS, params=params, timeout=30)
     resp.raise_for_status()
-    body = resp.json()
-    # field path varies: data.challengeInfo.challenge.id or data.challenge.id
-    data = body.get('data', {})
-    ch = data.get('challengeInfo', data).get('challenge', data.get('challenge', {}))
-    cid = ch.get('id') or ch.get('challengeId') or data.get('id')
-    if not cid:
-        raise ValueError(f"challenge_id not found for #{tag}. keys: {list(data.keys())}")
-    return str(cid)
+    return resp.json()
 
 def fetch_hashtag(tag: str, count: int = 10) -> list[dict]:
-    challenge_id = get_challenge_id(tag)
-    log(f"  challenge_id={challenge_id}")
+    # Step 1: resolve challenge_id
+    info_body = _api_get('challenge/info', {'name': tag})
+    log(f"  challenge/info body: {_json.dumps(info_body)[:300]}")
 
-    resp = requests.get(
-        f'{BASE}/challenge/posts',
-        headers=HEADERS,
-        params={'challenge_id': challenge_id, 'count': count, 'cursor': 0},
-        timeout=30,
-    )
-    resp.raise_for_status()
-    body = resp.json()
+    data = info_body.get('data', {})
+    ch = (data.get('challengeInfo') or data.get('challenge') or {})
+    if isinstance(ch, dict):
+        ch = ch.get('challenge', ch)
+    cid = (ch.get('id') or ch.get('challengeId') or data.get('id')
+           or info_body.get('challenge_id'))
 
-    data = body.get('data', {})
-    raw_videos = (
-        data.get('videos')
-        or data.get('itemList')
-        or data.get('aweme_list')
-        or body.get('aweme_list')
-        or (data if isinstance(data, list) else [])
-    )
-    if not raw_videos:
-        import json as _json
-        raise ValueError(f"no video list in response: {_json.dumps(body)[:300]}")
+    raw_videos = []
+
+    if cid:
+        log(f"  challenge_id={cid}")
+        posts_body = _api_get('challenge/posts', {'challenge_id': str(cid), 'count': count, 'cursor': 0})
+        d = posts_body.get('data', {})
+        raw_videos = d.get('videos') or d.get('itemList') or d.get('aweme_list') or []
+        if not raw_videos:
+            log(f"  challenge/posts body: {_json.dumps(posts_body)[:300]}")
+    else:
+        log(f"  no challenge_id — trying feed/list keyword search")
+        feed_body = _api_get('feed/list', {'keywords': tag, 'count': count, 'cursor': 0})
+        log(f"  feed/list body: {_json.dumps(feed_body)[:300]}")
+        d = feed_body.get('data', {})
+        raw_videos = d.get('videos') or d.get('itemList') or d.get('aweme_list') or []
+        if not raw_videos and isinstance(d, list):
+            raw_videos = d
 
     videos = []
     for v in raw_videos:
