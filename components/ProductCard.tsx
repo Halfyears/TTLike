@@ -33,13 +33,13 @@ export function ProductCard({
 }: ProductCardProps) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
-      {/* Thumbnail */}
-      <div className="relative aspect-[9/16] max-h-52 bg-gray-100 overflow-hidden">
+      {/* Thumbnail — clicking goes to internal detail page */}
+      <Link href={`/products/${id}`} className="relative aspect-[9/16] max-h-52 bg-gray-100 overflow-hidden block group">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
             alt={productName}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">
@@ -48,25 +48,27 @@ export function ProductCard({
         )}
 
         {/* Viral score badge overlay */}
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-2 left-2">
           <ViralScoreBadge score={viralScore} showLabel={false} />
         </div>
 
-        {/* Watch button overlay */}
+        {/* External TikTok icon — stopPropagation so it doesn't navigate internally */}
         {videoUrl && (
           <a
             href={videoUrl}
             target="_blank"
             rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
-            className="absolute inset-0 flex items-center justify-center bg-black/0 hover:bg-black/30 transition-colors group"
+            title="Watch on TikTok"
+            className="absolute bottom-2 right-2 flex items-center justify-center w-7 h-7 rounded-full bg-black/60 text-white hover:bg-black/90 transition-colors"
           >
-            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 text-gray-900 text-xs font-semibold opacity-0 group-hover:opacity-100 transition-opacity shadow">
-              <ExternalLink className="h-3 w-3" /> Watch
-            </span>
+            <ExternalLink className="h-3.5 w-3.5" />
           </a>
         )}
-      </div>
+
+        {/* Hover overlay hint */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
+      </Link>
 
       {/* Card body */}
       <div className="p-3 sm:p-4 flex flex-col gap-1.5 sm:gap-2 flex-1">
@@ -99,18 +101,6 @@ export function ProductCard({
         </div>
 
         <p className="text-xs text-gray-400">{authorHandle}</p>
-
-        {/* Watch button (always visible if no thumbnail hover) */}
-        {videoUrl && (
-          <a
-            href={videoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-pink-500 text-white text-xs font-semibold hover:bg-pink-600 transition-colors"
-          >
-            <Play className="h-3 w-3" /> Watch on TikTok
-          </a>
-        )}
       </div>
     </div>
   )

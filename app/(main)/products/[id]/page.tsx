@@ -147,7 +147,7 @@ export default async function ProductDetailPage({ params }: Props) {
             <CardContent className="p-5">
               <h3 className="font-semibold text-gray-900 mb-4">Generate Script</h3>
               <p className="text-sm text-gray-600 mb-4">Use AI to create 5 custom scripts for this product</p>
-              <Link href={`/dashboard/ai-scripts?product=${encodeURIComponent(productName)}&niche=${encodeURIComponent(niche)}`}>
+              <Link href={`/dashboard/ai-scripts?from_video=${encodeURIComponent(v.id)}&suggested_title=${encodeURIComponent(productName)}&niche=${encodeURIComponent(niche)}&keywords=${encodeURIComponent(v.title ?? '')}`}>
                 <Button className="w-full">
                   <Zap className="h-4 w-4 mr-2" /> Generate Scripts
                 </Button>

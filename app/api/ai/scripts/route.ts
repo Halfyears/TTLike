@@ -9,6 +9,10 @@ const scriptRequestSchema = z.object({
   targetAudience: z.string().min(1).max(200),
   niche: z.string().min(1).max(50),
   hookType: z.enum(['SURPRISE', 'QUESTION', 'EMOTIONAL', 'FOMO', 'CONTRARIAN', 'STORY', 'EDUCATIONAL']),
+  keywords: z.string().max(300).optional(),
+  brandName: z.string().max(100).optional(),
+  offer: z.string().max(200).optional(),
+  ctaType: z.enum(['bio', 'comment', 'dm', 'shop']).optional().default('bio'),
 })
 
 export async function POST(request: Request) {

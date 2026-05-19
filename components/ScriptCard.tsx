@@ -14,10 +14,38 @@ interface Script {
 interface ScriptCardProps {
   script: Script
   index: number
+  brandName?: string
+  offer?: string
 }
 
-export function ScriptCard({ script, index }: ScriptCardProps) {
+/** Highlight occurrences of `terms` inside `text` with a yellow mark */
+function HighlightedText({ text, terms }: { text: string; terms: string[] }) {
+  const active = terms.filter(t => t.trim().length > 0)
+  if (active.length === 0) return <>{text}</>
+
+  // Build a regex that matches any of the terms (case-insensitive)
+  const escaped = active.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const regex = new RegExp(`(${escaped.join('|')})`, 'gi')
+  const parts = text.split(regex)
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-yellow-200 text-yellow-900 rounded px-0.5 not-italic">
+            {part}
+          </mark>
+        ) : (
+          <span key={i}>{part}</span>
+        )
+      )}
+    </>
+  )
+}
+
+export function ScriptCard({ script, index, brandName = '', offer = '' }: ScriptCardProps) {
   const [copied, setCopied] = useState(false)
+  const highlightTerms = [brandName, offer].filter(Boolean)
 
   async function handleCopy() {
     await navigator.clipboard.writeText(script.fullScript)
@@ -38,19 +66,25 @@ export function ScriptCard({ script, index }: ScriptCardProps) {
       {/* Hook — most prominent */}
       <div className="mx-4 sm:mx-6 mb-4 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 p-4 sm:p-5">
         <p className="text-[10px] font-bold uppercase tracking-widest text-pink-200 mb-2">Hook (0–3s)</p>
-        <p className="text-lg sm:text-xl font-bold text-white leading-snug">&ldquo;{script.hook}&rdquo;</p>
+        <p className="text-lg sm:text-xl font-bold text-white leading-snug">
+          &ldquo;<HighlightedText text={script.hook} terms={highlightTerms} />&rdquo;
+        </p>
       </div>
 
       {/* Body */}
       <div className="mx-4 sm:mx-6 mb-3 rounded-xl bg-gray-50 p-4">
         <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Body (3–25s)</p>
-        <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">{script.body}</p>
+        <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
+          <HighlightedText text={script.body} terms={highlightTerms} />
+        </p>
       </div>
 
       {/* CTA */}
       <div className="mx-4 sm:mx-6 mb-4 rounded-xl bg-green-50 border border-green-100 p-4">
         <p className="text-[10px] font-bold uppercase tracking-widest text-green-500 mb-2">CTA (25–30s)</p>
-        <p className="text-sm font-medium text-green-800">{script.cta}</p>
+        <p className="text-sm font-medium text-green-800">
+          <HighlightedText text={script.cta} terms={highlightTerms} />
+        </p>
       </div>
 
       {/* Full script */}

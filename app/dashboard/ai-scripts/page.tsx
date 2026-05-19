@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { AIScriptGenerator } from './AIScriptGenerator'
 
 export const metadata = { title: 'AI Script Generator · TTLike' }
@@ -7,9 +8,11 @@ export default function AIScriptsPage() {
     <div className="max-w-6xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">AI Script Generator</h1>
-        <p className="text-gray-600">Generate 5 TikTok UGC script variations in seconds using Claude AI</p>
+        <p className="text-gray-600">Generate 5 TikTok UGC script variations in seconds using AI</p>
       </div>
-      <AIScriptGenerator />
+      <Suspense fallback={<div className="animate-pulse bg-white rounded-2xl h-96 border border-gray-100" />}>
+        <AIScriptGenerator />
+      </Suspense>
     </div>
   )
 }
