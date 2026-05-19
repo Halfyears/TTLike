@@ -103,6 +103,10 @@ export function AIScriptGenerator() {
                   required
                 >
                   <option value="">Select niche...</option>
+                  {/* Show DB-sourced niche if it's not in the preset list */}
+                  {niche && !NICHES.includes(niche) && (
+                    <option value={niche}>{niche}</option>
+                  )}
                   {NICHES.map(n => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
@@ -110,12 +114,14 @@ export function AIScriptGenerator() {
 
             {/* Product Description */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Product Description</label>
+              <label className="text-sm font-medium text-gray-700">
+                Product Description
+                <span className="text-gray-400 font-normal text-xs ml-1">(optional — AI will infer if blank)</span>
+              </label>
               <textarea
                 value={productDescription} onChange={e => setProductDescription(e.target.value)}
                 placeholder="Describe your product, its key benefits, and what problem it solves..."
                 rows={3}
-                required
                 className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
               />
             </div>
@@ -123,8 +129,9 @@ export function AIScriptGenerator() {
             {/* Target Audience + Keywords */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input
-                id="audience" label="Target Audience" placeholder="e.g., Office workers with back pain, 25-45"
-                value={targetAudience} onChange={e => setTargetAudience(e.target.value)} required
+                id="audience" label="Target Audience (optional)"
+                placeholder="e.g., Office workers with back pain, 25-45"
+                value={targetAudience} onChange={e => setTargetAudience(e.target.value)}
               />
               <Input
                 id="keywords" label="Keywords / Video Title (optional)"

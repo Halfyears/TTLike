@@ -11,7 +11,13 @@ export async function generateScripts(params: {
   offer?: string
   ctaType?: string
 }): Promise<string[]> {
-  const { hookType, productName, productDescription, targetAudience, niche, keywords, brandName, offer, ctaType } = params
+  const {
+    hookType, productName, niche, keywords, brandName, offer, ctaType,
+  } = params
+  const productDescription = params.productDescription?.trim() ||
+    `A trending ${niche} product on TikTok — ${productName}`
+  const targetAudience = params.targetAudience?.trim() ||
+    `TikTok shoppers interested in ${niche}`
 
   const ctaInstructions: Record<string, string> = {
     bio: 'direct viewers to the link in bio to purchase',
