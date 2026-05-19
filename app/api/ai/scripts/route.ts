@@ -10,12 +10,16 @@ import {
 } from '@/lib/scriptCache'
 import { z } from 'zod'
 
+const HOOK_VALUES = ['SURPRISE', 'QUESTION', 'EMOTIONAL', 'FOMO', 'CONTRARIAN', 'STORY', 'EDUCATIONAL'] as const
+
 const scriptRequestSchema = z.object({
   productName:        z.string().min(1, 'Product name is required').max(100),
   productDescription: z.string().max(1000).optional().default(''),
   targetAudience:     z.string().max(200).optional().default(''),
   niche:              z.string().max(100).optional().default('General'),
-  hookType:           z.enum(['SURPRISE', 'QUESTION', 'EMOTIONAL', 'FOMO', 'CONTRARIAN', 'STORY', 'EDUCATIONAL']).default('SURPRISE'),
+  // Accept array (new) or single string (legacy fallback)
+  hookTypes:          z.array(z.enum(HOOK_VALUES)).min(1).max(5).optional(),
+  hookType:           z.enum(HOOK_VALUES).optional(),
   keywords:           z.string().max(300).optional(),
   brandName:          z.string().max(100).optional(),
   offer:              z.string().max(200).optional(),
@@ -42,48 +46,55 @@ export async function POST(request: Request) {
 
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json(
-        { error: 'AI service not configured. Please set GEMINI_API_KEY in your environment.' },
+        { error: 'AI service not configured. Please set GEMINI_API_KEY.' },
         { status: 503 },
       )
     }
 
-    const { sourceVideoId, hookType, brandName, offer, ctaType, productName, niche } = parsed.data
+    const d = parsed.data
+    // Normalise: hookTypes takes priority; fall back to legacy hookType or default
+    const hookTypes: string[] = d.hookTypes?.length
+      ? d.hookTypes
+      : d.hookType
+        ? [d.hookType]
+        : ['SURPRISE']
+
+    // Cache key: sorted hook types joined (e.g. "QUESTION+SURPRISE")
+    const cacheKey = [...hookTypes].sort().join('+')
+
     let scripts
     let fromCache = false
 
-    // ── Cache path (only when request comes from a known video) ──────────────
-    if (sourceVideoId) {
-      const cached = await getCachedScripts(supabase, sourceVideoId, hookType)
+    // ── Cache path ────────────────────────────────────────────────────────────
+    if (d.sourceVideoId) {
+      const cached = await getCachedScripts(supabase, d.sourceVideoId, cacheKey)
 
       if (cached && cached.hitCount < REGEN_THRESHOLD) {
-        // Serve from cache — increment hit counter asynchronously
         incrementCacheHit(supabase, cached.cacheId)
-        scripts = applyPersonalization(cached.scripts, brandName, offer, ctaType)
+        scripts = applyPersonalization(cached.scripts, d.brandName, d.offer, d.ctaType)
         fromCache = true
       } else {
-        // Cache miss or threshold exceeded — generate fresh
-        scripts = await generateScripts(parsed.data)
-        saveCachedScripts(supabase, sourceVideoId, hookType, scripts)
+        scripts = await generateScripts({ ...d, hookTypes })
+        saveCachedScripts(supabase, d.sourceVideoId, cacheKey, scripts)
       }
     } else {
-      // Manual entry (no source video) — always generate
-      scripts = await generateScripts(parsed.data)
+      scripts = await generateScripts({ ...d, hookTypes })
     }
 
-    // ── Always save to user's personal history ────────────────────────────────
+    // ── Save to user history ──────────────────────────────────────────────────
     supabase.from('generated_scripts').insert({
       user_id:         user.id,
-      product_name:    productName,
-      niche,
-      hook_type:       hookType,
+      product_name:    d.productName,
+      niche:           d.niche,
+      hook_type:       cacheKey,
       scripts,
-      source_video_id: sourceVideoId ?? null,
-      keywords:        parsed.data.keywords ?? '',
-      brand_name:      brandName ?? '',
-      offer:           offer ?? '',
+      source_video_id: d.sourceVideoId ?? null,
+      keywords:        d.keywords ?? '',
+      brand_name:      d.brandName ?? '',
+      offer:           d.offer ?? '',
       script_count:    scripts.length,
     }).then(({ error }) => {
-      if (error) console.error('Failed to save scripts to history:', error.message)
+      if (error) console.error('History save error:', error.message)
     })
 
     return NextResponse.json({ scripts, count: scripts.length, fromCache })

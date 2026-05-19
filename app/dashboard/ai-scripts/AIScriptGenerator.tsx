@@ -50,7 +50,7 @@ export function AIScriptGenerator() {
   const [targetAudience, setTargetAudience] = useState('')
   const [niche, setNiche] = useState('')
   const [nicheOptions, setNicheOptions] = useState<string[]>([])
-  const [hookType, setHookType] = useState('SURPRISE')
+  const [hookTypes, setHookTypes] = useState<string[]>(['SURPRISE'])
   const [keywords, setKeywords] = useState('')
   const [brandName, setBrandName] = useState('')
   const [offer, setOffer] = useState('')
@@ -129,7 +129,7 @@ export function AIScriptGenerator() {
           productDescription,
           targetAudience,
           niche,
-          hookType,
+          hookTypes,
           keywords: keywords || undefined,
           brandName: brandName || undefined,
           offer: offer || undefined,
@@ -146,7 +146,7 @@ export function AIScriptGenerator() {
     } finally {
       setLoading(false)
     }
-  }, [productName, productDescription, targetAudience, niche, hookType, keywords, brandName, offer, ctaType, sourceVideoId])
+  }, [productName, productDescription, targetAudience, niche, hookTypes, keywords, brandName, offer, ctaType, sourceVideoId])
 
   // All known niche options: preset + AI suggestions + current DB value
   const allNicheOptions = Array.from(new Set([
@@ -312,26 +312,54 @@ export function AIScriptGenerator() {
               </div>
             </div>
 
-            {/* ── Hook Style ── */}
+            {/* ── Hook Style — multi-select, max 5 ── */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-sm font-medium text-gray-700">Hook Style</label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {HOOK_TYPES.map(hook => (
-                  <button
-                    key={hook.value} type="button"
-                    onClick={() => setHookType(hook.value)}
-                    className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors ${
-                      hookType === hook.value
-                        ? 'bg-pink-500 text-white border-pink-500'
-                        : 'bg-white text-gray-700 border-gray-200 hover:border-pink-300'
-                    }`}
-                  >
-                    {hook.label}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">Hook Style</label>
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                  hookTypes.length === 5
+                    ? 'bg-pink-100 text-pink-600'
+                    : 'bg-gray-100 text-gray-500'
+                }`}>
+                  {hookTypes.length} / 5 selected
+                </span>
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {HOOK_TYPES.find(h => h.value === hookType)?.description}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {HOOK_TYPES.map(hook => {
+                  const selected = hookTypes.includes(hook.value)
+                  const maxed = hookTypes.length >= 5 && !selected
+                  return (
+                    <button
+                      key={hook.value} type="button"
+                      disabled={maxed}
+                      onClick={() => {
+                        if (selected) {
+                          // Deselect — keep at least 1
+                          if (hookTypes.length > 1) setHookTypes(hookTypes.filter(h => h !== hook.value))
+                        } else {
+                          setHookTypes([...hookTypes, hook.value])
+                        }
+                      }}
+                      className={`px-3 py-2 rounded-lg text-xs font-medium border transition-colors relative ${
+                        selected
+                          ? 'bg-pink-500 text-white border-pink-500'
+                          : maxed
+                            ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                            : 'bg-white text-gray-700 border-gray-200 hover:border-pink-300'
+                      }`}
+                    >
+                      {selected && (
+                        <span className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-white border border-pink-300 text-pink-500 text-[9px] font-black flex items-center justify-center leading-none">
+                          {hookTypes.indexOf(hook.value) + 1}
+                        </span>
+                      )}
+                      {hook.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="text-xs text-gray-400">
+                Select 1–5 styles · one script generated per style
               </p>
             </div>
 
@@ -341,7 +369,9 @@ export function AIScriptGenerator() {
 
             <Button type="submit" loading={loading} size="lg" className="w-full">
               <Zap className="h-4 w-4 mr-2" />
-              {loading ? 'Generating 5 Scripts…' : 'Generate 5 Scripts with AI'}
+              {loading
+                ? `Generating ${hookTypes.length} Script${hookTypes.length > 1 ? 's' : ''}…`
+                : `Generate ${hookTypes.length} Script${hookTypes.length > 1 ? 's' : ''} with AI`}
             </Button>
           </form>
         </CardContent>
