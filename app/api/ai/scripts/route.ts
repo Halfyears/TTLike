@@ -13,6 +13,7 @@ const scriptRequestSchema = z.object({
   brandName: z.string().max(100).optional(),
   offer: z.string().max(200).optional(),
   ctaType: z.enum(['bio', 'comment', 'dm', 'shop']).optional().default('bio'),
+  sourceVideoId: z.string().uuid().optional(),
 })
 
 export async function POST(request: Request) {
@@ -32,13 +33,29 @@ export async function POST(request: Request) {
     }
 
     if (!process.env.GEMINI_API_KEY) {
-  return NextResponse.json(
-    { error: 'AI service not configured. Please set GEMINI_API_KEY in your environment.' },
-    { status: 503 }
-  )
-}
+      return NextResponse.json(
+        { error: 'AI service not configured. Please set GEMINI_API_KEY in your environment.' },
+        { status: 503 }
+      )
+    }
 
     const scripts = await generateScripts(parsed.data)
+
+    // Auto-save to generated_scripts (fire-and-forget — don't block response)
+    supabase.from('generated_scripts').insert({
+      user_id: user.id,
+      product_name: parsed.data.productName,
+      niche: parsed.data.niche,
+      hook_type: parsed.data.hookType,
+      scripts,
+      source_video_id: parsed.data.sourceVideoId ?? null,
+      keywords: parsed.data.keywords ?? '',
+      brand_name: parsed.data.brandName ?? '',
+      offer: parsed.data.offer ?? '',
+      script_count: scripts.length,
+    }).then(({ error }) => {
+      if (error) console.error('Failed to save scripts to history:', error.message)
+    })
 
     return NextResponse.json({ scripts, count: scripts.length })
   } catch (err) {
