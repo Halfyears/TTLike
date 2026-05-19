@@ -1,15 +1,16 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Zap, Search, TrendingUp, BookOpen, ArrowRight, ChevronRight } from 'lucide-react'
+import { Zap, Search, TrendingUp, BookOpen, ArrowRight } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/Card'
 import { IS_BETA_PHASE } from '@/lib/constants'
 
 export const metadata = { title: 'Dashboard · TTLike' }
 
 const QUICK_ACTIONS = [
-  { href: '/dashboard/ai-scripts', icon: Zap,        label: 'AI Scripts',  color: 'bg-pink-500' },
-  { href: '/products',             icon: Search,      label: 'Products',    color: 'bg-blue-500' },
-  { href: '/trending',             icon: TrendingUp,  label: 'Trending',    color: 'bg-emerald-500' },
-  { href: '/hooks',                icon: BookOpen,    label: 'Hook Library',color: 'bg-violet-500' },
+  { href: '/dashboard/ai-scripts', icon: Zap,       label: 'Generate AI Scripts', desc: 'Create viral UGC scripts in seconds',  color: 'text-pink-500 bg-pink-50' },
+  { href: '/products',             icon: Search,     label: 'Browse Products',     desc: 'Find your next winning product',       color: 'text-blue-500 bg-blue-50' },
+  { href: '/trending',             icon: TrendingUp, label: 'View Trending',       desc: "See what's going viral today",         color: 'text-green-500 bg-green-50' },
+  { href: '/hooks',                icon: BookOpen,   label: 'Hook Library',        desc: 'Browse proven hook patterns',          color: 'text-violet-500 bg-violet-50' },
 ]
 
 export default async function DashboardPage() {
@@ -45,100 +46,87 @@ export default async function DashboardPage() {
   } catch { /* ignore */ }
 
   return (
-    <div className="max-w-2xl mx-auto">
-
-      {/* Beta banner */}
+    <div className="max-w-5xl">
       {IS_BETA_PHASE && (
-        <div className="mb-4 px-3 py-2.5 bg-pink-50 border border-pink-100 rounded-xl">
-          <p className="text-xs font-medium text-pink-600">
-            🎉 Beta — All Pro features free. No credit card needed.
+        <div className="mb-6 p-3 sm:p-4 bg-gradient-to-r from-pink-50 to-violet-50 border border-pink-100 rounded-xl">
+          <p className="text-xs sm:text-sm font-medium text-pink-700">
+            🎉 You&apos;re in Beta! All Pro features are free. No credit card needed.
           </p>
         </div>
       )}
 
-      {/* Welcome */}
-      <div className="mb-5">
-        <h1 className="text-xl font-bold text-gray-900">Welcome back, {firstName}!</h1>
-        <p className="text-sm text-gray-400 mt-0.5">What do you want to do today?</p>
-      </div>
+      <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">Welcome back, {firstName}!</h1>
+      <p className="text-gray-600 text-sm sm:text-base mb-6 sm:mb-8">What do you want to do today?</p>
 
-      {/* ── PRIMARY CTA ── */}
-      <Link href="/dashboard/ai-scripts" className="block mb-3">
-        <div className="w-full flex items-center justify-between bg-gradient-to-r from-pink-500 to-violet-600 text-white rounded-2xl px-5 py-4 shadow-md hover:shadow-lg transition-shadow">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center">
-              <Zap className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="font-bold text-base">Generate AI Scripts</p>
-              <p className="text-xs text-pink-100 mt-0.5">Create 5 viral scripts with Claude AI</p>
-            </div>
-          </div>
-          <ChevronRight className="h-5 w-5 opacity-70 shrink-0" />
-        </div>
-      </Link>
-
-      {/* ── SECONDARY ACTIONS — 3 compact tiles ── */}
-      <div className="grid grid-cols-3 gap-2 mb-6">
-        {QUICK_ACTIONS.slice(1).map(({ href, icon: Icon, label, color }) => (
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-4 mb-8 sm:mb-10">
+        {QUICK_ACTIONS.map(({ href, icon: Icon, label, desc, color }) => (
           <Link key={href} href={href}>
-            <div className="flex flex-col items-center gap-2 bg-white rounded-xl border border-gray-100 py-3 px-2 hover:shadow-sm transition-shadow">
-              <div className={`h-9 w-9 rounded-lg ${color} flex items-center justify-center`}>
-                <Icon className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{label}</span>
-            </div>
+            <Card hover className="h-full">
+              <CardContent className="p-3 sm:p-5 flex items-center sm:items-start gap-3 sm:gap-4">
+                <div className={`shrink-0 h-9 w-9 sm:h-10 sm:w-10 rounded-lg ${color} flex items-center justify-center`}>
+                  <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-gray-900 text-xs sm:text-sm leading-snug">{label}</h3>
+                  <p className="text-xs text-gray-500 mt-0.5 hidden sm:block">{desc}</p>
+                </div>
+              </CardContent>
+            </Card>
           </Link>
         ))}
       </div>
 
-      {/* ── YOUR ACTIVITY — horizontal scroll row ── */}
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Your Activity</p>
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-4 mb-6 scrollbar-hide">
+      {/* Stats */}
+      <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Your Activity</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-10">
         {[
-          { label: 'Scripts',  value: scriptCount.toString(), accent: 'text-pink-500' },
-          { label: 'Products', value: '—',                   accent: 'text-blue-500' },
-          { label: 'Hooks',    value: '—',                   accent: 'text-violet-500' },
-          { label: 'Plan',     value: 'Free',                accent: 'text-emerald-500' },
+          { label: 'Scripts Generated', value: scriptCount.toString(), sub: 'Total' },
+          { label: 'Products Viewed',   value: '—',                   sub: 'This week' },
+          { label: 'Hooks Saved',       value: '—',                   sub: 'Total' },
+          { label: 'Plan',              value: 'Free',                sub: 'All features included' },
         ].map(stat => (
-          <div key={stat.label} className="shrink-0 w-20 sm:w-auto bg-white rounded-xl border border-gray-100 p-3 text-center">
-            <div className={`text-xl font-black ${stat.accent}`}>{stat.value}</div>
-            <div className="text-[11px] text-gray-400 mt-0.5 font-medium">{stat.label}</div>
-          </div>
+          <Card key={stat.label}>
+            <CardContent className="p-3 sm:p-4">
+              <div className="text-xl sm:text-2xl font-bold text-gray-900">{stat.value}</div>
+              <div className="text-xs text-gray-500 mt-0.5 leading-tight">{stat.label}</div>
+              <div className="text-xs text-pink-500 mt-0.5 hidden sm:block">{stat.sub}</div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
-      {/* ── TOP PRODUCTS ── */}
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Top Products</p>
-        <Link href="/products" className="flex items-center gap-0.5 text-pink-500 text-xs font-semibold hover:text-pink-600">
-          View all <ArrowRight className="h-3 w-3" />
+      {/* Top Products */}
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h2 className="text-base sm:text-lg font-semibold text-gray-900">Today&apos;s Top Products</h2>
+        <Link href="/products" className="text-pink-500 text-sm font-medium flex items-center gap-1 hover:text-pink-600">
+          View all <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
-
       {topProducts.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
-          <p className="text-sm text-gray-400">Scraper runs at noon &amp; midnight Pacific.</p>
-        </div>
+        <p className="text-sm text-gray-400 py-4">No data yet — the scraper runs at noon and midnight Pacific.</p>
       ) : (
         <div className="space-y-2">
           {topProducts.map((product, i) => (
             <Link key={product.id} href={`/products/${product.id}`}>
-              <div className="flex items-center gap-3 bg-white rounded-xl border border-gray-100 px-4 py-3 hover:shadow-sm transition-shadow">
-                <span className="text-sm font-black text-gray-200 w-4 shrink-0">{i + 1}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-gray-900 truncate leading-tight">{product.name}</p>
-                  <p className="text-xs text-gray-400">{product.niche}</p>
-                </div>
-                <div className="flex items-center gap-1 bg-pink-50 text-pink-600 text-xs font-bold px-2 py-1 rounded-full shrink-0">
-                  <Zap className="h-3 w-3" />{product.score}
-                </div>
-              </div>
+              <Card hover>
+                <CardContent className="p-3 sm:p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-base sm:text-lg font-black text-gray-200 w-6 shrink-0">#{i + 1}</span>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm text-gray-900 truncate">{product.name}</p>
+                      <p className="text-xs text-gray-500">{product.niche}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs font-semibold text-pink-600 bg-pink-50 px-2 py-0.5 rounded-full shrink-0 ml-2">
+                    <Zap className="h-3 w-3" /> {product.score}
+                  </div>
+                </CardContent>
+              </Card>
             </Link>
           ))}
         </div>
       )}
-
     </div>
   )
 }
