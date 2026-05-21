@@ -25,7 +25,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     const url = new URL('/rest/v1/tiktok_videos', process.env.NEXT_PUBLIC_SUPABASE_URL)
     url.searchParams.set('select', '*')
     url.searchParams.set('order', `${sortKey}.desc`)
-    url.searchParams.set('limit', '48')
+    url.searchParams.set('limit', '200')
     if (q) url.searchParams.set('title', `ilike.*${q}*`)
     if (niche && niche !== 'All') url.searchParams.set('niche', `eq.${niche}`)
 
@@ -59,15 +59,16 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Product Database</h1>
-        <p className="text-gray-600">AI-curated viral products updated twice daily</p>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+      <div className="mb-5 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Product Database</h1>
+        <p className="text-gray-500 text-sm sm:text-base">AI-curated viral products updated twice daily</p>
       </div>
 
-      {/* Filters */}
-      <div className="mb-6">
-        <form className="flex gap-2">
+      {/* Filters — stacks vertically on mobile */}
+      <div className="mb-4 sm:mb-6">
+        <form className="flex flex-col sm:flex-row gap-2">
+          {/* Search input — full width on mobile */}
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -76,22 +77,25 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
             />
           </div>
-          <select name="sort" defaultValue={sort}
-            className="rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 shrink-0">
-            <option value="viral">Viral Score</option>
-            <option value="views">Views</option>
-          </select>
-          <button type="submit" className="px-4 py-2.5 bg-pink-500 text-white text-sm font-medium rounded-lg hover:bg-pink-600 shrink-0">
-            Search
-          </button>
+          {/* Sort + Submit — side by side below search on mobile */}
+          <div className="flex gap-2">
+            <select name="sort" defaultValue={sort}
+              className="flex-1 sm:flex-none rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
+              <option value="viral">Viral Score</option>
+              <option value="views">Views</option>
+            </select>
+            <button type="submit" className="shrink-0 px-4 py-2.5 bg-pink-500 text-white text-sm font-medium rounded-lg hover:bg-pink-600 transition-colors">
+              Search
+            </button>
+          </div>
         </form>
       </div>
 
-      {/* Niche Filters */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      {/* Niche Filters — horizontally scrollable on mobile */}
+      <div className="flex gap-2 mb-5 sm:mb-6 overflow-x-auto pb-1 scrollbar-hide">
         {NICHES.map(n => (
-          <Link key={n} href={`/products?${q ? `q=${q}&` : ''}niche=${n}`}>
-            <span className={`px-3 py-1 rounded-full text-xs font-medium border cursor-pointer transition-colors ${
+          <Link key={n} href={`/products?${q ? `q=${q}&` : ''}niche=${n}`} className="shrink-0">
+            <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-medium border cursor-pointer transition-colors whitespace-nowrap ${
               (niche === n || (!niche && n === 'All'))
                 ? 'bg-pink-500 text-white border-pink-500'
                 : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300'
@@ -102,7 +106,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         ))}
       </div>
 
-      <p className="text-sm text-gray-500 mb-4">{products.length} products found</p>
+      <p className="text-xs sm:text-sm text-gray-400 mb-3 sm:mb-4">{products.length} products found</p>
 
       {products.length === 0 ? (
         <div className="text-center py-20 text-gray-400">

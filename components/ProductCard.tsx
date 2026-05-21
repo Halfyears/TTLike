@@ -34,12 +34,12 @@ export function ProductCard({
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
       {/* Thumbnail — clicking goes to internal detail page */}
-      <Link href={`/products/${id}`} className="relative aspect-[9/16] max-h-52 bg-gray-100 overflow-hidden block group">
+      <Link href={`/products/${id}`} className="relative h-52 w-full bg-gray-100 overflow-hidden block group">
         {thumbnailUrl ? (
           <img
             src={thumbnailUrl}
             alt={productName}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">

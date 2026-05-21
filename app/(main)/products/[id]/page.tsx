@@ -180,8 +180,8 @@ export default async function ProductDetailPage({ params }: Props) {
                 </div>
               )}
 
-              {/* Engagement metrics */}
-              <div className="grid grid-cols-4 gap-0 divide-x divide-gray-100">
+              {/* Engagement metrics — 2×2 on mobile, 4-col on sm+ */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-0 divide-x divide-gray-100 divide-y sm:divide-y-0">
                 {[
                   { icon: Eye, label: 'Views', value: formatNumber(Number(v.views ?? 0)) },
                   { icon: Heart, label: 'Likes', value: formatNumber(Number(v.likes ?? 0)) },
