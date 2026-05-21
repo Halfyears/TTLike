@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { Zap, LayoutDashboard, Search, BookOpen, TrendingUp, BarChart2 } from 'lucide-react'
+import { Zap, LayoutDashboard, Search, BookOpen, TrendingUp, BarChart2, Clapperboard } from 'lucide-react'
 import { SignOutButton } from './SignOutButton'
 
 const sidebarLinks = [
   { href: '/dashboard',            icon: LayoutDashboard, label: 'Overview' },
   { href: '/dashboard/ai-scripts', icon: Zap,             label: 'AI Scripts' },
+  { href: '/dashboard/studio',     icon: Clapperboard,    label: 'Studio' },
   { href: '/dashboard/usage',      icon: BarChart2,       label: 'Usage' },
   { href: '/products',             icon: Search,          label: 'Products' },
   { href: '/hooks',                icon: BookOpen,        label: 'Hook Library' },
