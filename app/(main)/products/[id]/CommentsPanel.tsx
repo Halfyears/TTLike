@@ -1,0 +1,92 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { MessageCircle, Heart, Loader2, ExternalLink } from 'lucide-react'
+
+interface Comment {
+  text: string
+  likes: number
+  author: string
+}
+
+export function CommentsPanel({ productId, videoUrl }: { productId: string; videoUrl?: string | null }) {
+  const [comments, setComments] = useState<Comment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [empty, setEmpty] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/products/${productId}/comments`)
+      .then(r => r.json())
+      .then(data => {
+        const list: Comment[] = data.comments ?? []
+        setComments(list)
+        setEmpty(list.length === 0)
+      })
+      .catch(() => setEmpty(true))
+      .finally(() => setLoading(false))
+  }, [productId])
+
+  return (
+    <div className="rounded-xl border border-gray-100 bg-white p-5">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-pink-500" />
+          <h3 className="text-sm font-semibold text-gray-900">精选评论</h3>
+        </div>
+        {videoUrl && (
+          <a
+            href={videoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-pink-500 transition-colors"
+          >
+            全部评论 <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <div className="flex items-center justify-center py-6">
+          <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
+        </div>
+      ) : empty ? (
+        <p className="text-xs text-gray-400 text-center py-4">
+          暂无评论数据
+          {videoUrl && (
+            <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-pink-500 hover:underline">
+              在 TikTok 查看
+            </a>
+          )}
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {comments.map((c, i) => (
+            <div key={i} className="flex items-start gap-2.5">
+              {/* Avatar placeholder */}
+              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-pink-100 to-violet-100 flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-[10px] font-bold text-pink-500">
+                  {c.author ? c.author[0]?.toUpperCase() : '?'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                {c.author && (
+                  <span className="text-[10px] font-semibold text-gray-500 block mb-0.5">
+                    @{c.author}
+                  </span>
+                )}
+                <p className="text-xs text-gray-700 leading-relaxed">{c.text}</p>
+                {c.likes > 0 && (
+                  <span className="inline-flex items-center gap-1 mt-1 text-[10px] text-gray-400">
+                    <Heart className="h-2.5 w-2.5" /> {c.likes.toLocaleString()}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

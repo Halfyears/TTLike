@@ -144,6 +144,15 @@ def fetch_hashtag(tag: str, count: int = 10) -> list[dict]:
             thumbnail = v.get('origin_cover') or v.get('cover') or v.get('originCover') or ''
             author_avatar = cover
 
+            # TikTok publish timestamp (unix seconds)
+            create_time = v.get('createTime') or v.get('create_time') or v.get('createtime') or 0
+            published_at = None
+            if create_time:
+                try:
+                    published_at = datetime.fromtimestamp(int(create_time), tz=timezone.utc).isoformat()
+                except Exception:
+                    pass
+
             niche = detect_niche(title)
             score = viral_score(plays, likes, shares, comments)
 
@@ -164,6 +173,7 @@ def fetch_hashtag(tag: str, count: int = 10) -> list[dict]:
                 'author_avatar_url': author_avatar or None,
                 'niche': niche,
                 'product_name': None,
+                'published_at': published_at,
             })
         except Exception as e:
             log(f"  skip video: {e}")

@@ -2,8 +2,9 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
   ArrowLeft, Eye, Heart, Share2, MessageCircle,
-  ExternalLink, Zap, TrendingUp, Tag, AlertCircle, Sparkles, FileText,
+  ExternalLink, Zap, TrendingUp, Tag, AlertCircle, Sparkles, FileText, Calendar,
 } from 'lucide-react'
+import { CommentsPanel } from './CommentsPanel'
 import { Card, CardContent } from '@/components/ui/Card'
 import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
 import { Badge } from '@/components/ui/Badge'
@@ -136,7 +137,15 @@ export default async function ProductDetailPage({ params }: Props) {
             <ViralScoreBadge score={Math.round(Number(v.viral_score ?? 0))} />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight">{productName}</h1>
-          {v.author && <p className="text-gray-500 text-sm mt-1">@{String(v.author)}</p>}
+          <div className="flex items-center gap-3 flex-wrap mt-1">
+            {v.author && <p className="text-gray-500 text-sm">@{String(v.author)}</p>}
+            {v.published_at && (
+              <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                <Calendar className="h-3 w-3" />
+                {new Date(String(v.published_at)).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })}
+              </span>
+            )}
+          </div>
         </div>
         {/* Primary CTA — desktop */}
         <Link href={cloneHref} className="hidden sm:block shrink-0">
@@ -309,6 +318,9 @@ export default async function ProductDetailPage({ params }: Props) {
               </button>
             </a>
           )}
+
+          {/* Featured Comments */}
+          <CommentsPanel productId={id} videoUrl={v.video_url ? String(v.video_url) : null} />
 
           {/* Similar Products */}
           {similar.length > 0 && (
