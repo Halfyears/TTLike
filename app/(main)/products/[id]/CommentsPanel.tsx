@@ -28,11 +28,10 @@ export function CommentsPanel({ productId, videoUrl }: { productId: string; vide
 
   return (
     <div className="rounded-xl border border-gray-100 bg-white p-5">
-      {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <MessageCircle className="h-4 w-4 text-pink-500" />
-          <h3 className="text-sm font-semibold text-gray-900">精选评论</h3>
+          <h3 className="text-sm font-semibold text-gray-900">Featured Comments</h3>
         </div>
         {videoUrl && (
           <a
@@ -41,22 +40,21 @@ export function CommentsPanel({ productId, videoUrl }: { productId: string; vide
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-[10px] text-gray-400 hover:text-pink-500 transition-colors"
           >
-            全部评论 <ExternalLink className="h-3 w-3" />
+            All comments <ExternalLink className="h-3 w-3" />
           </a>
         )}
       </div>
 
-      {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-6">
           <Loader2 className="h-5 w-5 animate-spin text-gray-300" />
         </div>
       ) : empty ? (
         <p className="text-xs text-gray-400 text-center py-4">
-          暂无评论数据
+          No comments available yet.{' '}
           {videoUrl && (
-            <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="ml-1 text-pink-500 hover:underline">
-              在 TikTok 查看
+            <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-pink-500 hover:underline">
+              View on TikTok
             </a>
           )}
         </p>
@@ -64,7 +62,6 @@ export function CommentsPanel({ productId, videoUrl }: { productId: string; vide
         <div className="space-y-3">
           {comments.map((c, i) => (
             <div key={i} className="flex items-start gap-2.5">
-              {/* Avatar placeholder */}
               <div className="h-7 w-7 rounded-full bg-gradient-to-br from-pink-100 to-violet-100 flex items-center justify-center shrink-0 mt-0.5">
                 <span className="text-[10px] font-bold text-pink-500">
                   {c.author ? c.author[0]?.toUpperCase() : '?'}

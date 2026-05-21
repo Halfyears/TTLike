@@ -33,6 +33,8 @@ export function ProductCard({
   videoUrl,
 }: ProductCardProps) {
   const [imgFailed, setImgFailed] = useState(false)
+  // Strip hashtags so card title shows only product name / type
+  const displayName = productName.replace(/#[\w一-龥＀-￯]+\s*/g, '').trim() || productName
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
@@ -82,7 +84,7 @@ export function ProductCard({
 
         <Link href={`/products/${id}`}>
           <h3 className="font-semibold text-gray-900 text-xs sm:text-sm leading-snug hover:text-pink-600 transition-colors line-clamp-2">
-            {productName}
+            {displayName}
           </h3>
         </Link>
 
