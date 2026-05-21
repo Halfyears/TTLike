@@ -1,64 +1,72 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { Zap, LayoutDashboard, Search, BookOpen, TrendingUp, BarChart2, Clapperboard } from 'lucide-react'
+import { Zap } from 'lucide-react'
 import { SignOutButton } from './SignOutButton'
-
-const sidebarLinks = [
-  { href: '/dashboard',            icon: LayoutDashboard, label: 'Overview' },
-  { href: '/dashboard/ai-scripts', icon: Zap,             label: 'AI Scripts' },
-  { href: '/dashboard/studio',     icon: Clapperboard,    label: 'Studio' },
-  { href: '/dashboard/usage',      icon: BarChart2,       label: 'Usage' },
-  { href: '/products',             icon: Search,          label: 'Products' },
-  { href: '/hooks',                icon: BookOpen,        label: 'Hook Library' },
-  { href: '/trending',             icon: TrendingUp,      label: 'Trending' },
-]
+import { NavLinks, MobileTabBar } from './NavLinks'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login?redirect=/dashboard')
 
+  const initials = (user.user_metadata?.name as string | undefined)
+    ?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+    ?? user.email?.[0]?.toUpperCase()
+    ?? '?'
+
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar — desktop */}
-      <aside className="hidden md:flex w-60 flex-col bg-white border-r border-gray-100 fixed h-full z-30">
-        <div className="p-5 border-b border-gray-100">
-          <Link href="/dashboard" className="flex items-center gap-2 font-bold text-gray-900">
-            <Zap className="h-5 w-5 text-pink-500" /> TTLike
+    <div className="flex min-h-screen bg-slate-50">
+
+      {/* ── Desktop sidebar ── */}
+      <aside className="hidden md:flex w-64 flex-col bg-slate-900 fixed h-full z-30">
+        {/* Logo */}
+        <div className="px-5 py-5 border-b border-slate-800">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-pink-500 to-violet-500 flex items-center justify-center shrink-0">
+              <Zap className="h-4 w-4 text-white" />
+            </div>
+            <span className="font-black text-white text-lg tracking-tight">TTLike</span>
           </Link>
         </div>
 
-        <nav className="flex-1 p-3 space-y-1">
-          {sidebarLinks.map(({ href, icon: Icon, label }) => (
-            <Link key={href} href={href}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
-              <Icon className="h-4 w-4" /> {label}
-            </Link>
-          ))}
-        </nav>
+        {/* Nav groups (client — needs usePathname) */}
+        <NavLinks />
 
-        <div className="p-3 border-t border-gray-100 space-y-1">
-          <div className="px-3 py-2 text-xs text-gray-500 font-medium truncate">{user.email}</div>
+        {/* User footer */}
+        <div className="px-3 py-3 border-t border-slate-800">
+          <div className="flex items-center gap-3 px-3 py-2 mb-1">
+            <div className="h-7 w-7 rounded-full bg-gradient-to-br from-pink-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {initials}
+            </div>
+            <span className="text-xs text-slate-400 truncate">{user.email}</span>
+          </div>
           <SignOutButton />
         </div>
       </aside>
 
-      {/* Bottom tab bar — mobile */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-100 flex">
-        {sidebarLinks.map(({ href, icon: Icon, label }) => (
-          <Link key={href} href={href}
-            className="flex-1 flex flex-col items-center justify-center gap-1 py-2 text-gray-400 hover:text-pink-500 transition-colors">
-            <Icon className="h-5 w-5" />
-            <span className="text-[10px] font-medium leading-none">{label}</span>
-          </Link>
-        ))}
-      </nav>
+      {/* ── Mobile header ── */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-slate-900 flex items-center justify-between px-4">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-pink-500 to-violet-500 flex items-center justify-center">
+            <Zap className="h-3.5 w-3.5 text-white" />
+          </div>
+          <span className="font-black text-white text-base tracking-tight">TTLike</span>
+        </Link>
+        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold">
+          {initials}
+        </div>
+      </header>
 
-      {/* Main content */}
-      <div className="flex-1 md:ml-60 pb-16 md:pb-0">
-        <div className="p-4 sm:p-6">{children}</div>
-      </div>
+      {/* ── Main content ── */}
+      <main className="flex-1 md:ml-64 pt-14 md:pt-0 pb-20 md:pb-0 min-h-screen">
+        <div className="p-4 sm:p-6 max-w-5xl mx-auto">
+          {children}
+        </div>
+      </main>
+
+      {/* ── Mobile bottom tab bar (client) ── */}
+      <MobileTabBar />
     </div>
   )
 }
