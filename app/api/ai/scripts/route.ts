@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { generateScripts } from '@/lib/anthropic'
 import {
   getCachedScripts,
@@ -8,6 +8,7 @@ import {
   applyPersonalization,
   REGEN_THRESHOLD,
 } from '@/lib/scriptCache'
+import { dispatch } from '@/lib/ledger'
 import { z } from 'zod'
 
 const HOOK_VALUES = ['SURPRISE', 'QUESTION', 'EMOTIONAL', 'FOMO', 'CONTRARIAN', 'STORY', 'EDUCATIONAL'] as const
@@ -101,6 +102,25 @@ export async function POST(request: Request) {
     }).then(({ error }) => {
       if (error) console.error('History save error:', error.message)
     })
+
+    // ── Ledger event (fire-and-forget — never blocks the response) ────────────
+    // Writes a COMPLETE event to ledger_event_kernel via service_role client.
+    // Uses aggregate_id = `user:${userId}` so all of a user's generation events
+    // fold into a single aggregate for future usage-metering queries.
+    void dispatch(createServiceClient(), {
+      aggregate_id:    `user:${user.id}`,
+      user_id:         user.id,
+      idempotency_key: `${user.id}:${cacheKey}:${Date.now()}`,
+      event_type:      'COMPLETE',
+      payload: {
+        product_name:    d.productName,
+        niche:           nicheLabel,
+        hook_type:       cacheKey,
+        script_count:    scripts.length,
+        from_cache:      fromCache,
+        tokens_consumed: fromCache ? 0 : scripts.length,
+      },
+    }).catch(err => console.error('[ES-DCS] Ledger dispatch error (non-fatal):', err))
 
     return NextResponse.json({ scripts, count: scripts.length, fromCache })
   } catch (err) {

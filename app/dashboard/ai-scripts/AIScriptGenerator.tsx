@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input'
 import { Card, CardContent } from '@/components/ui/Card'
 import { ScriptCard } from '@/components/ScriptCard'
 import { HOOK_TYPES, NICHES } from '@/lib/constants'
-import { Zap, Sparkles, RefreshCw } from 'lucide-react'
+import { Zap, Sparkles, RefreshCw, Plus, X } from 'lucide-react'
 
 interface Script {
   title: string
@@ -50,6 +50,8 @@ export function AIScriptGenerator() {
   const [targetAudience, setTargetAudience] = useState('')
   const [niches, setNiches] = useState<string[]>([])
   const [nicheOptions, setNicheOptions] = useState<string[]>([])
+  const [customNiches, setCustomNiches] = useState<string[]>([])
+  const [customNicheInput, setCustomNicheInput] = useState('')
   const [hookTypes, setHookTypes] = useState<string[]>(['SURPRISE'])
   const [keywords, setKeywords] = useState('')
   const [brandName, setBrandName] = useState('')
@@ -153,9 +155,19 @@ export function AIScriptGenerator() {
     }
   }, [productName, productDescription, targetAudience, niches, hookTypes, keywords, brandName, offer, ctaType, sourceVideoId])
 
-  // All known niche options: AI suggestions first, then presets, de-duped
+  // Add a custom niche, auto-select it
+  function addCustomNiche() {
+    const val = customNicheInput.trim()
+    if (!val) return
+    setCustomNiches(prev => prev.includes(val) ? prev : [...prev, val])
+    setNiches(prev => prev.includes(val) ? prev : [...prev, val])
+    setCustomNicheInput('')
+  }
+
+  // All known niche options: AI suggestions first, then custom, then presets, de-duped
   const allNicheOptions = Array.from(new Set([
     ...nicheOptions,
+    ...customNiches,
     ...niches.filter(n => !NICHES.includes(n)),  // any DB-sourced values
     ...NICHES,
   ]))
@@ -200,32 +212,78 @@ export function AIScriptGenerator() {
                 {allNicheOptions.map(opt => {
                   const selected = niches.includes(opt)
                   const isAiSuggested = nicheOptions.includes(opt)
+                  const isCustom = customNiches.includes(opt)
                   return (
-                    <button
-                      key={opt} type="button"
-                      onClick={() => {
-                        if (selected) {
-                          if (niches.length > 1) setNiches(niches.filter(n => n !== opt))
-                        } else {
-                          setNiches([...niches, opt])
-                        }
-                      }}
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        selected
-                          ? 'bg-pink-500 text-white border-pink-500'
-                          : isAiSuggested
-                            ? 'bg-pink-50 text-pink-700 border-pink-300 hover:bg-pink-100'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300 hover:text-pink-600'
-                      }`}
-                    >
-                      {isAiSuggested && !selected && <span className="mr-1">✦</span>}
-                      {opt}
-                    </button>
+                    <span key={opt} className="inline-flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (selected) {
+                            if (niches.length > 1) setNiches(niches.filter(n => n !== opt))
+                          } else {
+                            setNiches([...niches, opt])
+                          }
+                        }}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                          isCustom ? 'rounded-r-none border-r-0' : ''
+                        } ${
+                          selected
+                            ? 'bg-pink-500 text-white border-pink-500'
+                            : isAiSuggested
+                              ? 'bg-pink-50 text-pink-700 border-pink-300 hover:bg-pink-100'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-pink-300 hover:text-pink-600'
+                        }`}
+                      >
+                        {isAiSuggested && !selected && <span className="mr-1">✦</span>}
+                        {opt}
+                      </button>
+                      {isCustom && (
+                        <button
+                          type="button"
+                          title="Remove custom niche"
+                          onClick={() => {
+                            setCustomNiches(customNiches.filter(n => n !== opt))
+                            setNiches(niches.filter(n => n !== opt))
+                          }}
+                          className={`px-1.5 py-1 rounded-r-full text-xs border border-l-0 transition-colors ${
+                            selected
+                              ? 'bg-pink-500 text-white border-pink-500 hover:bg-pink-600'
+                              : 'bg-white text-gray-400 border-gray-200 hover:text-red-500 hover:border-red-300'
+                          }`}
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      )}
+                    </span>
                   )
                 })}
               </div>
+              {/* Custom niche input */}
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex flex-1 items-center rounded-lg border border-dashed border-gray-300 focus-within:border-pink-400 focus-within:ring-1 focus-within:ring-pink-400 overflow-hidden bg-white transition-colors">
+                  <input
+                    type="text"
+                    value={customNicheInput}
+                    onChange={e => setCustomNicheInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomNiche() } }}
+                    placeholder="Add custom niche…"
+                    maxLength={60}
+                    className="flex-1 px-3 py-1.5 text-xs bg-transparent outline-none text-gray-700 placeholder:text-gray-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={addCustomNiche}
+                    disabled={!customNicheInput.trim()}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-pink-500 hover:text-white hover:bg-pink-500 border-l border-dashed border-gray-300 disabled:text-gray-300 disabled:hover:bg-transparent transition-colors"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Add
+                  </button>
+                </div>
+              </div>
+
               <p className="text-xs text-gray-400">
-                Select one or more · <span className="text-pink-400">✦ AI suggested</span>
+                Select one or more · <span className="text-pink-400">✦ AI suggested</span> · type to add custom
               </p>
             </div>
 

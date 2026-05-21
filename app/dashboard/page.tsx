@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { Zap, Search, TrendingUp, BookOpen, ArrowRight } from 'lucide-react'
+import { Zap, Search, TrendingUp, BookOpen, ArrowRight, BarChart2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { IS_BETA_PHASE } from '@/lib/constants'
 
@@ -35,15 +35,39 @@ export default async function DashboardPage() {
     }
   } catch { /* ignore */ }
 
-  let scriptCount = 0
+  // ── Real usage stats from ES-DCS ledger_event_kernel ──────────────────────
+  let scriptCount    = 0
+  let totalScripts   = 0
+  let weekCount      = 0
   try {
-    const { count } = await supabase
-      .from('user_analytics')
-      .select('*', { count: 'exact', head: true })
+    const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString()
+    const [{ count: total }, { count: week }] = await Promise.all([
+      supabase
+        .from('ledger_event_kernel')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user?.id ?? '')
+        .eq('event_type', 'COMPLETE'),
+      supabase
+        .from('ledger_event_kernel')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user?.id ?? '')
+        .eq('event_type', 'COMPLETE')
+        .gte('emitted_at', weekAgo),
+    ])
+    scriptCount  = total ?? 0
+    weekCount    = week  ?? 0
+
+    // Sum script_count from payload for total scripts number
+    const { data: payloads } = await supabase
+      .from('ledger_event_kernel')
+      .select('payload')
       .eq('user_id', user?.id ?? '')
-      .eq('event', 'script_generated')
-    scriptCount = count ?? 0
-  } catch { /* ignore */ }
+      .eq('event_type', 'COMPLETE')
+    totalScripts = (payloads ?? []).reduce(
+      (acc, row) => acc + Number((row.payload as Record<string, unknown>)?.script_count ?? 1),
+      0,
+    )
+  } catch { /* ledger table may not exist yet — degrade gracefully */ }
 
   return (
     <div className="max-w-5xl">
@@ -81,18 +105,32 @@ export default async function DashboardPage() {
       <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Your Activity</h2>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-10">
         {[
-          { label: 'Scripts Generated', value: scriptCount.toString(), sub: 'Total' },
-          { label: 'Products Viewed',   value: '—',                   sub: 'This week' },
-          { label: 'Hooks Saved',       value: '—',                   sub: 'Total' },
-          { label: 'Plan',              value: 'Free',                sub: 'All features included' },
+          { label: 'Generations',    value: scriptCount.toString(),  sub: 'All time',           href: '/dashboard/usage' },
+          { label: 'Scripts Made',   value: totalScripts.toString(), sub: 'Total scripts',      href: '/dashboard/usage' },
+          { label: 'This Week',      value: weekCount.toString(),    sub: 'generations',        href: '/dashboard/usage' },
+          { label: 'Plan',           value: 'Free',                  sub: 'All features',       href: null },
         ].map(stat => (
-          <Card key={stat.label}>
-            <CardContent className="p-3 sm:p-4">
-              <div className="text-xl sm:text-2xl font-bold text-gray-900">{stat.value}</div>
-              <div className="text-xs text-gray-500 mt-0.5 leading-tight">{stat.label}</div>
-              <div className="text-xs text-pink-500 mt-0.5 hidden sm:block">{stat.sub}</div>
-            </CardContent>
-          </Card>
+          stat.href ? (
+            <Link key={stat.label} href={stat.href}>
+              <Card hover>
+                <CardContent className="p-3 sm:p-4">
+                  <div className="text-xl sm:text-2xl font-bold text-gray-900 tabular-nums">{stat.value}</div>
+                  <div className="text-xs text-gray-500 mt-0.5 leading-tight">{stat.label}</div>
+                  <div className="text-xs text-pink-500 mt-0.5 hidden sm:flex items-center gap-1">
+                    {stat.sub} <BarChart2 className="h-2.5 w-2.5" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ) : (
+            <Card key={stat.label}>
+              <CardContent className="p-3 sm:p-4">
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{stat.value}</div>
+                <div className="text-xs text-gray-500 mt-0.5 leading-tight">{stat.label}</div>
+                <div className="text-xs text-pink-500 mt-0.5 hidden sm:block">{stat.sub}</div>
+              </CardContent>
+            </Card>
+          )
         ))}
       </div>
 
