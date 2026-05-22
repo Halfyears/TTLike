@@ -411,16 +411,23 @@ export default function AdminVideosPage() {
   useEffect(() => { fetchAll() }, [fetchAll])
 
   // ── Filtered view ──────────────────────────────────────────────────────────
-  const visibleActive = active.filter(v => {
-    const matchSearch = !search || (v.product_name ?? v.title ?? '').toLowerCase().includes(search.toLowerCase())
-    const matchNiche = !niche || v.niche === niche
-    return matchSearch && matchNiche
-  })
-  const visibleDeleted = deleted.filter(v => {
-    const matchSearch = !search || (v.product_name ?? v.title ?? '').toLowerCase().includes(search.toLowerCase())
-    const matchNiche = !niche || v.niche === niche
-    return matchSearch && matchNiche
-  })
+  const visibleActive = useMemo(() => {
+    const q = search.toLowerCase()
+    return active.filter(v => {
+      const matchSearch = !search || (v.product_name ?? v.title ?? '').toLowerCase().includes(q)
+      const matchNiche  = !niche  || v.niche === niche
+      return matchSearch && matchNiche
+    })
+  }, [active, search, niche])
+
+  const visibleDeleted = useMemo(() => {
+    const q = search.toLowerCase()
+    return deleted.filter(v => {
+      const matchSearch = !search || (v.product_name ?? v.title ?? '').toLowerCase().includes(q)
+      const matchNiche  = !niche  || v.niche === niche
+      return matchSearch && matchNiche
+    })
+  }, [deleted, search, niche])
 
   // ── Drag-and-drop ──────────────────────────────────────────────────────────
   const sensors = useSensors(
@@ -529,7 +536,10 @@ export default function AdminVideosPage() {
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  const currentList = tab === 'active' ? visibleActive : visibleDeleted
+  const currentList = useMemo(
+    () => tab === 'active' ? visibleActive : visibleDeleted,
+    [tab, visibleActive, visibleDeleted]
+  )
 
   return (
     <div className="max-w-7xl">
@@ -760,7 +770,7 @@ export default function AdminVideosPage() {
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-gray-700">
-                  {tab === 'active' && <th className="w-8" />}
+                  <th className="w-8" />
                   <th className="px-2 py-3 text-xs font-medium text-gray-400 uppercase text-right">#</th>
                   <th className="px-2 py-3 text-xs font-medium text-gray-400 uppercase">Cover</th>
                   <th className="px-3 py-3 text-xs font-medium text-gray-400 uppercase">Title</th>

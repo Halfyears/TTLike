@@ -34,6 +34,16 @@ export async function POST(req: Request) {
   if (!Array.isArray(body.items) || body.items.length === 0) {
     return NextResponse.json({ error: 'items array required' }, { status: 400 })
   }
+  if (body.items.length > 2000) {
+    return NextResponse.json({ error: 'Too many items (max 2000)' }, { status: 400 })
+  }
+  // Validate each item — reject if id missing or sort_order is not a finite number
+  const invalid = body.items.find(
+    item => typeof item.id !== 'string' || !item.id || !Number.isFinite(item.sort_order)
+  )
+  if (invalid) {
+    return NextResponse.json({ error: 'Each item must have a string id and numeric sort_order' }, { status: 400 })
+  }
 
   const supabase = createServiceClient()
 
