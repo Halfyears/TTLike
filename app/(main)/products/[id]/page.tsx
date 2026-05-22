@@ -281,12 +281,15 @@ export default async function ProductDetailPage({ params }: Props) {
           {/* Author + date */}
           <div className="flex items-center gap-3 flex-wrap mt-1.5">
             {v.author && <p className="text-gray-500 text-sm">@{String(v.author)}</p>}
-            {v.published_at && (
+            {(v.published_at || v.created_at) && (
               <span className="inline-flex items-center gap-1 text-xs text-gray-400">
                 <Calendar className="h-3 w-3" />
-                {new Date(String(v.published_at)).toLocaleDateString('en-US', {
+                {new Date(String(v.published_at ?? v.created_at)).toLocaleDateString('en-US', {
                   year: 'numeric', month: 'short', day: 'numeric',
                 })}
+                {!v.published_at && (
+                  <span className="text-gray-300 text-[10px]">(scraped)</span>
+                )}
               </span>
             )}
           </div>
