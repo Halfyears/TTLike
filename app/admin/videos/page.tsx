@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -38,7 +38,7 @@ interface Video {
   views: number
   likes: number
   shares: number
-  comments: number
+  comments: number | null
   viral_score: number
   video_url: string | null
   cover_url: string | null
@@ -67,7 +67,7 @@ function shareRate(v: Video) {
   return v.views > 0 ? (v.shares / v.views) * 100 : 0
 }
 function engRate(v: Video) {
-  return v.views > 0 ? ((v.likes + v.shares + v.comments) / v.views) * 100 : 0
+  return v.views > 0 ? ((v.likes + v.shares + (v.comments ?? 0)) / v.views) * 100 : 0
 }
 function getSortValue(v: Video, key: SortKey): number {
   if (key === 'viral_score') return v.viral_score
@@ -238,6 +238,7 @@ export default function AdminVideosPage() {
   const [active, setActive] = useState<Video[]>([])
   const [deleted, setDeleted] = useState<Video[]>([])
   const [loading, setLoading] = useState(true)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveOk, setSaveOk] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
@@ -245,26 +246,59 @@ export default function AdminVideosPage() {
   const [niche, setNiche] = useState('')
   const [autoSortKey, setAutoSortKey] = useState<SortKey>('viral_score')
 
-  const supabase = createClient()
+  // Stable client — avoids re-creating on every render
+  const supabase = useMemo(() => createClient(), [])
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     setLoading(true)
     setIsDirty(false)
+    setFetchError(null)
 
-    const base = supabase
-      .from('tiktok_videos')
-      .select('id,tiktok_id,title,product_name,author,views,likes,shares,comments,viral_score,video_url,cover_url,niche,sort_order,deleted_at,created_at')
+    try {
+      // ── Active videos ── (separate query chain — never share a builder)
+      const { data: activeData, error: activeErr } = await supabase
+        .from('tiktok_videos')
+        .select('*')
+        .is('deleted_at', null)
+        .order('sort_order', { ascending: true, nullsFirst: false })
+        .order('viral_score', { ascending: false })
+        .limit(500)
 
-    const [activeRes, deletedRes] = await Promise.all([
-      base.is('deleted_at', null).order('sort_order', { ascending: true, nullsFirst: false }).order('viral_score', { ascending: false }).limit(500),
-      base.not('deleted_at', 'is', null).order('deleted_at', { ascending: false }).limit(200),
-    ])
+      if (activeErr) {
+        console.error('[admin/videos] active fetch error:', activeErr)
+        // Fallback: fetch without deleted_at filter (handles missing column case)
+        const { data: fallback, error: fallbackErr } = await supabase
+          .from('tiktok_videos')
+          .select('*')
+          .order('viral_score', { ascending: false })
+          .limit(500)
+        if (fallbackErr) {
+          setFetchError(fallbackErr.message)
+        } else {
+          setActive((fallback ?? []) as Video[])
+        }
+      } else {
+        setActive((activeData ?? []) as Video[])
+      }
 
-    setActive((activeRes.data ?? []) as Video[])
-    setDeleted((deletedRes.data ?? []) as Video[])
-    setLoading(false)
-  }, [])
+      // ── Deleted videos ──
+      const { data: deletedData, error: deletedErr } = await supabase
+        .from('tiktok_videos')
+        .select('*')
+        .not('deleted_at', 'is', null)
+        .order('deleted_at', { ascending: false })
+        .limit(200)
+
+      if (deletedErr) {
+        console.error('[admin/videos] deleted fetch error:', deletedErr)
+      } else {
+        setDeleted((deletedData ?? []) as Video[])
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [supabase])
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
@@ -390,6 +424,14 @@ export default function AdminVideosPage() {
           Refresh
         </button>
       </div>
+
+      {/* Error banner */}
+      {fetchError && (
+        <div className="mb-4 px-4 py-3 rounded-lg bg-red-900/40 border border-red-700 text-red-300 text-sm">
+          <strong>Query error:</strong> {fetchError}
+          <span className="ml-2 text-red-400 text-xs">(check browser console for details)</span>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-5 bg-gray-800/60 rounded-xl p-1 w-fit">
