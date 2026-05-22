@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { formatDate } from '@/lib/utils'
+import { LocalDate } from '@/components/ui/LocalDate'
 
 export const metadata = { title: 'Affiliates · Admin · TTLike' }
 
@@ -59,7 +59,7 @@ export default async function AdminAffiliatesPage() {
                   <td className="px-4 py-3 text-sm text-white">{link.clicks.toLocaleString()}</td>
                   <td className="px-4 py-3 text-sm text-white">{link.conversions.toLocaleString()}</td>
                   <td className="px-4 py-3 text-sm text-green-400">${String(link.revenue)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-400">{formatDate(link.createdAt)}</td>
+                  <td className="px-4 py-3 text-sm text-gray-400"><LocalDate date={link.createdAt.toISOString()} /></td>
                 </tr>
               ))}
             </tbody>

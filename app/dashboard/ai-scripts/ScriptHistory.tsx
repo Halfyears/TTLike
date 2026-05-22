@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Search, ChevronDown, ChevronUp, Copy, Check, Trash2, Clock, Tag, Zap, AlertTriangle, X } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
+import { timeAgo } from '@/lib/dateUtils'
 import { HOOK_TYPES, NICHES } from '@/lib/constants'
 
 interface Script {
@@ -35,17 +36,6 @@ interface HistoryResponse {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  if (d < 30) return `${d}d ago`
-  return new Date(iso).toLocaleDateString()
-}
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false)

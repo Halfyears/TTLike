@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
+import { LocalDate } from '@/components/ui/LocalDate'
 import { formatNumber } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
@@ -284,9 +285,7 @@ export default async function ProductDetailPage({ params }: Props) {
             {(v.published_at || v.created_at) && (
               <span className="inline-flex items-center gap-1 text-xs text-gray-400">
                 <Calendar className="h-3 w-3" />
-                {new Date(String(v.published_at ?? v.created_at)).toLocaleDateString('en-US', {
-                  year: 'numeric', month: 'short', day: 'numeric',
-                })}
+                <LocalDate date={String(v.published_at ?? v.created_at)} />
                 {!v.published_at && (
                   <span className="text-gray-300 text-[10px]">(scraped)</span>
                 )}

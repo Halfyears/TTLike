@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ArrowLeft, User, Image, Video, Mic, Copy, Clapperboard } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
+import { LocalDate } from '@/components/ui/LocalDate'
 import type { DramaRow, CharacterRow, StoryboardRow } from '@/lib/studio/types'
 
 export const dynamic = 'force-dynamic'
@@ -54,7 +55,7 @@ export default async function DramaDetailPage({ params }: { params: Promise<{ id
           <div>
             <h1 className="text-xl font-bold text-gray-900">{d.title}</h1>
             <p className="text-xs text-gray-500 mt-0.5">
-              {boards.length} scenes · {chars.length} characters · {new Date(d.created_at).toLocaleDateString()}
+              {boards.length} scenes · {chars.length} characters · <LocalDate date={d.created_at} />
             </p>
           </div>
         </div>

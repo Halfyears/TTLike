@@ -3,23 +3,12 @@
 import { useEffect, useState } from 'react'
 import { Zap, TrendingUp, FileText, Clock, Tag, Hash, RefreshCw, Flame } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
+import { timeAgo, fmtDate } from '@/lib/dateUtils'
 import type { UsageStats } from '@/app/api/ledger/usage/route'
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return 'just now'
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  const d = Math.floor(h / 24)
-  return d < 30 ? `${d}d ago` : new Date(iso).toLocaleDateString()
-}
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+// ── Helper (chart label — short "May 22" format) ──────────────────────────────
+function fmtChartDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
 // ── Sparkline bar chart ───────────────────────────────────────────────────────
@@ -37,7 +26,7 @@ function SparkBars({ data }: { data: Array<{ date: string; scripts: number }> })
           {/* Tooltip */}
           <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:block z-10 pointer-events-none">
             <div className="bg-gray-900 text-white text-[10px] rounded px-2 py-1 whitespace-nowrap">
-              {formatDate(d.date)}: {d.scripts} scripts
+              {fmtChartDate(d.date)}: {d.scripts} scripts
             </div>
           </div>
         </div>
@@ -175,8 +164,8 @@ export function UsageClient() {
           </div>
           <SparkBars data={stats.daily_trend} />
           <div className="flex justify-between mt-1.5 text-[10px] text-gray-400">
-            <span>{formatDate(stats.daily_trend[0].date)}</span>
-            <span>{formatDate(stats.daily_trend[stats.daily_trend.length - 1].date)}</span>
+            <span>{fmtChartDate(stats.daily_trend[0].date)}</span>
+            <span>{fmtChartDate(stats.daily_trend[stats.daily_trend.length - 1].date)}</span>
           </div>
         </CardContent>
       </Card>

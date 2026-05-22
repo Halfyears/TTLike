@@ -11,8 +11,9 @@ export function formatNumber(n: number): string {
   return n.toString()
 }
 
+/** @deprecated Prefer <LocalDate> in components or fmtDate() from lib/dateUtils */
 export function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString('en-US', {
+  return new Date(date).toLocaleDateString(undefined, {
     year: 'numeric', month: 'long', day: 'numeric',
   })
 }

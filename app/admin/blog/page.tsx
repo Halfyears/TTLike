@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { Badge } from '@/components/ui/Badge'
-import { formatDate } from '@/lib/utils'
+import { LocalDate } from '@/components/ui/LocalDate'
 import Link from 'next/link'
 
 export const metadata = { title: 'Blog · Admin · TTLike' }
@@ -55,7 +55,7 @@ export default async function AdminBlogPage() {
                   <td className="px-4 py-3 text-sm text-gray-300">{post.category ?? '—'}</td>
                   <td className="px-4 py-3"><Badge variant={statusColors[post.status]}>{post.status}</Badge></td>
                   <td className="px-4 py-3 text-sm text-gray-300">{post.viewCount.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-sm text-gray-400">{post.publishedAt ? formatDate(post.publishedAt) : '—'}</td>
+                  <td className="px-4 py-3 text-sm text-gray-400"><LocalDate date={post.publishedAt?.toISOString()} /></td>
                 </tr>
               ))}
             </tbody>

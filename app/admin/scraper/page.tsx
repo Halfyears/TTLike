@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Activity, CheckCircle, XCircle, RefreshCw, Play, Database, Clock } from 'lucide-react'
+import { fmtDateTime } from '@/lib/dateUtils'
 
 interface ScraperLog {
   id: string
@@ -23,7 +24,7 @@ interface Stats {
 
 function fmt(ts: string | null): string {
   if (!ts) return 'Never'
-  return new Date(ts).toLocaleString()
+  return fmtDateTime(ts)
 }
 
 export default function ScraperPage() {
@@ -187,7 +188,7 @@ export default function ScraperPage() {
                     <span className="text-sm text-white truncate">{log.message}</span>
                   </div>
                   <span className="text-xs text-gray-500 flex-shrink-0">
-                    {new Date(log.created_at).toLocaleString()}
+                    {fmtDateTime(log.created_at)}
                   </span>
                 </div>
 
