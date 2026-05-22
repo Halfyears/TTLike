@@ -13,6 +13,7 @@ import os
 import re
 import sys
 import math
+import time
 import json as _json
 import requests
 from datetime import datetime, timezone
@@ -39,7 +40,10 @@ HASHTAGS = [
     'viralproducts',
 ]
 
-VIDEOS_PER_HASHTAG = 10
+VIDEOS_PER_HASHTAG = 20   # fetch more per tag so we still hit target after age-filtering
+
+# Only keep videos published within this many days (keeps content fresh)
+MAX_AGE_DAYS = 120
 
 # ── validation ────────────────────────────────────────────────────────────────
 missing = [k for k, v in {
@@ -160,19 +164,28 @@ def fetch_hashtag(tag: str, count: int = 10) -> list[dict]:
 
     if cid:
         log(f"  challenge_id={cid}")
-        posts_body = _api_get('challenge/posts', {'challenge_id': str(cid), 'count': count, 'cursor': 0})
+        posts_body = _api_get('challenge/posts', {
+            'challenge_id': str(cid), 'count': count, 'cursor': 0,
+            'sort_type': 0,  # 0 = newest first, 1 = most popular (default)
+        })
         d = posts_body.get('data', {})
         raw_videos = d.get('videos') or d.get('itemList') or d.get('aweme_list') or []
         if not raw_videos:
             log(f"  challenge/posts body: {_json.dumps(posts_body)[:300]}")
     else:
         log(f"  no challenge_id — trying feed/list keyword search")
-        feed_body = _api_get('feed/list', {'keywords': tag, 'count': count, 'cursor': 0, 'region': 'US'})
+        feed_body = _api_get('feed/list', {
+            'keywords': tag, 'count': count, 'cursor': 0, 'region': 'US',
+            'sort_type': 0,  # 0 = newest first
+        })
         log(f"  feed/list body: {_json.dumps(feed_body)[:300]}")
         d = feed_body.get('data', {})
         raw_videos = d.get('videos') or d.get('itemList') or d.get('aweme_list') or []
         if not raw_videos and isinstance(d, list):
             raw_videos = d
+
+    # Pre-compute cutoff timestamp so we can skip old videos
+    cutoff_ts = int(time.time()) - (MAX_AGE_DAYS * 86_400)
 
     videos = []
     for v in raw_videos:
@@ -229,6 +242,12 @@ def fetch_hashtag(tag: str, count: int = 10) -> list[dict]:
                     published_at = datetime.fromtimestamp(int(create_time), tz=timezone.utc).isoformat()
                 except Exception:
                     pass
+
+            # ── Age filter — skip videos older than MAX_AGE_DAYS ────────────
+            if create_time and int(create_time) < cutoff_ts:
+                pub_date = datetime.fromtimestamp(int(create_time), tz=timezone.utc).date()
+                log(f"    skip old video {video_id}: published {pub_date}")
+                continue
 
             # ── Product name from bio / caption ─────────────────────────────
             product_name = extract_product_name(title)
