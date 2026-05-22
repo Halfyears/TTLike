@@ -474,13 +474,17 @@ export default function AdminVideosPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items }),
       })
-      if (!res.ok) throw new Error(await res.text())
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? `HTTP ${res.status}`)
+      }
       setIsDirty(false)
       setSaveOk(true)
       setTimeout(() => setSaveOk(false), 2500)
     } catch (err) {
-      console.error('Save order failed:', err)
-      alert('Save failed — see console for details')
+      const msg = err instanceof Error ? err.message : String(err)
+      console.error('[saveOrder]', msg)
+      alert(`Save failed: ${msg}`)
     } finally {
       setSaving(false)
     }

@@ -37,14 +37,24 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient()
 
-  // Upsert all rows — updates only the sort_order column via conflict on id
-  const { error } = await supabase
-    .from('tiktok_videos')
-    .upsert(body.items, { onConflict: 'id' })
-
-  if (error) {
-    console.error('[admin/videos/reorder] upsert error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  // Use individual UPDATE calls in parallel batches of 50.
+  // Avoids upsert's INSERT path which fails on NOT NULL columns.
+  const BATCH = 50
+  for (let i = 0; i < body.items.length; i += BATCH) {
+    const batch = body.items.slice(i, i + BATCH)
+    const results = await Promise.all(
+      batch.map(item =>
+        supabase
+          .from('tiktok_videos')
+          .update({ sort_order: item.sort_order })
+          .eq('id', item.id)
+      )
+    )
+    const failed = results.find(r => r.error)
+    if (failed?.error) {
+      console.error('[admin/videos/reorder] update error:', failed.error)
+      return NextResponse.json({ error: failed.error.message }, { status: 500 })
+    }
   }
 
   return NextResponse.json({ ok: true, updated: body.items.length })
