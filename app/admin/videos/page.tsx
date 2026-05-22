@@ -25,7 +25,7 @@ import { formatNumber } from '@/lib/utils'
 import {
   RefreshCw, ExternalLink, Trash2, RotateCcw,
   GripVertical, Save, ArrowUpDown, TrendingUp,
-  CheckCircle,
+  CheckCircle, Brain, ChevronDown, ChevronUp, Calendar,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -46,6 +46,7 @@ interface Video {
   sort_order: number | null
   deleted_at: string | null
   created_at: string
+  published_at: string | null
 }
 
 type SortKey = 'viral_score' | 'views' | 'like_rate' | 'share_rate' | 'eng_rate'
@@ -58,6 +59,107 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'share_rate',  label: 'Share Rate %' },
   { key: 'eng_rate',    label: 'Engagement Rate %' },
 ]
+
+// ── Smart Recommendation Engine ───────────────────────────────────────────────
+interface SmartWeights {
+  views:    number   // 0–100
+  likeRate: number
+  shareRate: number
+  engRate:  number
+  recency:  number   // newer publish date = higher
+}
+
+const DEFAULT_WEIGHTS: SmartWeights = {
+  views: 40, likeRate: 20, shareRate: 30, engRate: 30, recency: 30,
+}
+
+/**
+ * Apply the smart recommendation engine to a list of active videos.
+ *
+ * 1. Videos in the date range are scored using weighted, normalised metrics.
+ * 2. Videos outside the range are scored 0 and pushed to the end.
+ * 3. Returns a new array sorted by descending smart score with sort_order
+ *    values assigned.
+ */
+function applySmartSort(
+  videos: Video[],
+  weights: SmartWeights,
+  dateFrom: string,
+  dateTo: string,
+): Video[] {
+  const from = dateFrom ? new Date(dateFrom) : null
+  const to   = dateTo   ? new Date(dateTo + 'T23:59:59') : null
+
+  const inRange: Video[] = []
+  const outRange: Video[] = []
+
+  for (const v of videos) {
+    const pub = v.published_at ? new Date(v.published_at) : null
+    const inWindow =
+      !pub ||
+      ((!from || pub >= from) && (!to || pub <= to))
+    if (inWindow) inRange.push(v)
+    else outRange.push(v)
+  }
+
+  if (inRange.length === 0) return videos  // nothing changed
+
+  // Compute max values for normalisation within the in-range set
+  const maxViews     = Math.max(...inRange.map(v => v.views), 1)
+  const maxLikeRate  = Math.max(...inRange.map(v => likeRate(v)), 0.001)
+  const maxShareRate = Math.max(...inRange.map(v => shareRate(v)), 0.001)
+  const maxEngRate   = Math.max(...inRange.map(v => engRate(v)), 0.001)
+
+  const now = Date.now()
+  const minPub = Math.min(
+    ...inRange
+      .filter(v => v.published_at)
+      .map(v => new Date(v.published_at!).getTime()),
+    now - 1
+  )
+  const pubSpan = now - minPub || 1
+
+  // Score each in-range video
+  const scored = inRange.map(v => {
+    const sViews = (v.views / maxViews) * weights.views
+    const sLike  = (likeRate(v)  / maxLikeRate)  * weights.likeRate
+    const sShare = (shareRate(v) / maxShareRate) * weights.shareRate
+    const sEng   = (engRate(v)   / maxEngRate)   * weights.engRate
+    let   sRec   = 0
+    if (v.published_at && weights.recency > 0) {
+      const age = now - new Date(v.published_at).getTime()
+      sRec = (1 - age / pubSpan) * weights.recency
+    }
+    return { v, score: sViews + sLike + sShare + sEng + sRec }
+  })
+
+  scored.sort((a, b) => b.score - a.score)
+
+  const result: Video[] = [
+    ...scored.map(({ v }, i) => ({ ...v, sort_order: i + 1 })),
+    ...outRange.map((v, i) => ({ ...v, sort_order: scored.length + i + 1 })),
+  ]
+
+  return result
+}
+
+// ── Weight slider component ───────────────────────────────────────────────────
+function WeightSlider({
+  label, value, onChange,
+}: { label: string; value: number; onChange: (n: number) => void }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-xs text-gray-400 w-24 shrink-0">{label}</span>
+      <input
+        type="range" min={0} max={100} step={5}
+        value={value}
+        onChange={e => onChange(Number(e.target.value))}
+        className="flex-1 accent-violet-500 h-1.5 cursor-pointer"
+      />
+      <span className="text-xs text-violet-300 w-8 text-right tabular-nums font-semibold">{value}</span>
+    </div>
+  )
+}
 
 // ── Computed rate helpers ─────────────────────────────────────────────────────
 function likeRate(v: Video) {
@@ -246,6 +348,12 @@ export default function AdminVideosPage() {
   const [niche, setNiche] = useState('')
   const [autoSortKey, setAutoSortKey] = useState<SortKey>('viral_score')
 
+  // Smart recommendation engine state
+  const [smartOpen,    setSmartOpen]    = useState(false)
+  const [smartWeights, setSmartWeights] = useState<SmartWeights>(DEFAULT_WEIGHTS)
+  const [smartFrom,    setSmartFrom]    = useState('')
+  const [smartTo,      setSmartTo]      = useState('')
+
   // Stable client — avoids re-creating on every render
   const supabase = useMemo(() => createClient(), [])
 
@@ -343,6 +451,19 @@ export default function AdminVideosPage() {
     setIsDirty(true)
   }
 
+  // ── Smart recommendation engine ────────────────────────────────────────────
+  function handleSmartSort() {
+    const result = applySmartSort(active, smartWeights, smartFrom, smartTo)
+    setActive(result)
+    setIsDirty(true)
+  }
+
+  function resetSmartWeights() {
+    setSmartWeights(DEFAULT_WEIGHTS)
+    setSmartFrom('')
+    setSmartTo('')
+  }
+
   // ── Save order ─────────────────────────────────────────────────────────────
   async function saveOrder() {
     setSaving(true)
@@ -423,6 +544,105 @@ export default function AdminVideosPage() {
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
+      </div>
+
+      {/* ── Smart Recommendation Engine panel ─────────────────────────────── */}
+      <div className="mb-5 bg-gray-800 border border-violet-700/40 rounded-xl overflow-hidden">
+        <button
+          onClick={() => setSmartOpen(o => !o)}
+          className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-700/40 transition-colors"
+        >
+          <div className="flex items-center gap-2.5">
+            <Brain className="h-4 w-4 text-violet-400" />
+            <span className="text-sm font-semibold text-white">Smart Recommendation Engine</span>
+            <span className="text-xs text-gray-500 hidden sm:inline">
+              — weight multiple metrics to compute a combined ranking score
+            </span>
+          </div>
+          {smartOpen
+            ? <ChevronUp className="h-4 w-4 text-gray-400" />
+            : <ChevronDown className="h-4 w-4 text-gray-400" />}
+        </button>
+
+        {smartOpen && (
+          <div className="px-5 pb-5 border-t border-gray-700/60">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+
+              {/* Date range */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Calendar className="h-3.5 w-3.5 text-violet-400" />
+                  <span className="text-xs font-semibold text-gray-300 uppercase tracking-wide">
+                    Publish Date Range
+                  </span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex-1">
+                    <label className="text-[10px] text-gray-500 mb-1 block">From</label>
+                    <input
+                      type="date"
+                      value={smartFrom}
+                      onChange={e => setSmartFrom(e.target.value)}
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    />
+                  </div>
+                  <span className="text-gray-600 mt-4">→</span>
+                  <div className="flex-1">
+                    <label className="text-[10px] text-gray-500 mb-1 block">To</label>
+                    <input
+                      type="date"
+                      value={smartTo}
+                      onChange={e => setSmartTo(e.target.value)}
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-violet-500"
+                    />
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-2">
+                  Videos outside this range are sorted to the end (score = 0).
+                  Leave blank to include all videos.
+                </p>
+              </div>
+
+              {/* Weights */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <ArrowUpDown className="h-3.5 w-3.5 text-violet-400" />
+                  <span className="text-xs font-semibold text-gray-300 uppercase tracking-wide">
+                    Metric Weights (0 = ignore · 100 = max importance)
+                  </span>
+                </div>
+                <div className="space-y-3">
+                  <WeightSlider label="Views"           value={smartWeights.views}     onChange={v => setSmartWeights(w => ({ ...w, views: v }))} />
+                  <WeightSlider label="Like Rate %"     value={smartWeights.likeRate}  onChange={v => setSmartWeights(w => ({ ...w, likeRate: v }))} />
+                  <WeightSlider label="Share Rate %"    value={smartWeights.shareRate} onChange={v => setSmartWeights(w => ({ ...w, shareRate: v }))} />
+                  <WeightSlider label="Engagement %"    value={smartWeights.engRate}   onChange={v => setSmartWeights(w => ({ ...w, engRate: v }))} />
+                  <WeightSlider label="Recency"         value={smartWeights.recency}   onChange={v => setSmartWeights(w => ({ ...w, recency: v }))} />
+                </div>
+              </div>
+            </div>
+
+            {/* Action row */}
+            <div className="flex items-center gap-3 mt-5 pt-4 border-t border-gray-700/60">
+              <button
+                onClick={handleSmartSort}
+                className="flex items-center gap-2 px-5 py-2 bg-violet-600 hover:bg-violet-500 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                <Brain className="h-4 w-4" />
+                Compute &amp; Apply
+              </button>
+              <button
+                onClick={resetSmartWeights}
+                className="px-4 py-2 text-gray-400 hover:text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Reset
+              </button>
+              <p className="text-xs text-gray-500 ml-auto hidden sm:block">
+                After applying, click{' '}
+                <span className="text-emerald-400">Save Order</span> to publish to the products page.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Error banner */}
