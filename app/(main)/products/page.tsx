@@ -13,7 +13,8 @@ interface ProductsPageProps {
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const { q, niche, sort } = await searchParams
-  const sortKey = sort === 'views' ? 'views' : 'viral_score'
+  // Sort options: 'featured' = admin-curated sort_order, 'viral' = viral_score, 'views' = views
+  const sortKey = sort === 'views' ? 'views' : sort === 'viral' ? 'viral_score' : null
 
   let products: Array<{
     id: string; productName: string; niche: string; viralScore: number;
@@ -24,8 +25,14 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   try {
     const url = new URL('/rest/v1/tiktok_videos', process.env.NEXT_PUBLIC_SUPABASE_URL)
     url.searchParams.set('select', '*')
-    url.searchParams.set('order', `${sortKey}.desc`)
+    // Default: admin-curated sort_order, then viral_score as fallback
+    const order = sortKey
+      ? `${sortKey}.desc`
+      : 'sort_order.asc.nullslast,viral_score.desc'
+    url.searchParams.set('order', order)
     url.searchParams.set('limit', '200')
+    // Exclude soft-deleted videos
+    url.searchParams.set('deleted_at', 'is.null')
     if (q) url.searchParams.set('title', `ilike.*${q}*`)
     if (niche && niche !== 'All') url.searchParams.set('niche', `eq.${niche}`)
 
@@ -79,8 +86,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           </div>
           {/* Sort + Submit — side by side below search on mobile */}
           <div className="flex gap-2">
-            <select name="sort" defaultValue={sort}
+            <select name="sort" defaultValue={sort ?? 'featured'}
               className="flex-1 sm:flex-none rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
+              <option value="featured">Featured</option>
               <option value="viral">Viral Score</option>
               <option value="views">Views</option>
             </select>
