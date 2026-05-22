@@ -78,7 +78,7 @@ function VideoSearch({
 }: {
   value: string | null
   label: string
-  onChange: (id: string | null, title: string) => void
+  onChange: (id: string | null) => void
 }) {
   const [q, setQ]           = useState(label)
   const [hits, setHits]     = useState<VideoHit[]>([])
@@ -104,7 +104,7 @@ function VideoSearch({
   function handleInput(v: string) {
     setQ(v)
     setOpen(true)
-    if (v === '') { onChange(null, ''); setHits([]) }
+    if (v === '') { onChange(null); setHits([]) }
     clearTimeout(timer.current)
     timer.current = setTimeout(() => search(v), 300)
   }
@@ -113,13 +113,13 @@ function VideoSearch({
     const name = hit.product_name ?? hit.title ?? hit.id
     setQ(name)
     setOpen(false)
-    onChange(hit.id, name)
+    onChange(hit.id)
   }
 
   function clear() {
     setQ('')
     setOpen(false)
-    onChange(null, '')
+    onChange(null)
     setHits([])
   }
 
@@ -311,23 +311,36 @@ export default function AdminPromotionsPage() {
   }
 
   async function handleToggleActive(p: Promotion) {
+    // Optimistic update
+    setItems(prev => prev.map(x => x.id === p.id ? { ...x, is_active: !x.is_active } : x))
     const res = await fetch(`/api/admin/promotions/${p.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_active: !p.is_active }),
     })
-    if (res.ok) setItems(prev => prev.map(x => x.id === p.id ? { ...x, is_active: !x.is_active } : x))
+    // Roll back on failure
+    if (!res.ok) setItems(prev => prev.map(x => x.id === p.id ? { ...x, is_active: p.is_active } : x))
   }
 
   async function handleDelete() {
     if (!delId) return
     setDeleting(true)
-    const res = await fetch(`/api/admin/promotions/${delId}`, { method: 'DELETE' })
-    if (res.ok) {
-      setItems(prev => prev.filter(x => x.id !== delId))
+    try {
+      const res = await fetch(`/api/admin/promotions/${delId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setItems(prev => prev.filter(x => x.id !== delId))
+        setDelId(null)
+      } else {
+        const data = await res.json()
+        setError(data.error ?? 'Delete failed')
+        setDelId(null)
+      }
+    } catch {
+      setError('Delete failed — network error')
       setDelId(null)
+    } finally {
+      setDeleting(false)
     }
-    setDeleting(false)
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -717,27 +730,25 @@ export default function AdminPromotionsPage() {
               {formErr && (
                 <p className="text-red-400 text-sm">{formErr}</p>
               )}
-            </form>
 
-            {/* Panel footer */}
-            <div className="px-6 py-4 border-t border-gray-700 flex items-center gap-3 shrink-0">
-              <button
-                type="submit"
-                form=""
-                onClick={handleSave}
-                disabled={saving}
-                className="flex-1 py-2.5 bg-pink-500 hover:bg-pink-600 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors"
-              >
-                {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Promotion'}
-              </button>
-              <button
-                type="button"
-                onClick={closePanel}
-                className="px-4 py-2.5 text-gray-400 hover:text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+              {/* Footer inside the form so Enter key & submit button both work */}
+              <div className="pt-2 flex items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-2.5 bg-pink-500 hover:bg-pink-600 disabled:opacity-60 text-white text-sm font-semibold rounded-lg transition-colors"
+                >
+                  {saving ? 'Saving…' : editing ? 'Save Changes' : 'Create Promotion'}
+                </button>
+                <button
+                  type="button"
+                  onClick={closePanel}
+                  className="px-4 py-2.5 text-gray-400 hover:text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </>
       )}
