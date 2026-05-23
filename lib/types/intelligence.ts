@@ -1,7 +1,6 @@
 // ── TTLike Intelligence Schema v2.5 — Inspiration Engine ─────────────────────
 // Replaces classification-based hook/emotion/pacing with actionable creative assets.
 // Each breakdown = 3 copy-pasteable viral formulas + full scene-by-scene timeline.
-// Field note: V2.5 uses example_script (renamed from action_step in earlier builds).
 
 export interface ViralFormula {
   title:          string  // e.g. "The Negative Filter Opener"
@@ -11,16 +10,48 @@ export interface ViralFormula {
 }
 
 export interface TimelineScene {
-  timecode:      string  // e.g. "00:01-00:03"
-  visual:        string  // Phone-shooting/framing directive
-  audio:         string  // Exact spoken transcript line
-  why_this_works: string // Psychological micro-trigger for this scene
+  timecode:       string  // e.g. "00:01-00:03"
+  visual:         string  // Phone-shooting/framing directive
+  audio:          string  // Exact spoken transcript line
+  why_this_works: string  // Psychological micro-trigger for this scene
+}
+
+// ── Structural Health Report types (generated on-demand, premium) ──────────────
+
+export interface HealthReportLeak {
+  severity:       'CRITICAL' | 'HIGH' | 'MEDIUM'
+  timecode:       string
+  issue:          string
+  detail:         string
+  estimated_loss: string  // e.g. "~15% checkout leakage"
+}
+
+export interface StructuralHealthReport {
+  hook_retention: {
+    title:            string
+    timecode:         string
+    technique:        string
+    detail:           string
+    algorithm_impact: string
+  }
+  trust_transference: {
+    title:                   string
+    visual_technique:        string
+    psychological_mechanism: string
+    detail:                  string
+  }
+  structural_leaks: HealthReportLeak[]
+  counter_attack: {
+    title:          string
+    fixes:          Array<{ action: string; detail: string }>
+    production_tip: string
+  }
 }
 
 // ── Core breakdown payload (stored in video_breakdowns.payload) ───────────────
 export interface VideoBreakdownPayload {
-  url_hash: string
-  category?: string  // Legacy field — present in V1/V2 records, omitted in V2.5+
+  url_hash:        string
+  category?:       string  // Legacy field — present in V1/V2 records, omitted in V2.5+
   metrics: {
     views:  string
     likes:  string
@@ -28,4 +59,5 @@ export interface VideoBreakdownPayload {
   }
   viral_formulas:  ViralFormula[]   // Exactly 3 high-impact formulas
   visual_timeline: TimelineScene[]  // Full 4-scene timeline breakdown
+  health_report?:  StructuralHealthReport  // generated on-demand, cached separately
 }

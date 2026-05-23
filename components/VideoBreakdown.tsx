@@ -1,13 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Loader2, Zap, AlertTriangle, ExternalLink } from 'lucide-react'
 import { VideoAnalysis } from '@/components/VideoAnalysis'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 
-// ── Main component ────────────────────────────────────────────────────────────
-export function VideoBreakdown({ videoId }: { videoId: string }) {
+interface Props {
+  videoId:   string
+  autoLoad?: boolean  // true = auto-trigger on mount (used when redirected after URL analysis)
+}
+
+export function VideoBreakdown({ videoId, autoLoad = false }: Props) {
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [data, setData]   = useState<VideoBreakdownPayload | null>(null)
   const [errMsg, setErr]  = useState('')
@@ -16,7 +20,7 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
     setState('loading')
     try {
       // Try GET first (lightweight cache check)
-      const res = await fetch(`/api/analyze?video_id=${videoId}`)
+      const res  = await fetch(`/api/analyze?video_id=${videoId}`)
       const json = await res.json()
 
       if (json.breakdown) {
@@ -26,7 +30,7 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
       }
 
       // Not cached — generate via POST
-      const res2 = await fetch('/api/analyze', {
+      const res2  = await fetch('/api/analyze', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ video_id: videoId }),
@@ -41,35 +45,44 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
     }
   }
 
-  // ── Idle ────────────────────────────────────────────────────────────────────
+  // Auto-trigger on mount when coming from UrlIngestion redirect
+  useEffect(() => {
+    if (autoLoad) load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // ── Idle ─────────────────────────────────────────────────────────────────────
   if (state === 'idle') {
     return (
-      <div className="border border-dashed border-pink-200 rounded-xl p-5 text-center">
-        <p className="text-sm text-gray-500 mb-3">
-          AI Ad Structure Report — formulas · timeline · retention triggers
+      <div className="border border-dashed border-indigo-200 rounded-xl p-5 text-center bg-indigo-50/20">
+        <div className="text-[11px] text-slate-500 mb-1 font-mono">
+          Viral Formulas · Scene Timeline · Retention Triggers
+        </div>
+        <p className="text-[10px] text-slate-400 mb-3 font-mono">
+          AI deconstructs exactly how this video beats the algorithm
         </p>
         <button
           onClick={load}
-          className="inline-flex items-center gap-2 px-5 py-2 bg-pink-500 hover:bg-pink-600 text-white text-sm font-semibold rounded-lg transition-colors"
+          className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold rounded-lg transition-colors uppercase tracking-wide"
         >
-          <Zap className="h-4 w-4" />
-          Generate AI Breakdown
+          <Zap className="h-3.5 w-3.5" />
+          Generate Video Analysis
         </button>
       </div>
     )
   }
 
-  // ── Loading ─────────────────────────────────────────────────────────────────
+  // ── Loading ──────────────────────────────────────────────────────────────────
   if (state === 'loading') {
     return (
-      <div className="border border-gray-100 rounded-xl p-6 flex items-center justify-center gap-3 text-gray-400">
-        <Loader2 className="h-5 w-5 animate-spin text-pink-400" />
-        <span className="text-sm">AI is analyzing the ad structure… (approx. 5s)</span>
+      <div className="border border-gray-100 rounded-xl p-6 flex items-center justify-center gap-3 text-gray-400 font-mono">
+        <Loader2 className="h-5 w-5 animate-spin text-indigo-400" />
+        <span className="text-xs">Analyzing ad structure… (approx. 5s)</span>
       </div>
     )
   }
 
-  // ── Error ───────────────────────────────────────────────────────────────────
+  // ── Error ────────────────────────────────────────────────────────────────────
   if (state === 'error') {
     return (
       <div className="border border-red-200 bg-red-50 rounded-xl p-4 flex items-start gap-2">
@@ -92,19 +105,19 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
         <Link
           href={`/viral/${videoId}`}
           target="_blank"
-          className="inline-flex items-center gap-1.5 text-[11px] text-pink-500 hover:text-pink-700 font-medium transition-colors"
+          className="inline-flex items-center gap-1.5 text-[11px] text-indigo-500 hover:text-indigo-700 font-medium transition-colors font-mono"
         >
           <ExternalLink className="h-3 w-3" />
           View public breakdown page
         </Link>
         <button
           onClick={() => setState('idle')}
-          className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors"
+          className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors font-mono"
         >
           Regenerate
         </button>
       </div>
-      <VideoAnalysis data={data} showPremiumCta={true} />
+      <VideoAnalysis data={data} showPremiumCta={false} />
     </div>
   )
 }

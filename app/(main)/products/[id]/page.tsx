@@ -11,11 +11,16 @@ import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { LocalDate } from '@/components/ui/LocalDate'
+import { VideoBreakdown } from '@/components/VideoBreakdown'
+import { StructuralHealthReport } from '@/components/StructuralHealthReport'
 import { formatNumber } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
-interface Props { params: Promise<{ id: string }> }
+interface Props {
+  params:       Promise<{ id: string }>
+  searchParams: Promise<Record<string, string>>
+}
 
 // ─── Data fetching ────────────────────────────────────────────────────────────
 
@@ -59,12 +64,10 @@ async function getSimilar(niche: string, excludeId: string) {
 
 // ─── Title helpers ────────────────────────────────────────────────────────────
 
-/** Extract hashtag strings (without the # prefix) */
 function extractHashtags(text: string): string[] {
   return (text.match(/#[\w一-龥＀-￯]+/g) ?? []).map(h => h.slice(1))
 }
 
-/** Return title with all hashtags stripped */
 function cleanTitle(text: string): string {
   return text
     .replace(/#[\w一-龥＀-￯]+\s*/g, '')
@@ -95,7 +98,6 @@ function deriveProductBullets(v: Record<string, unknown>): string[] {
 
   const bullets: string[] = []
 
-  // Clean sentences from the video caption
   const stripped = rawTitle.replace(/#[\w一-龥＀-￯]+\s*/g, '').trim()
   const sentences = stripped
     .split(/[.!|•·\n]+/)
@@ -106,19 +108,16 @@ function deriveProductBullets(v: Record<string, unknown>): string[] {
     bullets.push(s.charAt(0).toUpperCase() + s.slice(1))
   }
 
-  // Fill remaining with niche-specific benefit bullets
-  const fill = NICHE_BULLETS[niche] ?? NICHE_BULLETS['General']
+  const fill   = NICHE_BULLETS[niche] ?? NICHE_BULLETS['General']
   const needed = Math.max(0, 3 - bullets.length)
   bullets.push(...fill.slice(0, needed))
 
-  // Social proof bullet
   if (views >= 1_000_000) {
     bullets.push(`${(views / 1_000_000).toFixed(1)}M+ views — viral on TikTok`)
   } else if (views >= 100_000) {
     bullets.push(`${Math.round(views / 1000)}K+ views — trending now`)
   }
 
-  // High share bullet
   if (shares >= 10_000) {
     bullets.push(`Shared ${formatNumber(shares)} times — highly recommended by viewers`)
   } else if (likes > 0 && views > 0 && likes / views > 0.12) {
@@ -161,12 +160,12 @@ function deriveInsights(v: Record<string, unknown>) {
   const niche = String(v.niche ?? 'General')
 
   let hookType = 'Emotional'
-  if (/\?|why|are you|do you/.test(text))                         hookType = 'Question'
-  else if (/can't believe|had no idea|shocked|never knew/.test(text)) hookType = 'Surprise'
-  else if (/stop |pov:|vs |instead of|ditch/.test(text))           hookType = 'Contrarian'
-  else if (/i spent|i tried|i bought|after \d|years of/.test(text)) hookType = 'Story'
-  else if (/everyone|selling out|going viral|trending/.test(text)) hookType = 'FOMO'
-  else if (/did you know|tip:|hack:|secret|fact/.test(text))       hookType = 'Educational'
+  if (/\?|why|are you|do you/.test(text))                              hookType = 'Question'
+  else if (/can't believe|had no idea|shocked|never knew/.test(text))  hookType = 'Surprise'
+  else if (/stop |pov:|vs |instead of|ditch/.test(text))               hookType = 'Contrarian'
+  else if (/i spent|i tried|i bought|after \d|years of/.test(text))    hookType = 'Story'
+  else if (/everyone|selling out|going viral|trending/.test(text))      hookType = 'FOMO'
+  else if (/did you know|tip:|hack:|secret|fact/.test(text))            hookType = 'Educational'
 
   const painPoint = NICHE_PAIN[niche]  ?? NICHE_PAIN['General']!
   const usp       = NICHE_USP[niche]   ?? NICHE_USP['General']!
@@ -181,7 +180,6 @@ function deriveVideoAnalysis(v: Record<string, unknown>, hookType: string) {
   const shares = Number(v.shares ?? 0)
   const engRate = views > 0 ? (likes + shares * 3) / views : 0
 
-  // Opening hook line
   const rawTitle = String(v.title ?? '')
   const openingHook = rawTitle
     .replace(/#[\w一-龥＀-￯]+\s*/g, '')
@@ -189,7 +187,6 @@ function deriveVideoAnalysis(v: Record<string, unknown>, hookType: string) {
     .trim()
     .slice(0, 120) || '—'
 
-  // Content format
   let contentFormat = 'Product Demo & Review'
   if (/story|pov:|i tried|i bought|i found/.test(text))          contentFormat = 'Personal Story'
   else if (/how to|tutorial|step|guide|learn/.test(text))         contentFormat = 'Tutorial / How-To'
@@ -197,7 +194,6 @@ function deriveVideoAnalysis(v: Record<string, unknown>, hookType: string) {
   else if (/vs |compared|instead of|ditch|switch/.test(text))     contentFormat = 'Comparison'
   else if (/before.*after|transformation|glow.?up/.test(text))   contentFormat = 'Before & After'
 
-  // Editing pace
   let editingPace = 'Moderate pacing with clear product demonstrations'
   if (engRate > 0.12 || shares > 50_000)
     editingPace = 'Fast cuts & high energy — keeps viewers hooked to the end'
@@ -206,7 +202,6 @@ function deriveVideoAnalysis(v: Record<string, unknown>, hookType: string) {
   else if (/satisfying|asmr|relaxing/.test(text))
     editingPace = 'Slow, satisfying cuts with ambient or minimal sound'
 
-  // CTA placement
   let ctaPlacement = 'Product reveal at the end drives curiosity'
   if (/link in bio|shop now|get yours|order|buy/.test(text))
     ctaPlacement = 'Explicit on-screen CTA — link in bio / swipe up'
@@ -215,29 +210,30 @@ function deriveVideoAnalysis(v: Record<string, unknown>, hookType: string) {
   else if (shares / Math.max(views, 1) > 0.04)
     ctaPlacement = 'Organic share trigger — no hard sell, lets product speak'
 
-  // Target audience
   let targetAudience = 'Online shoppers aged 18–35'
-  if (/mom|baby|kid|parent|family/.test(text))   targetAudience = 'Parents & families'
+  if (/mom|baby|kid|parent|family/.test(text))    targetAudience = 'Parents & families'
   else if (/gym|workout|fitness|athletic/.test(text)) targetAudience = 'Fitness enthusiasts'
-  else if (/student|college|dorm/.test(text))    targetAudience = 'Students & young adults'
-  else if (/office|professional|desk/.test(text)) targetAudience = 'Working professionals'
-  else if (/senior|elderly|arthritis/.test(text)) targetAudience = 'Older adults (50+)'
+  else if (/student|college|dorm/.test(text))     targetAudience = 'Students & young adults'
+  else if (/office|professional|desk/.test(text))  targetAudience = 'Working professionals'
+  else if (/senior|elderly|arthritis/.test(text))  targetAudience = 'Older adults (50+)'
 
-  // Visual style
   let visualStyle = 'Clean product-focused shots, neutral background'
-  if (/aesthetic|minimal|clean/.test(text))      visualStyle = 'Minimalist aesthetic — white or neutral backdrop'
-  else if (/kitchen|cooking|food/.test(text))    visualStyle = 'Kitchen environment with natural lighting'
-  else if (/outdoor|nature|travel/.test(text))   visualStyle = 'Natural outdoor setting'
-  else if (/makeup|skincare|beauty/.test(text))  visualStyle = 'Close-up beauty shots with ring-light setup'
-  else if (/gym|fitness|workout/.test(text))     visualStyle = 'Action shots in gym or home workout space'
+  if (/aesthetic|minimal|clean/.test(text))       visualStyle = 'Minimalist aesthetic — white or neutral backdrop'
+  else if (/kitchen|cooking|food/.test(text))     visualStyle = 'Kitchen environment with natural lighting'
+  else if (/outdoor|nature|travel/.test(text))    visualStyle = 'Natural outdoor setting'
+  else if (/makeup|skincare|beauty/.test(text))   visualStyle = 'Close-up beauty shots with ring-light setup'
+  else if (/gym|fitness|workout/.test(text))      visualStyle = 'Action shots in gym or home workout space'
 
   return { openingHook, contentFormat, editingPace, ctaPlacement, targetAudience, visualStyle }
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function ProductDetailPage({ params }: Props) {
-  const { id } = await params
+export default async function ProductDetailPage({ params, searchParams }: Props) {
+  const { id }      = await params
+  const sq          = await searchParams
+  const autoAnalyze = sq?.auto_analyze === '1'
+
   const v = await getVideo(id)
   if (!v) notFound()
 
@@ -268,18 +264,13 @@ export default async function ProductDetailPage({ params }: Props) {
       {/* ── Title section ── */}
       <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
         <div className="flex-1 min-w-0">
-          {/* Badges */}
           <div className="flex items-center gap-2 mb-2 flex-wrap">
             <Badge>{niche}</Badge>
             <ViralScoreBadge score={Math.round(Number(v.viral_score ?? 0))} />
           </div>
-
-          {/* Clean title — no hashtags */}
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight">
             {cleanName}
           </h1>
-
-          {/* Author + date */}
           <div className="flex items-center gap-3 flex-wrap mt-1.5">
             {v.author && <p className="text-gray-500 text-sm">@{String(v.author)}</p>}
             {(v.published_at || v.created_at) && (
@@ -292,8 +283,6 @@ export default async function ProductDetailPage({ params }: Props) {
               </span>
             )}
           </div>
-
-          {/* Hashtags — separate section below title */}
           {hashtags.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-3">
               {hashtags.map(tag => (
@@ -386,7 +375,7 @@ export default async function ProductDetailPage({ params }: Props) {
             </CardContent>
           </Card>
 
-          {/* Viral Score Breakdown */}
+          {/* ── Viral Score Breakdown ── */}
           <Card>
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-4">
@@ -413,88 +402,107 @@ export default async function ProductDetailPage({ params }: Props) {
               </div>
             </CardContent>
           </Card>
+
+          {/* ── Featured Comments ── */}
+          <CommentsPanel productId={id} videoUrl={v.video_url ? String(v.video_url) : null} />
         </div>
 
         {/* ── RIGHT col (2/5) ── */}
         <div className="lg:col-span-2 space-y-4">
 
-          {/* AI Viral Breakdown */}
+          {/* ── Module 1: AI Viral Breakdown (static labels) ── */}
           <Card className="border-pink-100">
             <CardContent className="p-5">
-              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-pink-50">
+              <div className="flex items-center gap-2 mb-3 pb-3 border-b border-pink-50">
                 <span className="text-lg">🚀</span>
                 <h2 className="text-sm font-bold text-gray-900">AI Viral Breakdown</h2>
+                <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded bg-pink-50 text-pink-600 border border-pink-100 uppercase tracking-wide">
+                  Surface
+                </span>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                  <Tag className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+              <div className="space-y-2.5">
+                <div className="flex items-start gap-3 p-2.5 bg-blue-50 rounded-lg">
+                  <Tag className="h-3.5 w-3.5 text-blue-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-0.5">Category</p>
-                    <p className="text-sm font-semibold text-blue-900">{niche}</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-blue-400 mb-0.5">Category</p>
+                    <p className="text-xs font-semibold text-blue-900">{niche}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg">
-                  <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-2.5 bg-amber-50 rounded-lg">
+                  <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-400 mb-0.5">Pain Point</p>
-                    <p className="text-sm font-semibold text-amber-900">{insights.painPoint}</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-amber-400 mb-0.5">Pain Point</p>
+                    <p className="text-xs font-semibold text-amber-900">{insights.painPoint}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-violet-50 rounded-lg">
-                  <Zap className="h-4 w-4 text-violet-500 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-2.5 bg-violet-50 rounded-lg">
+                  <Zap className="h-3.5 w-3.5 text-violet-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400 mb-0.5">Hook Style</p>
-                    <p className="text-sm font-semibold text-violet-900">{insights.hookType}</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-violet-400 mb-0.5">Hook Style</p>
+                    <p className="text-xs font-semibold text-violet-900">{insights.hookType}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                  <Sparkles className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />
+                <div className="flex items-start gap-3 p-2.5 bg-green-50 rounded-lg">
+                  <Sparkles className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-green-400 mb-0.5">Selling Points</p>
-                    <p className="text-sm font-semibold text-green-900">{insights.usp}</p>
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-green-400 mb-0.5">Selling Points</p>
+                    <p className="text-xs font-semibold text-green-900">{insights.usp}</p>
+                  </div>
+                </div>
+                {/* Video Analysis sub-labels */}
+                <div className="pt-1 border-t border-gray-100">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-2">Video Analysis</p>
+                  <div className="space-y-2">
+                    {[
+                      { icon: Film,              label: 'Content Format',   value: videoAnalysis.contentFormat,   color: 'text-blue-500' },
+                      { icon: TrendingUp,        label: 'Editing Pace',     value: videoAnalysis.editingPace,     color: 'text-pink-500' },
+                      { icon: MousePointerClick, label: 'CTA Placement',    value: videoAnalysis.ctaPlacement,    color: 'text-orange-500' },
+                      { icon: Users,             label: 'Target Audience',  value: videoAnalysis.targetAudience,  color: 'text-violet-500' },
+                      { icon: Clapperboard,      label: 'Visual Style',     value: videoAnalysis.visualStyle,     color: 'text-green-500' },
+                    ].map(({ icon: Icon, label, value, color }) => (
+                      <div key={label} className="flex items-start gap-2">
+                        <Icon className={`h-3 w-3 ${color} shrink-0 mt-0.5`} />
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{label}</p>
+                          <p className="text-[11px] text-gray-700 mt-0.5 leading-snug">{value}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* ── Video Production Analysis ── */}
-          <Card className="border-slate-100">
+          {/* ── Module 2: Video Analysis (AI Inspiration Engine, on demand) ── */}
+          <Card className="border-indigo-100">
             <CardContent className="p-5">
-              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-50">
-                <Clapperboard className="h-4 w-4 text-slate-500" />
+              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-indigo-50">
+                <span className="text-base">🎬</span>
                 <h2 className="text-sm font-bold text-gray-900">Video Analysis</h2>
+                <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100 uppercase tracking-wide">
+                  AI · On Demand
+                </span>
               </div>
-
-              <div className="space-y-3">
-                {/* Opening hook */}
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Opening Hook</p>
-                  <p className="text-xs text-gray-700 italic bg-slate-50 rounded-lg px-3 py-2 leading-relaxed">
-                    &ldquo;{videoAnalysis.openingHook}&rdquo;
-                  </p>
-                </div>
-
-                {[
-                  { icon: Film,              label: 'Content Format',   value: videoAnalysis.contentFormat,   color: 'text-blue-500' },
-                  { icon: TrendingUp,        label: 'Editing Pace',     value: videoAnalysis.editingPace,     color: 'text-pink-500' },
-                  { icon: MousePointerClick, label: 'CTA Placement',    value: videoAnalysis.ctaPlacement,    color: 'text-orange-500' },
-                  { icon: Users,             label: 'Target Audience',  value: videoAnalysis.targetAudience,  color: 'text-violet-500' },
-                  { icon: Sparkles,          label: 'Visual Style',     value: videoAnalysis.visualStyle,     color: 'text-green-500' },
-                ].map(({ icon: Icon, label, value, color }) => (
-                  <div key={label} className="flex items-start gap-2">
-                    <Icon className={`h-3.5 w-3.5 ${color} shrink-0 mt-0.5`} />
-                    <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 leading-none">{label}</p>
-                      <p className="text-xs text-gray-700 mt-0.5 leading-snug">{value}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <VideoBreakdown videoId={id} autoLoad={autoAnalyze} />
             </CardContent>
           </Card>
 
-          {/* Clone & Rewrite CTA */}
+          {/* ── Module 3: AI Structural Health Report (premium) ── */}
+          <Card className="border-red-100">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-red-50">
+                <span className="text-base">🔬</span>
+                <h2 className="text-sm font-bold text-gray-900">AI Structural Health Report</h2>
+                <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-100 uppercase tracking-wide">
+                  Premium
+                </span>
+              </div>
+              <StructuralHealthReport videoId={id} />
+            </CardContent>
+          </Card>
+
+          {/* ── Clone & Rewrite CTA ── */}
           <Link href={cloneHref}>
             <button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all text-sm">
               <Sparkles className="h-4 w-4" />
@@ -502,7 +510,7 @@ export default async function ProductDetailPage({ params }: Props) {
             </button>
           </Link>
 
-          {/* Watch on TikTok */}
+          {/* ── Watch on TikTok ── */}
           {v.video_url && (
             <a href={String(v.video_url)} target="_blank" rel="noopener noreferrer">
               <button className="w-full flex items-center justify-center gap-2 border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition-colors text-sm">
@@ -511,10 +519,7 @@ export default async function ProductDetailPage({ params }: Props) {
             </a>
           )}
 
-          {/* Featured Comments */}
-          <CommentsPanel productId={id} videoUrl={v.video_url ? String(v.video_url) : null} />
-
-          {/* Similar Products */}
+          {/* ── Similar Products ── */}
           {similar.length > 0 && (
             <Card>
               <CardContent className="p-5">

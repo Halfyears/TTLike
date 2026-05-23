@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation'
 import { Search, Loader2, AlertTriangle } from 'lucide-react'
 
 /**
- * UrlIngestion — user pastes a TikTok video URL, we look it up in our DB
- * and redirect to its product detail page.
+ * UrlIngestion — user pastes a TikTok video URL, we look it up in our DB,
+ * generate an AI breakdown, and redirect to its product detail page.
  *
- * V1: only works for videos already scraped into TTLike.
- * V2: will trigger live scrape + analysis.
+ * After successful analysis, redirects to /products/[id]?auto_analyze=1
+ * so the VideoBreakdown component on that page auto-displays the cached result.
  */
 export default function UrlIngestion() {
   const router = useRouter()
@@ -34,7 +34,7 @@ export default function UrlIngestion() {
       const data = await res.json()
 
       if (res.status === 404) {
-        setError('This video hasn\'t been scraped yet. Browse the Products section for existing videos, or check back after the next scheduled scrape.')
+        setError("This video hasn't been scraped yet. Browse the Products section for existing videos, or check back after the next scheduled scrape.")
         setLoading(false)
         return
       }
@@ -44,9 +44,9 @@ export default function UrlIngestion() {
         return
       }
 
-      // Redirect to the video's product detail page
+      // Redirect with auto_analyze=1 so VideoBreakdown auto-displays the cached result
       if (data.video_id) {
-        router.push(`/products/${data.video_id}`)
+        router.push(`/products/${data.video_id}?auto_analyze=1`)
       } else {
         router.push(`/products?q=${encodeURIComponent(trimmed)}`)
       }
