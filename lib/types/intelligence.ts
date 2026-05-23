@@ -1,12 +1,13 @@
 // ── TTLike Intelligence Schema v2.5 — Inspiration Engine ─────────────────────
 // Replaces classification-based hook/emotion/pacing with actionable creative assets.
 // Each breakdown = 3 copy-pasteable viral formulas + full scene-by-scene timeline.
+// Field note: V2.5 uses example_script (renamed from action_step in earlier builds).
 
 export interface ViralFormula {
-  title:        string  // e.g. "The Negative Filter Opener"
-  action_step:  string  // Exact verbal/physical execution instruction
-  mechanism:    string  // 1-sentence why this spikes retention or cheats the algorithm
-  your_version: string  // Fill-in-the-blank template for the seller's own product
+  title:          string  // e.g. "The Negative Filter Opener"
+  example_script: string  // Say: / Do: / Edit: + exact instruction from original video
+  mechanism:      string  // 1-sentence why this spikes retention or cheats the algorithm
+  your_version:   string  // Product-specific copy-pasteable version for the seller
 }
 
 export interface TimelineScene {

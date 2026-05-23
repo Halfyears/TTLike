@@ -4,7 +4,7 @@ import type { ViralFormula, TimelineScene } from '@/lib/types/intelligence'
 
 // ── V2.5 Inspiration Engine System Prompt ────────────────────────────────────
 // Key rules:
-//   1. action_step MUST start with "Say:" / "Do:" / "Edit:" prefix
+//   1. example_script MUST start with "Say:" / "Do:" / "Edit:" prefix
 //   2. your_version MUST use the ACTUAL product name/niche — never generic [brackets]
 //   3. visual_timeline: EXACTLY 4 scenes covering 00:00–00:35
 //   4. viral_formulas: EXACTLY 3 high-impact entries
@@ -19,7 +19,7 @@ CRITICAL OUTPUT RULES:
 
 FIELD-LEVEL REQUIREMENTS:
 
-"action_step": Must begin with one of these prefixes: "Say:", "Do:", or "Edit:".
+"example_script": Must begin with one of these prefixes: "Say:", "Do:", or "Edit:".
   - Say: for verbal hooks and spoken script lines
   - Do: for physical shooting or framing instructions
   - Edit: for cut, transition, or pacing directives
@@ -40,7 +40,7 @@ Output this exact JSON structure:
   "viral_formulas": [
     {
       "title": "Memorable name for this viral strategy (3-5 words)",
-      "action_step": "Say: / Do: / Edit: + exact instruction from original video",
+      "example_script": "Say: / Do: / Edit: + exact instruction from original video",
       "mechanism": "One sentence: the psychology or algorithm trick that makes this work.",
       "your_version": "The fully filled-in version using the actual product name and niche context."
     }

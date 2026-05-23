@@ -57,7 +57,7 @@ export function VideoAnalysis({ data, showPremiumCta = false }: Props) {
                   </div>
                   <div className="mt-1.5 text-xs text-slate-600 leading-relaxed">
                     <span className="text-slate-400">→ </span>
-                    {formula.action_step}
+                    {formula.example_script ?? (formula as unknown as { action_step?: string }).action_step}
                   </div>
                   <div className="mt-1 text-xs text-slate-500 leading-relaxed">
                     <span className="text-slate-400">Why it works: </span>
