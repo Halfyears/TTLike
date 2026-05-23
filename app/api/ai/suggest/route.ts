@@ -9,7 +9,7 @@ const NICHES = [
 ]
 
 const schema = z.object({
-  productName: z.string().min(1).max(200),
+  productName: z.string().min(1).max(100),
   rawNiche: z.string().max(100).optional().default(''),
   keywords: z.string().max(300).optional().default(''),
 })

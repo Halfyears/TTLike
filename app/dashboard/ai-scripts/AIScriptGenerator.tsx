@@ -31,6 +31,42 @@ const CTA_TYPES = [
   { value: 'shop', label: 'TikTok Shop' },
 ]
 
+// ── Input cleaning helpers ─────────────────────────────────────────────────────
+
+/** Noise words that appear in TikTok titles/hashtags but add no product value */
+const PLATFORM_NOISE = /\b(tiktok|tiktokshop|tik\s*tok|fyp|foryou|foryoupage|viral|trending|shop|shopnow|amazon|aliexpress|lazada|shein|sponsored)\b/gi
+
+/**
+ * Clean a raw product name scraped from TikTok video titles:
+ * - removes #hashtags and @mentions
+ * - strips platform noise words
+ * - collapses whitespace and truncates to 80 chars
+ */
+function cleanProductName(raw: string): string {
+  return raw
+    .replace(/#[\w一-鿿＀-￯]+/g, '')   // #hashtags
+    .replace(/@[\w.]+/g, '')                               // @mentions
+    .replace(PLATFORM_NOISE, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 80)
+}
+
+/**
+ * Clean raw keywords string from the video title:
+ * - removes #hashtags, @mentions, platform noise
+ * - truncates to 200 chars
+ */
+function cleanKeywords(raw: string): string {
+  return raw
+    .replace(/#[\w一-鿿＀-￯]+/g, '')
+    .replace(/@[\w.]+/g, '')
+    .replace(PLATFORM_NOISE, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 200)
+}
+
 function FieldSkeleton({ rows = 1 }: { rows?: number }) {
   return (
     <div className="animate-pulse space-y-1.5">
@@ -68,16 +104,16 @@ export function AIScriptGenerator() {
   const [suggestError, setSuggestError] = useState('')
   const hasAutoFilled = useRef(false)
 
-  // ── Parse URL params ──────────────────────────────────────────────────────
+  // ── Parse URL params — clean before applying ─────────────────────────────
   useEffect(() => {
     const title = searchParams.get('suggested_title') ?? searchParams.get('product')
-    const kw = searchParams.get('keywords')
-    const n = searchParams.get('niche')
-    const vid = searchParams.get('from_video')
-    if (title) setProductName(title)
-    if (kw) setKeywords(kw)
-    if (n) setNiches([n])
-    if (vid) setSourceVideoId(vid)
+    const kw    = searchParams.get('keywords')
+    const n     = searchParams.get('niche')
+    const vid   = searchParams.get('from_video')
+    if (title) setProductName(cleanProductName(title))
+    if (kw)    setKeywords(cleanKeywords(kw))
+    if (n)     setNiches([n])
+    if (vid)   setSourceVideoId(vid)
   }, [searchParams])
 
   // ── Auto-fetch suggestions when product name is known ─────────────────────
@@ -182,7 +218,10 @@ export function AIScriptGenerator() {
             <Input
               id="productName" label="Product Name"
               placeholder="e.g., Posture Corrector Pro"
-              value={productName} onChange={e => setProductName(e.target.value)} required
+              value={productName}
+              onChange={e => setProductName(e.target.value.slice(0, 100))}
+              maxLength={100}
+              required
             />
 
             {/* ── Niche — multi-select chips ── */}
@@ -300,10 +339,10 @@ export function AIScriptGenerator() {
                   type="button"
                   onClick={() => fetchSuggestions(productName, niches[0] ?? '', keywords)}
                   disabled={suggesting || !productName}
-                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-pink-500 disabled:opacity-40 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-pink-600 hover:bg-pink-700 text-white disabled:opacity-40 transition-colors"
                 >
-                  <RefreshCw className={`h-3 w-3 ${suggesting ? 'animate-spin' : ''}`} />
-                  Refresh
+                  <RefreshCw className={`h-3.5 w-3.5 ${suggesting ? 'animate-spin' : ''}`} />
+                  {suggesting ? 'Generating…' : 'Refresh AI'}
                 </button>
               </div>
 
@@ -347,7 +386,18 @@ export function AIScriptGenerator() {
             </div>
 
             {suggestError && (
-              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{suggestError}</p>
+              <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                <p className="text-xs text-amber-700 leading-snug">{suggestError}</p>
+                <button
+                  type="button"
+                  onClick={() => fetchSuggestions(productName, niches[0] ?? '', keywords)}
+                  disabled={suggesting || !productName}
+                  className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-pink-600 hover:bg-pink-700 text-white disabled:opacity-40 transition-colors"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${suggesting ? 'animate-spin' : ''}`} />
+                  Try Again
+                </button>
+              </div>
             )}
 
             {/* ── Keywords ── */}
