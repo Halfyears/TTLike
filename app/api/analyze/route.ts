@@ -1,20 +1,24 @@
 /**
- * POST /api/analyze
+ * POST /api/analyze — V2.5 Inspiration Engine + Comment Signal Flywheel
  *
- * Cache-first structured video breakdown using Gemini 2.5 Flash (V2.5 Inspiration Engine).
- * Accepts either:
- *   { video_id: string }   — looks up tiktok_videos, uses stored metadata
- *   { url: string }        — checks cache by URL hash, returns cached or limited analysis
+ * Pipeline:
+ *   1. Zero-token DB deduplication (url_hash cache check)
+ *   2. Fetch video metadata from tiktok_videos
+ *   3. Fetch raw comments → keyword-filter to buyer signals (pre-LLM, zero waste)
+ *   4. Compile dense LLM payload (metadata + filtered comments)
+ *   5. Gemini 2.5 Flash → viral_formulas + visual_timeline
+ *   6. Persist to video_breakdowns + revalidate /viral/[id] SEO page
  *
- * Cost: ~$0.0001 per uncached call (Gemini 2.5 Flash JSON mode)
- * Never re-bills for the same video_id/url.
+ * Cost: ~$0.0001 per uncached call. Never re-bills for same video_id/url.
  */
 
-import { NextResponse }    from 'next/server'
-import { revalidatePath }  from 'next/cache'
-import { createServiceClient } from '@/lib/supabase/server'
-import { callVideoBreakdown } from '@/lib/ai/parserPrompt'
-import { createHash }      from 'crypto'
+import { NextResponse }               from 'next/server'
+import { revalidatePath }             from 'next/cache'
+import { createServiceClient }        from '@/lib/supabase/server'
+import { callVideoBreakdown }         from '@/lib/ai/parserPrompt'
+import { fetchVideoComments }         from '@/lib/scraper'
+import { filterHighValueComments, estimateTokens } from '@/lib/sentimentFilter'
+import { createHash }                 from 'crypto'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 
 function urlHash(input: string): string {
@@ -40,10 +44,9 @@ export async function POST(req: Request) {
 
   const service = createServiceClient()
 
-  // ── 1. Determine cache key ──────────────────────────────────────────────────
+  // ── 1. Zero-token DB deduplication ─────────────────────────────────────────
   const cacheKey = video_id ? urlHash(`video:${video_id}`) : urlHash(url!)
 
-  // ── 2. Check cache ──────────────────────────────────────────────────────────
   const { data: cached } = await service
     .from('video_breakdowns')
     .select('payload')
@@ -54,7 +57,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ breakdown: cached.payload, fromCache: true })
   }
 
-  // ── 3. Fetch video metadata ─────────────────────────────────────────────────
+  // ── 2. Fetch video metadata ─────────────────────────────────────────────────
   type VideoRow = {
     id: string
     title: string
@@ -92,7 +95,21 @@ export async function POST(req: Request) {
     )
   }
 
-  // ── 4. Call Gemini (V2.5 Inspiration Engine) ────────────────────────────────
+  // ── 3. Fetch + filter buyer-signal comments (pre-LLM, zero token waste) ────
+  // fetchVideoComments: graceful degradation — returns [] if table unavailable
+  // filterHighValueComments: keyword-dict scoring, hard-caps at 15 comments
+  const rawComments      = await fetchVideoComments(meta.id)
+  const filteredComments = filterHighValueComments(rawComments)
+
+  // Debug: log token budget impact (non-blocking)
+  if (filteredComments.length > 0) {
+    console.debug(
+      `[analyze] comment signals: ${rawComments.length} raw → ${filteredComments.length} filtered`,
+      `(~${estimateTokens(filteredComments)} tokens)`,
+    )
+  }
+
+  // ── 4. Call Gemini with enriched payload ────────────────────────────────────
   let geminiResult: Awaited<ReturnType<typeof callVideoBreakdown>>
   try {
     geminiResult = await callVideoBreakdown({
@@ -103,6 +120,7 @@ export async function POST(req: Request) {
       likes:        Number(meta.likes        ?? 0),
       shares:       Number(meta.shares       ?? 0),
       author:       String(meta.author       ?? ''),
+      comments:     filteredComments.length ? filteredComments : undefined,
     })
   } catch (e) {
     console.error('[analyze] Gemini error:', e)

@@ -35,6 +35,9 @@ FIELD-LEVEL REQUIREMENTS:
   Good: "Do: Film on your kitchen table, Sunday afternoon, window light on the left."
   BAD: "Say: 'Stop scrolling if you have [problem with your product].'" (brackets not allowed)
 
+OPTIONAL BUYER SIGNALS: If "BUYER SIGNALS" are listed in the video data, mirror the exact
+language buyers use in your_version. Their words are more persuasive than your inference.
+
 Output this exact JSON structure:
 {
   "viral_formulas": [
@@ -64,6 +67,8 @@ interface VideoMeta {
   likes:        number
   shares:       number
   author:       string
+  /** Pre-filtered buyer-signal comments (≤15). Improves your_version specificity. */
+  comments?:    string[]
 }
 
 type GeminiResult = {
@@ -90,6 +95,14 @@ export async function callVideoBreakdown(meta: VideoMeta): Promise<GeminiResult>
     ``,
     `REMINDER: "your_version" in viral_formulas must reference "${productLabel}" (${nicheLabel}) by name.`,
     `DO NOT output generic [bracket] placeholders in "your_version".`,
+    // ── Optional buyer signals (pre-filtered, ≤ 15 comments) ──────────────
+    ...(meta.comments?.length
+      ? [
+          ``,
+          `BUYER SIGNALS (${meta.comments.length} high-intent comments — use to sharpen your_version language):`,
+          ...meta.comments.map(c => `• ${c}`),
+        ]
+      : []),
   ].join('\n')
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
