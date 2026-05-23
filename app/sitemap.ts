@@ -1,7 +1,34 @@
 import { MetadataRoute } from 'next'
 import { SITE_URL } from '@/lib/constants'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // ── Fetch published viral breakdown pages ──────────────────────────────────
+  let viralRoutes: MetadataRoute.Sitemap = []
+  try {
+    const base    = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const url = new URL('/rest/v1/video_breakdowns', base)
+    url.searchParams.set('select', 'video_id,created_at')
+    url.searchParams.set('order', 'created_at.desc')
+    url.searchParams.set('limit', '1000')
+
+    const res = await fetch(url.toString(), {
+      headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+      next: { revalidate: 3600 },
+    })
+    if (res.ok) {
+      const rows: Array<{ video_id: string | null; created_at: string }> = await res.json()
+      viralRoutes = rows
+        .filter(r => r.video_id)
+        .map(r => ({
+          url:             `${SITE_URL}/viral/${r.video_id}`,
+          lastModified:    new Date(r.created_at),
+          changeFrequency: 'monthly' as const,
+          priority:        0.8,
+        }))
+    }
+  } catch { /* non-fatal */ }
+
   const staticRoutes = [
     { url: SITE_URL, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 1 },
     { url: `${SITE_URL}/products`, lastModified: new Date(), changeFrequency: 'daily' as const, priority: 0.9 },
@@ -29,5 +56,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }))
 
-  return [...staticRoutes, ...blogRoutes]
+  return [...staticRoutes, ...blogRoutes, ...viralRoutes]
 }

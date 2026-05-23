@@ -11,7 +11,8 @@
  */
 
 import { NextResponse }    from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { revalidatePath }  from 'next/cache'
+import { createServiceClient } from '@/lib/supabase/server'
 import { callVideoBreakdown } from '@/lib/ai/parserPrompt'
 import { createHash }      from 'crypto'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
@@ -130,6 +131,13 @@ export async function POST(req: Request) {
     .then(({ error }) => {
       if (error) console.error('[analyze] cache write error:', error.message)
     })
+
+  // ── 7. Trigger SEO flywheel — invalidate public /viral/[id] page ────────────
+  try {
+    revalidatePath(`/viral/${meta.id}`)
+  } catch (e) {
+    console.warn('[analyze] revalidatePath failed (non-fatal):', e)
+  }
 
   return NextResponse.json({ breakdown: payload, video_id: meta.id, fromCache: false })
 }

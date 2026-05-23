@@ -13,6 +13,7 @@ const translations = {
       promotions: 'Promotions',
       backToApp: 'Back to App',
       scraper: 'Scraper',
+      breakdowns: 'Breakdowns',
     },
     admin: {
       title: 'TTLike Admin',
@@ -37,6 +38,7 @@ const translations = {
       promotions: '推广管理',
       backToApp: '返回应用',
       scraper: '爬虫监控',
+      breakdowns: '拆解管理',
     },
     admin: {
       title: 'TTLike 管理后台',

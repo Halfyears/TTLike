@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Loader2, Zap, AlertTriangle } from 'lucide-react'
+import Link from 'next/link'
+import { Loader2, Zap, AlertTriangle, ExternalLink } from 'lucide-react'
 import {
   HOOK_TYPE_LABELS, EMOTION_DRIVER_LABELS, PACING_STYLE_LABELS,
   HookType, EmotionDriver, PacingStyle,
@@ -165,6 +166,18 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
             <p className="text-[10px] text-slate-400 mt-0.5">{m.label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Public SEO page link */}
+      <div className="px-4 pt-3 pb-0 bg-white border-b border-slate-100">
+        <Link
+          href={`/viral/${videoId}`}
+          target="_blank"
+          className="inline-flex items-center gap-1.5 text-[11px] text-pink-500 hover:text-pink-700 font-medium transition-colors"
+        >
+          <ExternalLink className="h-3 w-3" />
+          View public breakdown page
+        </Link>
       </div>
 
       {/* Analysis sections */}
