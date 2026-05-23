@@ -12,13 +12,13 @@ export const SUBSCRIPTION_PLANS = {
 } as const
 
 export const HOOK_TYPES = [
-  { value: 'SURPRISE', label: 'Surprise', description: 'You won\'t believe this...' },
-  { value: 'QUESTION', label: 'Question', description: 'Did you know that...' },
-  { value: 'EMOTIONAL', label: 'Emotional', description: 'This changed my life...' },
-  { value: 'FOMO', label: 'FOMO', description: 'Everyone is buying this...' },
-  { value: 'CONTRARIAN', label: 'Contrarian', description: 'Stop doing X, do this instead...' },
-  { value: 'STORY', label: 'Story', description: 'I spent $500 on this product and...' },
-  { value: 'EDUCATIONAL', label: 'Educational', description: 'Here\'s how to...' },
+  { value: 'SURPRISE',    label: 'Surprise',    label_zh: '反转惊喜',   description: 'You won\'t believe this...' },
+  { value: 'QUESTION',    label: 'Question',    label_zh: '悬念设疑',   description: 'Did you know that...' },
+  { value: 'EMOTIONAL',   label: 'Emotional',   label_zh: '痛点直击',   description: 'This changed my life...' },
+  { value: 'FOMO',        label: 'FOMO',        label_zh: '悬念设疑',   description: 'Everyone is buying this...' },
+  { value: 'CONTRARIAN',  label: 'Contrarian',  label_zh: '反常识阻断', description: 'Stop doing X, do this instead...' },
+  { value: 'STORY',       label: 'Story',       label_zh: '真实故事',   description: 'I spent $500 on this product and...' },
+  { value: 'EDUCATIONAL', label: 'Educational', label_zh: '背书展示',   description: 'Here\'s how to...' },
 ] as const
 
 export const NICHES = [

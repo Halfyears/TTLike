@@ -6,6 +6,7 @@ import {
   Sparkles, ChevronRight,
 } from 'lucide-react'
 import { IS_BETA_PHASE } from '@/lib/constants'
+import UrlIngestion from '@/components/UrlIngestion'
 
 export const metadata = { title: 'Dashboard · TTLike' }
 
@@ -146,6 +147,9 @@ export default async function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* ── URL Ingestion — Analyze any TikTok video ── */}
+      <UrlIngestion />
 
       {/* ── Primary CTAs — Create ── */}
       <div>

@@ -6,6 +6,7 @@ import {
   Calendar, CheckCircle, Film, Users, Clapperboard, MousePointerClick,
 } from 'lucide-react'
 import { CommentsPanel } from './CommentsPanel'
+import { VideoBreakdown } from '@/components/VideoBreakdown'
 import { Card, CardContent } from '@/components/ui/Card'
 import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
 import { Badge } from '@/components/ui/Badge'
@@ -493,6 +494,9 @@ export default async function ProductDetailPage({ params }: Props) {
               </div>
             </CardContent>
           </Card>
+
+          {/* ── AI 体检报告 (lazy, cache-first) ── */}
+          <VideoBreakdown videoId={id} />
 
           {/* Clone & Rewrite CTA */}
           <Link href={cloneHref}>
