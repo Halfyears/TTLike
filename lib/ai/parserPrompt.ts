@@ -1,6 +1,7 @@
 import 'server-only'
 
 import type { ViralFormula, TimelineScene } from '@/lib/types/intelligence'
+import { compileVideoPayload }              from '@/lib/ai/payloadCompiler'
 
 // ── V2.5 Inspiration Engine System Prompt ────────────────────────────────────
 // Key rules:
@@ -83,27 +84,15 @@ export async function callVideoBreakdown(meta: VideoMeta): Promise<GeminiResult>
   const productLabel = meta.product_name ?? meta.title
   const nicheLabel   = meta.niche ?? 'E-Commerce'
 
-  const userContent = [
-    `Video title: ${meta.title}`,
-    `Product name: ${productLabel}`,
-    `Niche: ${nicheLabel}`,
-    `Author: @${meta.author}`,
-    `Views: ${meta.views.toLocaleString()}`,
-    `Likes: ${meta.likes.toLocaleString()}`,
-    `Shares: ${meta.shares.toLocaleString()}`,
-    `Like rate: ${meta.views > 0 ? ((meta.likes / meta.views) * 100).toFixed(2) : '0'}%`,
-    ``,
+  // ── Compile dense payload via payloadCompiler (signal-window approach) ───────
+  // Derives engagement signal windows (like rate, share rate, eng rate) as
+  // synthetic "frame samples" from the metric curve — near-zero token overhead.
+  const productReminder = [
     `REMINDER: "your_version" in viral_formulas must reference "${productLabel}" (${nicheLabel}) by name.`,
     `DO NOT output generic [bracket] placeholders in "your_version".`,
-    // ── Optional buyer signals (pre-filtered, ≤ 15 comments) ──────────────
-    ...(meta.comments?.length
-      ? [
-          ``,
-          `BUYER SIGNALS (${meta.comments.length} high-intent comments — use to sharpen your_version language):`,
-          ...meta.comments.map(c => `• ${c}`),
-        ]
-      : []),
   ].join('\n')
+
+  const userContent = compileVideoPayload(meta, productReminder)
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
 
