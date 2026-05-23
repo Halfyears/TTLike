@@ -72,7 +72,7 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
       r.id === breakdownId ? { ...r, blog_status: 'PROCESSING' } : r
     ))
     try {
-      const res = await fetch('/api/admin/blog/publish', {
+      const res = await fetch('/api/admin/blog/trigger-flywheel', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ breakdown_id: breakdownId }),

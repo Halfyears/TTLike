@@ -1,0 +1,239 @@
+/**
+ * trigger/blogEcosystem.ts — SEO Blog Flywheel (Trigger.dev v4)
+ *
+ * Pipeline (runs on Trigger.dev cloud, up to 10 minutes):
+ *   1. Generate SEO blog article via Gemini 2.5 Flash (HTML output)
+ *   2. Publish to Ghost CMS via Admin API v5
+ *   3. Update video_breakdowns in Supabase (PUBLISHED + ghost_post_id)
+ *
+ * Required env vars (set in Vercel + synced to Trigger.dev):
+ *   GEMINI_API_KEY          — Gemini API key
+ *   NEXT_PUBLIC_SUPABASE_URL
+ *   SUPABASE_SERVICE_ROLE_KEY
+ *   GHOST_API_URL           — e.g. https://your-blog.ghost.io
+ *   GHOST_ADMIN_API_KEY     — format: id:secret (from Ghost → Settings → Integrations)
+ *
+ * Cost: ~$0.0002 Gemini + Ghost plan compute per run.
+ */
+
+import { task, logger } from '@trigger.dev/sdk/v3'
+import { createClient }  from '@supabase/supabase-js'
+import { createHmac }    from 'crypto'
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface BlogFlywheelPayload {
+  breakdown_id:   string
+  video: {
+    title:        string | null
+    product_name: string | null
+    niche:        string | null
+    author:       string | null
+    cover_url:    string | null
+  }
+  metrics: {
+    views:  string
+    likes:  string
+    shares: string
+  }
+  viral_formulas: Array<{
+    title:          string
+    timestamp?:     string
+    example_script: string
+    mechanism:      string
+    your_version:   string
+  }>
+  visual_timeline: Array<{
+    time:        string
+    description: string
+    hook_type?:  string
+  }>
+}
+
+// ── Ghost JWT helper ──────────────────────────────────────────────────────────
+
+/**
+ * Generate a short-lived HS256 JWT from a Ghost Admin API key.
+ * Ghost key format: "id:secret" (id=24-char hex, secret=64-char hex).
+ */
+function ghostJwt(adminApiKey: string): string {
+  const [id, secret] = adminApiKey.split(':')
+  if (!id || !secret) throw new Error('GHOST_ADMIN_API_KEY must be in "id:secret" format')
+
+  const iat = Math.floor(Date.now() / 1000)
+  const header  = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT', kid: id }))
+    .toString('base64url')
+  const payload = Buffer.from(JSON.stringify({ iat, exp: iat + 300, aud: '/admin/' }))
+    .toString('base64url')
+  const sig = createHmac('sha256', Buffer.from(secret, 'hex'))
+    .update(`${header}.${payload}`)
+    .digest('base64url')
+
+  return `${header}.${payload}.${sig}`
+}
+
+// ── Gemini blog content generator ────────────────────────────────────────────
+
+async function generateBlogHtml(p: BlogFlywheelPayload): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
+
+  const productName = p.video.product_name ?? p.video.title ?? 'this product'
+  const niche       = p.video.niche ?? 'E-Commerce'
+
+  const formulasSummary = p.viral_formulas.map((f, i) =>
+    `${i + 1}. "${f.title}"${f.timestamp ? ` (at ${f.timestamp})` : ''}: ${f.mechanism}`
+  ).join('\n')
+
+  const timelineSummary = p.visual_timeline.map(s =>
+    `[${s.time}] ${s.description}`
+  ).join('\n')
+
+  const prompt = `You are an expert TikTok e-commerce content analyst and SEO writer.
+Write a comprehensive, engaging SEO blog article analyzing a viral TikTok video.
+Output ONLY valid HTML (no markdown, no code fences, no commentary).
+
+VIDEO DATA:
+- Product: ${productName}
+- Niche: ${niche}
+- Author: ${p.video.author ?? 'unknown'}
+- Metrics: ${p.metrics.views} views · ${p.metrics.likes} likes · ${p.metrics.shares} shares
+
+VIRAL FORMULAS IDENTIFIED:
+${formulasSummary}
+
+VISUAL TIMELINE:
+${timelineSummary}
+
+ARTICLE REQUIREMENTS:
+- H1: Engaging title like "Why This [Product] TikTok Hit [X] Views: A Complete Breakdown"
+- H2 sections: Hook Analysis · Viral Formula Breakdown · Visual Timeline · Key Takeaways
+- For each viral formula: explain the psychological mechanism, why it works, how creators can adapt it
+- 600–800 words total — dense, actionable, zero fluff
+- ONE natural CTA at the end (last paragraph): mention TTLike.com as a tool to reverse-engineer viral TikTok videos, with a link anchor text "TTLike viral analysis tool"
+- Tone: analytical, knowledgeable, direct — NOT salesy
+- No [bracket] placeholders — use actual product and niche names throughout
+
+Output only the HTML body content (start with <article>, end with </article>).`
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
+  const res  = await fetch(url, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.6, maxOutputTokens: 2048 },
+    }),
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Gemini error ${res.status}: ${text.slice(0, 200)}`)
+  }
+
+  const json = await res.json() as {
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
+  }
+  const html = json.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+  if (!html.trim()) throw new Error('Gemini returned empty content')
+  return html
+}
+
+// ── Ghost publisher ───────────────────────────────────────────────────────────
+
+async function publishToGhost(
+  html:    string,
+  p:       BlogFlywheelPayload,
+): Promise<{ id: string; url: string }> {
+  const apiUrl    = process.env.GHOST_API_URL?.replace(/\/$/, '')
+  const apiKey    = process.env.GHOST_ADMIN_API_KEY
+  if (!apiUrl || !apiKey) throw new Error('GHOST_API_URL and GHOST_ADMIN_API_KEY are required')
+
+  const productName = p.video.product_name ?? p.video.title ?? 'Viral Product'
+  const niche       = p.video.niche ?? 'E-Commerce'
+  const jwt         = ghostJwt(apiKey)
+
+  const title = `TikTok Viral Breakdown: How This ${niche} Video Hit ${p.metrics.views} Views`
+  const tags  = [
+    { name: 'TikTok Viral' },
+    { name: niche },
+    { name: 'Viral Analysis' },
+    { name: 'TTLike' },
+  ]
+
+  const res = await fetch(`${apiUrl}/ghost/api/admin/posts/`, {
+    method:  'POST',
+    headers: {
+      'Authorization': `Ghost ${jwt}`,
+      'Content-Type':  'application/json',
+    },
+    body: JSON.stringify({
+      posts: [{
+        title,
+        html,
+        status:    'published',
+        tags,
+        meta_title:       `${productName} TikTok Viral Formula Breakdown — TTLike`,
+        meta_description: `Deep-dive analysis of what made this ${niche} TikTok video go viral: hooks, formulas, visual timeline, and actionable scripts.`,
+        custom_excerpt:   `${p.metrics.views} views. Here's exactly why this ${niche} TikTok worked — and how to replicate it.`,
+      }],
+    }),
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Ghost publish error ${res.status}: ${text.slice(0, 300)}`)
+  }
+
+  const json = await res.json() as { posts?: Array<{ id: string; url: string }> }
+  const post  = json.posts?.[0]
+  if (!post?.id || !post?.url) throw new Error('Ghost response missing post id/url')
+
+  return { id: post.id, url: post.url }
+}
+
+// ── Main Trigger.dev task ─────────────────────────────────────────────────────
+
+export const seoBlogFlywheelTask = task({
+  id:          'seo-blog-flywheel',
+  maxDuration: 600, // 10 minutes
+
+  run: async (payload: BlogFlywheelPayload) => {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+
+    // ── Step 1: Generate blog HTML via Gemini ──────────────────────────────────
+    logger.info('Generating blog HTML via Gemini', { breakdown_id: payload.breakdown_id })
+    const html = await generateBlogHtml(payload)
+    logger.info('Blog HTML generated', { chars: html.length })
+
+    // ── Step 2: Publish to Ghost CMS ───────────────────────────────────────────
+    logger.info('Publishing to Ghost CMS')
+    const ghost = await publishToGhost(html, payload)
+    logger.info('Ghost post published', { id: ghost.id, url: ghost.url })
+
+    // ── Step 3: Update Supabase — mark PUBLISHED ───────────────────────────────
+    const { error } = await supabase
+      .from('video_breakdowns')
+      .update({
+        blog_status:      'PUBLISHED',
+        ghost_post_id:    ghost.id,
+        blog_published_at: new Date().toISOString(),
+      })
+      .eq('id', payload.breakdown_id)
+
+    if (error) {
+      logger.error('Supabase update failed', { error: error.message })
+      throw new Error(`Supabase update failed: ${error.message}`)
+    }
+
+    logger.info('Supabase updated — breakdown marked PUBLISHED', {
+      breakdown_id: payload.breakdown_id,
+      ghost_url:    ghost.url,
+    })
+
+    return { success: true, ghost_post_id: ghost.id, url: ghost.url }
+  },
+})
