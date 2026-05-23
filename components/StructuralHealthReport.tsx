@@ -92,10 +92,7 @@ export function StructuralHealthReport({ videoId }: Props) {
       <div className="border-2 border-dashed border-red-200 rounded-xl p-5 text-center bg-red-50/30">
         <div className="text-2xl mb-2">🔬</div>
         <h3 className="text-sm font-black text-slate-800 mb-1 font-mono">AI Structural Health Report</h3>
-        <p className="text-xs text-slate-500 mb-1 max-w-xs mx-auto leading-relaxed">
-          深度审计：算法留存机制 · 信任降噪策略 · 结构致命漏洞 · 零成本截胡方案
-        </p>
-        <p className="text-xs text-slate-400 mb-4 font-mono">
+        <p className="text-xs text-slate-500 mb-4 max-w-xs mx-auto leading-relaxed font-mono">
           Hook Retention · Trust Blueprint · Leak Detection · Counter-Attack
         </p>
         <button

@@ -416,7 +416,7 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
               <div className="flex items-center gap-2 mb-3 pb-3 border-b border-pink-50">
                 <span className="text-lg">🚀</span>
                 <h2 className="text-sm font-bold text-gray-900">AI Viral Breakdown</h2>
-                <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded bg-pink-50 text-pink-600 border border-pink-100 uppercase tracking-wide">
+                <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded bg-pink-50 text-pink-600 border border-pink-100 uppercase tracking-wide">
                   Surface
                 </span>
               </div>
@@ -431,27 +431,27 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
                 <div className="flex items-start gap-3 p-2.5 bg-amber-50 rounded-lg">
                   <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-amber-400 mb-0.5">Pain Point</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-amber-400 mb-0.5">Pain Point</p>
                     <p className="text-xs font-semibold text-amber-900">{insights.painPoint}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-2.5 bg-violet-50 rounded-lg">
                   <Zap className="h-3.5 w-3.5 text-violet-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-violet-400 mb-0.5">Hook Style</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-violet-400 mb-0.5">Hook Style</p>
                     <p className="text-xs font-semibold text-violet-900">{insights.hookType}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-2.5 bg-green-50 rounded-lg">
                   <Sparkles className="h-3.5 w-3.5 text-green-500 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-green-400 mb-0.5">Selling Points</p>
+                    <p className="text-xs font-bold uppercase tracking-widest text-green-400 mb-0.5">Selling Points</p>
                     <p className="text-xs font-semibold text-green-900">{insights.usp}</p>
                   </div>
                 </div>
-                {/* Video Analysis sub-labels */}
+                {/* Production Insights sub-labels */}
                 <div className="pt-1 border-t border-gray-100">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 mb-2">Video Analysis</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Production Insights</p>
                   <div className="space-y-2">
                     {[
                       { icon: Film,              label: 'Content Format',   value: videoAnalysis.contentFormat,   color: 'text-blue-500' },
@@ -461,10 +461,10 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
                       { icon: Clapperboard,      label: 'Visual Style',     value: videoAnalysis.visualStyle,     color: 'text-green-500' },
                     ].map(({ icon: Icon, label, value, color }) => (
                       <div key={label} className="flex items-start gap-2">
-                        <Icon className={`h-3 w-3 ${color} shrink-0 mt-0.5`} />
+                        <Icon className={`h-3.5 w-3.5 ${color} shrink-0 mt-0.5`} />
                         <div>
-                          <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400 leading-none">{label}</p>
-                          <p className="text-[11px] text-gray-700 mt-0.5 leading-snug">{value}</p>
+                          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 leading-none">{label}</p>
+                          <p className="text-sm text-gray-700 mt-0.5 leading-snug">{value}</p>
                         </div>
                       </div>
                     ))}
@@ -474,13 +474,13 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
             </CardContent>
           </Card>
 
-          {/* ── Module 2: Video Analysis (AI Inspiration Engine, on demand) ── */}
+          {/* ── Module 2: AI Inspiration Engine (on demand) ── */}
           <Card className="border-indigo-100">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 mb-3 pb-2 border-b border-indigo-50">
                 <span className="text-base">🎬</span>
-                <h2 className="text-sm font-bold text-gray-900">Video Analysis</h2>
-                <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100 uppercase tracking-wide">
+                <h2 className="text-sm font-bold text-gray-900">AI Inspiration Engine</h2>
+                <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100 uppercase tracking-wide">
                   AI · On Demand
                 </span>
               </div>
@@ -494,7 +494,7 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
               <div className="flex items-center gap-2 mb-3 pb-2 border-b border-red-50">
                 <span className="text-base">🔬</span>
                 <h2 className="text-sm font-bold text-gray-900">AI Structural Health Report</h2>
-                <span className="ml-auto text-[9px] font-bold px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-100 uppercase tracking-wide">
+                <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-100 uppercase tracking-wide">
                   Premium
                 </span>
               </div>
