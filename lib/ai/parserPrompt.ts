@@ -3,38 +3,54 @@ import 'server-only'
 import type { ViralFormula, TimelineScene } from '@/lib/types/intelligence'
 
 // ── V2.5 Inspiration Engine System Prompt ────────────────────────────────────
-// Rules:
-//   1. JSON-only output (enforced via Gemini responseMimeType:'application/json')
-//   2. viral_formulas: EXACTLY 3 entries
-//   3. visual_timeline: EXACTLY 4 scene entries covering 00:00–00:35
-//   4. All text: dense, practical, zero marketing fluff
-//   5. "your_version" must use [brackets] for pluggable variables
-export const PARSER_SYSTEM_PROMPT = `You are a direct-response ad architect. Convert TikTok video metadata into an actionable, copy-pasteable creative workbook for independent e-commerce sellers.
+// Key rules:
+//   1. action_step MUST start with "Say:" / "Do:" / "Edit:" prefix
+//   2. your_version MUST use the ACTUAL product name/niche — never generic [brackets]
+//   3. visual_timeline: EXACTLY 4 scenes covering 00:00–00:35
+//   4. viral_formulas: EXACTLY 3 high-impact entries
+//   5. All output in English, dense and practical
+export const PARSER_SYSTEM_PROMPT = `You are a direct-response ad architect. Convert TikTok video metadata into an immediately executable creative workbook for independent e-commerce sellers.
 
-CRITICAL PROCESSING RULES:
-1. Output RAW JSON ONLY. No markdown blocks, no conversation, no preambles.
-2. "viral_formulas" must contain EXACTLY 3 entries — no more, no less.
-3. "visual_timeline" must contain EXACTLY 4 scene entries covering 00:00-00:35.
-4. Every sentence: dense, practical, zero marketing fluff.
-5. "your_version" must be a fill-in-the-blank template using [brackets] for variables.
-6. All text fields output in English only.
+CRITICAL OUTPUT RULES:
+1. RAW JSON ONLY. No markdown, no commentary, no preambles.
+2. "viral_formulas": EXACTLY 3 entries.
+3. "visual_timeline": EXACTLY 4 scene entries covering 00:00-00:35.
+4. Every sentence: dense, punchy, zero marketing fluff.
+
+FIELD-LEVEL REQUIREMENTS:
+
+"action_step": Must begin with one of these prefixes: "Say:", "Do:", or "Edit:".
+  - Say: for verbal hooks and spoken script lines
+  - Do: for physical shooting or framing instructions
+  - Edit: for cut, transition, or pacing directives
+  Good: "Say: 'Stop scrolling if you have [specific problem]'"
+  Good: "Do: Overhead shot, messy kitchen counter, no ring light."
+  Good: "Edit: 0.5-second black screen right before the product appears."
+  BAD: "Use a curiosity gap opener" (too abstract, no prefix)
+
+"your_version": Must be COMPLETELY filled in using the actual product and niche from the video data.
+  DO NOT output generic [bracket] templates.
+  DO output a ready-to-record script line or shooting instruction for THIS specific product.
+  Good: "Say: 'Stop scrolling if your kid's lunchbox always comes back full.'"
+  Good: "Do: Film on your kitchen table, Sunday afternoon, window light on the left."
+  BAD: "Say: 'Stop scrolling if you have [problem with your product].'" (brackets not allowed)
 
 Output this exact JSON structure:
 {
   "viral_formulas": [
     {
-      "title": "Strategy name (3-5 words)",
-      "action_step": "Exact physical action or verbal pattern to execute right now.",
-      "mechanism": "One sentence: why this spikes watch-time or tricks the recommendation algorithm.",
-      "your_version": "Say: '[Your product] does X without Y — here is proof.'"
+      "title": "Memorable name for this viral strategy (3-5 words)",
+      "action_step": "Say: / Do: / Edit: + exact instruction from original video",
+      "mechanism": "One sentence: the psychology or algorithm trick that makes this work.",
+      "your_version": "The fully filled-in version using the actual product name and niche context."
     }
   ],
   "visual_timeline": [
     {
       "timecode": "00:00-00:03",
-      "visual": "Phone-shooting directive: angle, environment, framing.",
-      "audio": "Exact spoken line for this time window.",
-      "why_this_works": "The micro-retention trigger keeping the user from swiping away."
+      "visual": "Exact phone-shooting directive: angle, environment, framing.",
+      "audio": "The exact spoken line for this scene window.",
+      "why_this_works": "The micro-retention trigger keeping the viewer from swiping away."
     }
   ]
 }`.trim()
@@ -59,15 +75,21 @@ export async function callVideoBreakdown(meta: VideoMeta): Promise<GeminiResult>
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
 
+  const productLabel = meta.product_name ?? meta.title
+  const nicheLabel   = meta.niche ?? 'E-Commerce'
+
   const userContent = [
     `Video title: ${meta.title}`,
-    `Product: ${meta.product_name ?? meta.title}`,
-    `Niche: ${meta.niche ?? 'E-Commerce'}`,
+    `Product name: ${productLabel}`,
+    `Niche: ${nicheLabel}`,
     `Author: @${meta.author}`,
     `Views: ${meta.views.toLocaleString()}`,
     `Likes: ${meta.likes.toLocaleString()}`,
     `Shares: ${meta.shares.toLocaleString()}`,
     `Like rate: ${meta.views > 0 ? ((meta.likes / meta.views) * 100).toFixed(2) : '0'}%`,
+    ``,
+    `REMINDER: "your_version" in viral_formulas must reference "${productLabel}" (${nicheLabel}) by name.`,
+    `DO NOT output generic [bracket] placeholders in "your_version".`,
   ].join('\n')
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`

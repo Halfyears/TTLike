@@ -8,10 +8,9 @@ import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function VideoBreakdown({ videoId }: { videoId: string }) {
-  const [state, setState]               = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
-  const [data, setData]                 = useState<VideoBreakdownPayload | null>(null)
-  const [errMsg, setErr]                = useState('')
-  const [reportLoading, setReportLoading] = useState(false)
+  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [data, setData]   = useState<VideoBreakdownPayload | null>(null)
+  const [errMsg, setErr]  = useState('')
 
   async function load() {
     setState('loading')
@@ -40,13 +39,6 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
       setErr(e instanceof Error ? e.message : 'Analysis failed')
       setState('error')
     }
-  }
-
-  async function handleGenerateReport() {
-    setReportLoading(true)
-    // Premium structural audit — placeholder, feature coming soon
-    await new Promise(r => setTimeout(r, 1200))
-    setReportLoading(false)
   }
 
   // ── Idle ────────────────────────────────────────────────────────────────────
@@ -112,12 +104,7 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
           Regenerate
         </button>
       </div>
-      <VideoAnalysis
-        data={data}
-        hasReport={false}
-        onGenerateReport={handleGenerateReport}
-        isGeneratingReport={reportLoading}
-      />
+      <VideoAnalysis data={data} showPremiumCta={true} />
     </div>
   )
 }

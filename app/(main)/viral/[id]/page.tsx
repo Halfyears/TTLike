@@ -208,7 +208,7 @@ export default async function ViralBreakdownPage({ params }: Props) {
 
         {/* ── Breakdown report ── */}
         <div className="mb-6">
-          <VideoAnalysis data={breakdown} hasReport={true} />
+          <VideoAnalysis data={breakdown} showPremiumCta={false} />
         </div>
 
         {/* ── CTA strip ── */}
