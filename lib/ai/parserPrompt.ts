@@ -93,5 +93,9 @@ Like rate: ${meta.views > 0 ? ((meta.likes / meta.views) * 100).toFixed(2) : '0'
   const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
   if (!text) throw new Error('Gemini returned empty content')
 
-  return JSON.parse(text) as VideoBreakdownPayload['analysis'] & { category: string }
+  try {
+    return JSON.parse(text) as VideoBreakdownPayload['analysis'] & { category: string }
+  } catch {
+    throw new Error(`Gemini returned invalid JSON: ${text.slice(0, 200)}`)
+  }
 }

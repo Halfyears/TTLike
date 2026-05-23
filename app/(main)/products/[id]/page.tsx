@@ -329,7 +329,7 @@ export default async function ProductDetailPage({ params }: Props) {
                 <div className="relative aspect-video bg-gray-100">
                   <img
                     src={String(v.cover_url)}
-                    alt={cleanName.slice(0, 80)}
+                    alt={cleanName.slice(0, 80) || 'Product video cover'}
                     className="w-full h-full object-cover object-center"
                   />
                   {v.video_url && (
