@@ -255,6 +255,22 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
 
   const cloneHref = `/dashboard/ai-scripts?from_video=${encodeURIComponent(String(v.id))}&suggested_title=${encodeURIComponent(cleanName)}&niche=${encodeURIComponent(niche)}&keywords=${encodeURIComponent(rawTitle)}`
 
+  // ── trendradar SIGNAL badge ──────────────────────────────────────────────────
+  const viralScore  = Number(v.viral_score ?? 0)
+  const signalViews = Number(v.views  ?? 0)
+  const signalLikes = Number(v.likes  ?? 0)
+  const signalShare = Number(v.shares ?? 0)
+  const signalEngRate = signalViews > 0
+    ? ((signalLikes + signalShare) / signalViews * 100).toFixed(1)
+    : '0.0'
+  const signal = viralScore >= 85
+    ? { label: 'VIRAL',    color: 'text-pink-600   border-pink-300   bg-pink-50/60'   }
+    : viralScore >= 65
+    ? { label: 'RISING',   color: 'text-orange-600 border-orange-300 bg-orange-50/60' }
+    : viralScore >= 45
+    ? { label: 'TRENDING', color: 'text-amber-600  border-amber-300  bg-amber-50/60'  }
+    : { label: 'STABLE',   color: 'text-gray-500   border-gray-200   bg-gray-50'      }
+
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
       <Link href="/products" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
@@ -353,6 +369,16 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
                     <div className="text-[10px] text-gray-400 mt-0.5">{label}</div>
                   </div>
                 ))}
+              </div>
+
+              {/* ── trendradar SIGNAL strip ── */}
+              <div className="flex items-center justify-between px-4 py-2 border-t border-gray-100 bg-white">
+                <span className="text-[10px] text-gray-400 font-mono uppercase tracking-widest">
+                  Engagement Signal
+                </span>
+                <span className={`font-mono text-[10px] font-bold border px-2 py-0.5 rounded tracking-widest uppercase ${signal.color}`}>
+                  [ SIGNAL: {signal.label} &nbsp;+{signalEngRate}% ]
+                </span>
               </div>
             </CardContent>
           </Card>

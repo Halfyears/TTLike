@@ -9,6 +9,7 @@
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { filterHighValueComments } from '@/lib/sentimentFilter'
 
 const RAPIDAPI_KEY  = process.env.RAPIDAPI_KEY  ?? ''
 const RAPIDAPI_HOST = 'tiktok-scraper7.p.rapidapi.com'
@@ -144,7 +145,15 @@ export async function GET(
       .limit(5)
 
     if (cached && cached.length > 0) {
-      return NextResponse.json({ comments: cached, source: 'cache' })
+      const texts   = cached.map(c => c.text as string)
+      const passing = new Set(filterHighValueComments(texts, 8))
+      const buyerComments = cached.filter(c => passing.has(c.text as string))
+      const result  = buyerComments.length >= 2 ? buyerComments : cached
+      return NextResponse.json({
+        comments: result,
+        source:   'cache',
+        filtered: buyerComments.length >= 2,
+      })
     }
   } catch {
     // Table may not exist yet — proceed to fetch
@@ -178,5 +187,10 @@ export async function GET(
     })
   }
 
-  return NextResponse.json({ comments: fresh, source: 'api' })
+  // Apply buyer-signal filter to fresh comments too
+  const texts        = fresh.map(c => c.text)
+  const passing      = new Set(filterHighValueComments(texts, 8))
+  const buyerFresh   = fresh.filter(c => passing.has(c.text))
+  const result       = buyerFresh.length >= 2 ? buyerFresh : fresh
+  return NextResponse.json({ comments: result, source: 'api', filtered: buyerFresh.length >= 2 })
 }

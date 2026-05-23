@@ -1,18 +1,19 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MessageCircle, Heart, Loader2, ExternalLink } from 'lucide-react'
+import { MessageCircle, Heart, Loader2, ExternalLink, Zap } from 'lucide-react'
 
 interface Comment {
-  text: string
-  likes: number
+  text:   string
+  likes:  number
   author: string
 }
 
 export function CommentsPanel({ productId, videoUrl }: { productId: string; videoUrl?: string | null }) {
   const [comments, setComments] = useState<Comment[]>([])
-  const [loading, setLoading] = useState(true)
-  const [empty, setEmpty] = useState(false)
+  const [loading,  setLoading]  = useState(true)
+  const [empty,    setEmpty]    = useState(false)
+  const [filtered, setFiltered] = useState(false)
 
   useEffect(() => {
     fetch(`/api/products/${productId}/comments`)
@@ -20,6 +21,7 @@ export function CommentsPanel({ productId, videoUrl }: { productId: string; vide
       .then(data => {
         const list: Comment[] = data.comments ?? []
         setComments(list)
+        setFiltered(Boolean(data.filtered))
         setEmpty(list.length === 0)
       })
       .catch(() => setEmpty(true))
@@ -31,7 +33,14 @@ export function CommentsPanel({ productId, videoUrl }: { productId: string; vide
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <MessageCircle className="h-4 w-4 text-pink-500" />
-          <h3 className="text-sm font-semibold text-gray-900">Featured Comments</h3>
+          <h3 className="text-sm font-semibold text-gray-900">
+            {filtered ? 'Buyer Signals' : 'Featured Comments'}
+          </h3>
+          {filtered && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 font-mono uppercase tracking-wide">
+              <Zap className="h-2.5 w-2.5" /> AI Filtered
+            </span>
+          )}
         </div>
         {videoUrl && (
           <a
@@ -82,6 +91,11 @@ export function CommentsPanel({ productId, videoUrl }: { productId: string; vide
               </div>
             </div>
           ))}
+          {filtered && (
+            <p className="text-[10px] text-gray-400 text-center pt-1 font-mono">
+              ⚡ Filtered by buyer-intent keyword signals
+            </p>
+          )}
         </div>
       )}
     </div>
