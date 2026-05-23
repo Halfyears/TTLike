@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Loader2, AlertTriangle } from 'lucide-react'
+import Link from 'next/link'
+import { Search, Loader2, AlertTriangle, ArrowRight } from 'lucide-react'
 
 /**
  * UrlIngestion — user pastes a TikTok video URL, we look it up in our DB,
@@ -13,9 +14,10 @@ import { Search, Loader2, AlertTriangle } from 'lucide-react'
  */
 export default function UrlIngestion() {
   const router = useRouter()
-  const [url,     setUrl]     = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState('')
+  const [url,       setUrl]       = useState('')
+  const [loading,   setLoading]   = useState(false)
+  const [error,     setError]     = useState('')
+  const [notScraped, setNotScraped] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -24,6 +26,7 @@ export default function UrlIngestion() {
 
     setLoading(true)
     setError('')
+    setNotScraped(false)
 
     try {
       const res  = await fetch('/api/analyze', {
@@ -34,7 +37,7 @@ export default function UrlIngestion() {
       const data = await res.json()
 
       if (res.status === 404) {
-        setError("This video hasn't been scraped yet. Browse the Products section for existing videos, or check back after the next scheduled scrape.")
+        setNotScraped(true)
         setLoading(false)
         return
       }
@@ -72,7 +75,7 @@ export default function UrlIngestion() {
           <input
             type="url"
             value={url}
-            onChange={e => { setUrl(e.target.value); setError('') }}
+            onChange={e => { setUrl(e.target.value); setError(''); setNotScraped(false) }}
             placeholder="https://www.tiktok.com/@creator/video/..."
             className="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-pink-400"
           />
@@ -87,10 +90,39 @@ export default function UrlIngestion() {
         </button>
       </form>
 
+      {/* Generic error */}
       {error && (
-        <div className="mt-3 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+        <div className="mt-3 flex items-start gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
           {error}
+        </div>
+      )}
+
+      {/* Not-scraped: actionable guidance instead of dead-end */}
+      {notScraped && (
+        <div className="mt-3 border border-amber-200 bg-amber-50 rounded-lg px-4 py-3 space-y-2">
+          <div className="flex items-start gap-2 text-xs text-amber-800">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
+            <span>
+              <strong>Video not in our database yet.</strong>{' '}
+              Our scraper indexes viral TikTok Shop videos on a scheduled basis.
+              Try one of the options below:
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2 pt-0.5">
+            <Link
+              href="/products"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-white border border-amber-300 text-amber-800 rounded-lg hover:bg-amber-100 transition-colors"
+            >
+              Browse Products <ArrowRight className="h-3 w-3" />
+            </Link>
+            <Link
+              href="/trending"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors"
+            >
+              View Trending Videos <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
         </div>
       )}
     </div>

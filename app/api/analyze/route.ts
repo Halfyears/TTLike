@@ -25,6 +25,30 @@ function urlHash(input: string): string {
   return createHash('md5').update(input).digest('hex')
 }
 
+// ── URL normalisation helpers ─────────────────────────────────────────────────
+
+/**
+ * Strip query-string and fragment from a TikTok URL.
+ * e.g. https://www.tiktok.com/@x/video/123?_t=abc → https://www.tiktok.com/@x/video/123
+ */
+function normalizeUrl(raw: string): string {
+  try {
+    const u = new URL(raw)
+    return `${u.protocol}//${u.hostname}${u.pathname}`.replace(/\/$/, '')
+  } catch {
+    return raw
+  }
+}
+
+/**
+ * Extract the numeric TikTok video ID from any URL format.
+ * Works for: /video/123456  and  vm.tiktok.com paths that contain a digit sequence.
+ */
+function extractVideoId(raw: string): string | null {
+  const m = raw.match(/\/video\/(\d{10,25})/)
+  return m ? m[1] : null
+}
+
 export async function POST(req: Request) {
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: 'AI service not configured' }, { status: 503 })
@@ -79,18 +103,46 @@ export async function POST(req: Request) {
       .maybeSingle()
     meta = data as VideoRow | null
   } else {
-    const { data } = await service
+    const rawUrl     = url!
+    const cleanUrl   = normalizeUrl(rawUrl)
+    const tikVideoId = extractVideoId(rawUrl)
+
+    // Pass 1 — exact match (canonical URL stored in DB)
+    const { data: d1 } = await service
       .from('tiktok_videos')
       .select('id, title, product_name, niche, views, likes, shares, author')
-      .eq('video_url', url!)
+      .eq('video_url', rawUrl)
       .is('deleted_at', null)
       .maybeSingle()
-    meta = data as VideoRow | null
+
+    // Pass 2 — normalised URL (strip tracking params)
+    const { data: d2 } = !d1 ? await service
+      .from('tiktok_videos')
+      .select('id, title, product_name, niche, views, likes, shares, author')
+      .eq('video_url', cleanUrl)
+      .is('deleted_at', null)
+      .maybeSingle()
+    : { data: null }
+
+    // Pass 3 — numeric video-ID substring match (handles any URL variant)
+    const { data: d3 } = (!d1 && !d2 && tikVideoId) ? await service
+      .from('tiktok_videos')
+      .select('id, title, product_name, niche, views, likes, shares, author')
+      .ilike('video_url', `%${tikVideoId}%`)
+      .is('deleted_at', null)
+      .limit(1)
+      .maybeSingle()
+    : { data: null }
+
+    meta = (d1 ?? d2 ?? d3) as VideoRow | null
   }
 
   if (!meta) {
     return NextResponse.json(
-      { error: 'Video not found in database. Only videos already scraped into TTLike can be analysed.' },
+      {
+        error: 'Video not found in database. Only videos already scraped into TTLike can be analysed.',
+        hint:  'Browse the Products section to find existing viral videos, or wait for the next scheduled scrape.',
+      },
       { status: 404 }
     )
   }
