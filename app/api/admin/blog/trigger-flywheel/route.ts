@@ -129,13 +129,26 @@ export async function POST(req: Request) {
   }
 
   // ── Mark as PROCESSING in DB ────────────────────────────────────────────────
+  // Split into two updates so blog_status always succeeds even if
+  // trigger_run_id column is missing (migration not yet run).
   await service
     .from('video_breakdowns')
-    .update({
-      blog_status:    'PROCESSING',
-      trigger_run_id: runId ?? null,
-    })
+    .update({ blog_status: 'PROCESSING' })
     .eq('id', breakdown_id)
+
+  // Save Trigger.dev run ID for dashboard traceability (non-fatal if column missing)
+  if (runId) {
+    const { error: ridErr } = await service
+      .from('video_breakdowns')
+      .update({ trigger_run_id: runId })
+      .eq('id', breakdown_id)
+    if (ridErr) {
+      console.warn(
+        '[trigger-flywheel] trigger_run_id not saved (run migration 20260523_purge_n8n_and_align_trigger.sql):',
+        ridErr.message,
+      )
+    }
+  }
 
   return NextResponse.json({
     status:  'processing',
