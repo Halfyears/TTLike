@@ -273,12 +273,14 @@ export async function POST(req: Request) {
     .maybeSingle()
 
   let saved = true
+  let dbError: string | undefined
   if (insertError) {
     if (insertError.code === '23505') {
       // Race-condition duplicate — record was written by a concurrent request; fine.
       console.log('[analyze] duplicate url_hash (race condition) — breakdown already exists:', cacheKey)
     } else {
       saved = false
+      dbError = `${insertError.code}: ${insertError.message}`
       console.error('[analyze] DB INSERT FAILED — code:', insertError.code,
         '| message:', insertError.message,
         '| details:', insertError.details,
@@ -310,7 +312,8 @@ export async function POST(req: Request) {
     breakdown:  payload,
     video_id:   meta.id,
     fromCache:  false,
-    saved,   // true = written OK (or race-condition duplicate); false = genuine DB failure
+    saved,      // true = written OK (or race-condition duplicate); false = genuine DB failure
+    ...(dbError ? { dbError } : {}),
   })
 }
 

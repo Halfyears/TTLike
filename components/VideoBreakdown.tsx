@@ -14,12 +14,14 @@ interface Props {
 }
 
 export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Props) {
-  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
-  const [data, setData]   = useState<VideoBreakdownPayload | null>(null)
-  const [errMsg, setErr]  = useState('')
+  const [state, setState]   = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [data, setData]     = useState<VideoBreakdownPayload | null>(null)
+  const [errMsg, setErr]    = useState('')
+  const [dbWarn, setDbWarn] = useState<string | null>(null)  // visible DB-save diagnostic
 
   async function load() {
     setState('loading')
+    setDbWarn(null)
     try {
       // Try GET first (lightweight cache check)
       const res  = await fetch(`/api/analyze?video_id=${videoId}`)
@@ -37,12 +39,21 @@ export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Pro
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ video_id: videoId }),
       })
-      const json2 = await res2.json()
-      if (!res2.ok) throw new Error(json2.error ?? `HTTP ${res2.status}`)
-      // json2.saved === false means DB write failed — log for diagnostics
-      if (json2.saved === false) {
-        console.warn('[VideoBreakdown] analysis generated but DB save failed — check Vercel logs')
+      const json2 = await res2.json() as {
+        breakdown?: VideoBreakdownPayload
+        saved?:     boolean
+        dbError?:   string
+        error?:     string
       }
+      if (!res2.ok) throw new Error(json2.error ?? `HTTP ${res2.status}`)
+
+      // Surface DB-save failures — visible orange warning below the breakdown
+      if (json2.saved === false) {
+        const detail = json2.dbError ? ` (${json2.dbError})` : ''
+        setDbWarn(`Analysis shown but not saved to database${detail}. Check Vercel env vars (SUPABASE_SERVICE_ROLE_KEY).`)
+        console.warn('[VideoBreakdown] DB save failed:', json2.dbError ?? 'unknown error')
+      }
+
       setData(json2.breakdown as VideoBreakdownPayload)
       setState('done')
     } catch (e) {
@@ -107,6 +118,14 @@ export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Pro
 
   return (
     <div>
+      {/* DB-save warning — only shown when saved:false is returned from the API */}
+      {dbWarn && (
+        <div className="mb-3 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-amber-700 leading-snug">{dbWarn}</p>
+        </div>
+      )}
+
       <div className="mb-2 flex items-center justify-between">
         <Link
           href={`/viral/${videoId}`}

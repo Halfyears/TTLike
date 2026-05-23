@@ -55,7 +55,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 border-t border-gray-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs">
-          <p>© {new Date().getFullYear()} TTLike. All rights reserved.</p>
+          <p suppressHydrationWarning>© {new Date().getFullYear()} TTLike. All rights reserved.</p>
           <p>Made for TikTok sellers worldwide</p>
         </div>
       </div>
