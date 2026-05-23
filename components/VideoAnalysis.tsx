@@ -11,12 +11,15 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Copy, Check, Film, Download } from 'lucide-react'
+import { Copy, Check, Film, Download, Lock } from 'lucide-react'
 import type { VideoBreakdownPayload, TimelineScene } from '@/lib/types/intelligence'
+import type { TierName } from '@/lib/constants'
 
 interface Props {
   data:            VideoBreakdownPayload
   showPremiumCta?: boolean
+  /** User's current tier — gates Copy for CapCut & full timeline export */
+  tier?:           TierName
 }
 
 // ── Trend-badge helpers ───────────────────────────────────────────────────────
@@ -78,8 +81,9 @@ function useCopy(ms = 2000) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function VideoAnalysis({ data, showPremiumCta = false }: Props) {
+export function VideoAnalysis({ data, showPremiumCta = false, tier = 'free' }: Props) {
   const { copied, copy } = useCopy()
+  const isPaid = tier === 'creator' || tier === 'scale'
 
   if (!data) return null
 
@@ -198,20 +202,28 @@ export function VideoAnalysis({ data, showPremiumCta = false }: Props) {
               <h3 className="text-xs font-bold uppercase tracking-widest text-emerald-600">
                 ⏱️ Copy-Paste Script with Visual Notes
               </h3>
-              <button
-                onClick={() => copy(formatForCapCut(data.visual_timeline, data.metrics), 'capcut')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  copied === 'capcut'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-black hover:bg-gray-800 text-white'
-                }`}
-              >
-                {copied === 'capcut' ? (
-                  <><Check className="h-3.5 w-3.5" /> Copied for CapCut!</>
-                ) : (
-                  <><Film className="h-3.5 w-3.5" /> Copy for CapCut</>
-                )}
-              </button>
+              {isPaid ? (
+                <button
+                  onClick={() => copy(formatForCapCut(data.visual_timeline, data.metrics), 'capcut')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    copied === 'capcut'
+                      ? 'bg-green-500 text-white'
+                      : 'bg-black hover:bg-gray-800 text-white'
+                  }`}
+                >
+                  {copied === 'capcut' ? (
+                    <><Check className="h-3.5 w-3.5" /> Copied for CapCut!</>
+                  ) : (
+                    <><Film className="h-3.5 w-3.5" /> Copy for CapCut</>
+                  )}
+                </button>
+              ) : (
+                <Link href="/pricing">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-all cursor-pointer">
+                    <Lock className="h-3.5 w-3.5" /> Creator — CapCut Export
+                  </span>
+                </Link>
+              )}
             </div>
 
             <div className="border border-slate-200 divide-y divide-slate-100 rounded-lg overflow-hidden">
@@ -259,20 +271,28 @@ export function VideoAnalysis({ data, showPremiumCta = false }: Props) {
             </div>
 
             {/* Full timeline copy */}
-            <button
-              onClick={() => copy(formatForCapCut(data.visual_timeline, data.metrics), 'timeline-full')}
-              className={`mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
-                copied === 'timeline-full'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              }`}
-            >
-              {copied === 'timeline-full' ? (
-                <><Check className="h-4 w-4" /> Full Script Copied!</>
-              ) : (
-                <><Download className="h-4 w-4" /> Copy Full Script</>
-              )}
-            </button>
+            {isPaid ? (
+              <button
+                onClick={() => copy(formatForCapCut(data.visual_timeline, data.metrics), 'timeline-full')}
+                className={`mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-all ${
+                  copied === 'timeline-full'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
+              >
+                {copied === 'timeline-full' ? (
+                  <><Check className="h-4 w-4" /> Full Script Copied!</>
+                ) : (
+                  <><Download className="h-4 w-4" /> Copy Full Script</>
+                )}
+              </button>
+            ) : (
+              <Link href="/pricing" className="block mt-3">
+                <div className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-all cursor-pointer">
+                  <Lock className="h-4 w-4" /> Upgrade to Creator — Unlock Full Script Export
+                </div>
+              </Link>
+            )}
           </div>
         )}
 

@@ -14,7 +14,7 @@
 
 import { NextResponse }               from 'next/server'
 import { revalidatePath }             from 'next/cache'
-import { createServiceClient }        from '@/lib/supabase/server'
+import { createServiceClient, createClient } from '@/lib/supabase/server'
 import { callVideoBreakdown }         from '@/lib/ai/parserPrompt'
 import { fetchVideoComments }         from '@/lib/scraper'
 import { filterHighValueComments, estimateTokens } from '@/lib/sentimentFilter'
@@ -96,6 +96,41 @@ export async function POST(req: Request) {
   }
 
   const service = createServiceClient()
+
+  // ── Tier Guard — quota enforcement for authenticated users ──────────────────
+  // Unauthenticated visitors (public product pages) are not blocked here;
+  // quota is only enforced when a valid session is present.
+  try {
+    const authClient = await createClient()
+    const { data: { user } } = await authClient.auth.getUser()
+
+    if (user) {
+      // Auto-provision free-tier row if this is user's first analysis
+      await service.rpc('ensure_billing_tier', { uid: user.id })
+
+      const { data: tierRow } = await service
+        .from('user_billing_tiers')
+        .select('video_analysis_used, video_analysis_limit')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (tierRow && tierRow.video_analysis_used >= tierRow.video_analysis_limit) {
+        return NextResponse.json(
+          {
+            error:           'MONTHLY_ANALYSIS_LIMIT_EXCEEDED',
+            upgradeRequired: true,
+            used:            tierRow.video_analysis_used,
+            limit:           tierRow.video_analysis_limit,
+            hint:            'Upgrade to Creator ($29/mo) for 50 analyses per month.',
+          },
+          { status: 403 }
+        )
+      }
+    }
+  } catch (e) {
+    // Auth/tier check failure is non-fatal — let analysis proceed
+    console.warn('[analyze] tier guard error (non-fatal):', e)
+  }
 
   // ── 0. Resolve short URLs before any cache or DB lookup ────────────────────
   // vm.tiktok.com / vt.tiktok.com → canonical www.tiktok.com URL (5 s timeout)
@@ -233,8 +268,18 @@ export async function POST(req: Request) {
     .insert({ url_hash: cacheKey, video_id: meta.id, payload })
 
   if (insertError) {
-    // Log but do not fail the response — client already has the analysis
     console.error('[analyze] DB insert error:', insertError.message, insertError.code)
+  }
+
+  // ── 6b. Increment quota usage for authenticated users ──────────────────────
+  try {
+    const authClient = await createClient()
+    const { data: { user } } = await authClient.auth.getUser()
+    if (user) {
+      await service.rpc('increment_analysis_credit', { uid: user.id })
+    }
+  } catch (e) {
+    console.warn('[analyze] quota increment failed (non-fatal):', e)
   }
 
   // ── 7. Trigger SEO flywheel — invalidate public /viral/[id] page ────────────

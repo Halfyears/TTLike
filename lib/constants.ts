@@ -1,15 +1,24 @@
-export const IS_BETA_PHASE = true
-export const PAYMENT_ENABLED = false
+export const IS_BETA_PHASE = false
+export const PAYMENT_ENABLED = true
 
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ttlike.com'
 export const SITE_NAME = 'TTLike'
 export const SITE_DESCRIPTION = 'AI-powered TikTok viral intelligence for dropshippers and UGC creators'
 
 export const SUBSCRIPTION_PLANS = {
-  FREE: { name: 'Free', price: 0, scriptsPerDay: PAYMENT_ENABLED ? 3 : 999 },
-  PRO: { name: 'Pro', price: 29, scriptsPerDay: 999 },
-  ENTERPRISE: { name: 'Enterprise', price: 99, scriptsPerDay: 999 },
+  FREE:    { name: 'Free',    price: 0,  tier: 'free',    scriptsPerDay: 3 },
+  CREATOR: { name: 'Creator', price: 29, tier: 'creator', scriptsPerDay: 999 },
+  SCALE:   { name: 'Scale',   price: 99, tier: 'scale',   scriptsPerDay: 999 },
 } as const
+
+/** Quota limits per tier — mirrors user_billing_tiers DB defaults */
+export const TIER_LIMITS = {
+  free:    { video_analysis: 5,   strategy_audit: 0,  custom_hook: 0   },
+  creator: { video_analysis: 50,  strategy_audit: 20, custom_hook: 100 },
+  scale:   { video_analysis: 500, strategy_audit: 50, custom_hook: 500 },
+} as const
+
+export type TierName = 'free' | 'creator' | 'scale'
 
 export const HOOK_TYPES = [
   { value: 'SURPRISE',    label: 'Surprise',    label_zh: '反转惊喜',   description: 'You won\'t believe this...' },
