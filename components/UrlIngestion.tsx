@@ -6,7 +6,7 @@ import { Search, Loader2, AlertTriangle } from 'lucide-react'
 
 /**
  * UrlIngestion — user pastes a TikTok video URL, we look it up in our DB
- * and redirect to its product detail page which will trigger AI analysis.
+ * and redirect to its product detail page.
  *
  * V1: only works for videos already scraped into TTLike.
  * V2: will trigger live scrape + analysis.
@@ -34,12 +34,12 @@ export default function UrlIngestion() {
       const data = await res.json()
 
       if (res.status === 404) {
-        setError('此视频暂未收录。请从「产品广场」中选择已有视频，或等待定期爬取更新。')
+        setError('This video hasn\'t been scraped yet. Browse the Products section for existing videos, or check back after the next scheduled scrape.')
         setLoading(false)
         return
       }
       if (!res.ok) {
-        setError(data.error ?? '分析失败，请稍后重试')
+        setError(data.error ?? 'Analysis failed — please try again')
         setLoading(false)
         return
       }
@@ -51,7 +51,7 @@ export default function UrlIngestion() {
         router.push(`/products?q=${encodeURIComponent(trimmed)}`)
       }
     } catch {
-      setError('网络错误，请重试')
+      setError('Network error — please try again')
     } finally {
       setLoading(false)
     }
@@ -60,10 +60,10 @@ export default function UrlIngestion() {
   return (
     <div className="max-w-2xl mx-auto my-8 p-5 border border-slate-200 rounded-xl bg-white shadow-sm">
       <label className="block text-sm font-bold text-slate-700 mb-1">
-        输入任意 TikTok 带货视频链接，逆向拆解广告结构
+        Paste any TikTok shop video URL to reverse-engineer its ad structure
       </label>
       <p className="text-xs text-slate-400 mb-3">
-        AI 自动识别：前3秒钩子 · 购买动机 · 剪辑节奏 · 收单方式，并给出卖家实操建议
+        AI identifies: opening hook · buying motivation · editing pace · conversion method
       </p>
 
       <form onSubmit={handleSubmit} className="flex gap-2">
@@ -83,7 +83,7 @@ export default function UrlIngestion() {
           className="flex items-center gap-1.5 bg-slate-900 hover:bg-slate-700 disabled:opacity-50 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
         >
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {loading ? '分析中…' : '开始拆解'}
+          {loading ? 'Analyzing…' : 'Analyze'}
         </button>
       </form>
 

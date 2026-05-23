@@ -35,16 +35,16 @@ function Section({
   return (
     <div className={`border-l-2 ${color} pl-4`}>
       <div className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 ${labelColor}`}>
-        【{label}】<span className="ml-1 font-normal opacity-70">· {badge}</span>
+        [{label}]<span className="ml-1 font-normal opacity-70">· {badge}</span>
       </div>
       {rows.map(row => (
         row.highlight ? (
           <div key={row.key} className={`mt-2 text-xs rounded-lg px-3 py-2 leading-relaxed ${adviceBg}`}>
-            <strong>👩‍🏫 卖家实操建议：</strong>{row.value}
+            <strong>💡 Seller tip: </strong>{row.value}
           </div>
         ) : (
           <div key={row.key} className="mt-1 text-xs text-gray-700 leading-relaxed">
-            <span className="text-gray-400">{row.key}：</span>{row.value}
+            <span className="text-gray-400">{row.key}: </span>{row.value}
           </div>
         )
       ))}
@@ -92,14 +92,14 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
     return (
       <div className="border border-dashed border-pink-200 rounded-xl p-5 text-center">
         <p className="text-sm text-gray-500 mb-3">
-          AI 广告结构体检报告 — 前3秒钩子 · 购买动机 · 剪辑节奏 · 收单方式
+          AI Ad Structure Report — hook · motivation · pacing · conversion
         </p>
         <button
           onClick={load}
           className="inline-flex items-center gap-2 px-5 py-2 bg-pink-500 hover:bg-pink-600 text-white text-sm font-semibold rounded-lg transition-colors"
         >
           <Zap className="h-4 w-4" />
-          生成拆解报告
+          Generate AI Breakdown
         </button>
       </div>
     )
@@ -110,7 +110,7 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
     return (
       <div className="border border-gray-100 rounded-xl p-6 flex items-center justify-center gap-3 text-gray-400">
         <Loader2 className="h-5 w-5 animate-spin text-pink-400" />
-        <span className="text-sm">AI 正在拆解广告结构…（约5秒）</span>
+        <span className="text-sm">AI is analyzing the ad structure… (approx. 5s)</span>
       </div>
     )
   }
@@ -121,19 +121,19 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
       <div className="border border-red-200 bg-red-50 rounded-xl p-4 flex items-start gap-2">
         <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-medium text-red-700">拆解失败</p>
+          <p className="text-sm font-medium text-red-700">Analysis failed</p>
           <p className="text-xs text-red-500 mt-0.5">{errMsg}</p>
-          <button onClick={load} className="mt-2 text-xs text-red-600 underline hover:no-underline">重试</button>
+          <button onClick={load} className="mt-2 text-xs text-red-600 underline hover:no-underline">Retry</button>
         </div>
       </div>
     )
   }
 
   // ── Done ────────────────────────────────────────────────────────────────────
-  if (!data) return null
+  if (!data || !data.analysis) return null
   const { analysis, category, metrics } = data
 
-  const hookLabel    = HOOK_TYPE_LABELS[analysis.hook.type    as HookType]
+  const hookLabel    = HOOK_TYPE_LABELS[analysis.hook.type       as HookType]
   const emotionLabel = EMOTION_DRIVER_LABELS[analysis.emotion.driver as EmotionDriver]
   const pacingLabel  = PACING_STYLE_LABELS[analysis.pacing.style    as PacingStyle]
 
@@ -142,23 +142,23 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
       {/* Header */}
       <div className="bg-slate-50 px-4 py-3 flex items-center justify-between border-b border-slate-100">
         <div>
-          <span className="text-[10px] uppercase tracking-widest text-slate-400">✦ TTLike™ 广告结构透视</span>
+          <span className="text-[10px] uppercase tracking-widest text-slate-400">✦ TTLike™ Ad Structure X-Ray</span>
           <p className="text-sm font-bold text-slate-700 mt-0.5">{category}</p>
         </div>
         <button
           onClick={() => setState('idle')}
           className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors"
         >
-          重新生成
+          Regenerate
         </button>
       </div>
 
       {/* Metrics strip */}
       <div className="grid grid-cols-3 divide-x divide-slate-100 bg-white border-b border-slate-100">
         {[
-          { label: '播放量', value: metrics.views },
-          { label: '点赞量', value: metrics.likes },
-          { label: '转发量', value: metrics.shares },
+          { label: 'Views',  value: metrics.views },
+          { label: 'Likes',  value: metrics.likes },
+          { label: 'Shares', value: metrics.shares },
         ].map(m => (
           <div key={m.label} className="py-2.5 px-3 text-center">
             <p className="text-xs font-bold text-slate-800 tabular-nums">{m.value}</p>
@@ -173,45 +173,45 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
         {/* Hook */}
         <Section
           color="border-indigo-500"
-          label="前3秒钩子"
+          label="Opening Hook"
           badge={hookLabel ? `${hookLabel.zh} (${hookLabel.en})` : analysis.hook.type}
           rows={[
-            { key: '原视频做法', value: `"${analysis.hook.raw_text}"` },
-            { key: '核心机理',   value: analysis.hook.mechanism },
-            { key: 'advice',    value: analysis.hook.actionable_advice, highlight: true },
+            { key: 'In the video',  value: `"${analysis.hook.raw_text}"` },
+            { key: 'Why it works',  value: analysis.hook.mechanism },
+            { key: 'tip',           value: analysis.hook.actionable_advice, highlight: true },
           ]}
         />
 
         {/* Emotion */}
         <Section
           color="border-violet-500"
-          label="购买动机"
+          label="Buying Motivation"
           badge={emotionLabel ? `${emotionLabel.zh} (${emotionLabel.en})` : analysis.emotion.driver}
           rows={[
-            { key: '精准痛点', value: analysis.emotion.pain_point },
-            { key: 'advice',  value: analysis.emotion.actionable_advice, highlight: true },
+            { key: 'Pain point', value: analysis.emotion.pain_point },
+            { key: 'tip',        value: analysis.emotion.actionable_advice, highlight: true },
           ]}
         />
 
         {/* Pacing */}
         <Section
           color="border-emerald-500"
-          label="剪辑节奏"
+          label="Editing Pace"
           badge={pacingLabel ? `${pacingLabel.zh} (${pacingLabel.en})` : analysis.pacing.style}
           rows={[
-            { key: '原视频做法', value: analysis.pacing.raw_behavior },
-            { key: 'advice',    value: analysis.pacing.actionable_advice, highlight: true },
+            { key: 'In the video', value: analysis.pacing.raw_behavior },
+            { key: 'tip',          value: analysis.pacing.actionable_advice, highlight: true },
           ]}
         />
 
         {/* CTA */}
         <Section
           color="border-amber-500"
-          label="结尾转化引导"
-          badge="收单方式"
+          label="Conversion CTA"
+          badge="Closing method"
           rows={[
-            { key: '原视频做法', value: analysis.cta.raw_behavior },
-            { key: 'advice',    value: analysis.cta.actionable_advice, highlight: true },
+            { key: 'In the video', value: analysis.cta.raw_behavior },
+            { key: 'tip',          value: analysis.cta.actionable_advice, highlight: true },
           ]}
         />
       </div>
