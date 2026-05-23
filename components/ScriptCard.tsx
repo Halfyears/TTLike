@@ -25,7 +25,7 @@ function HighlightedText({ text, terms }: { text: string; terms: string[] }) {
 
   // Build a regex that matches any of the terms (case-insensitive)
   const escaped = active.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-  const regex = new RegExp(`(${escaped.join('|')})`, 'gi')
+  const regex = new RegExp(`(${escaped.join('|')})`, 'i')
   const parts = text.split(regex)
 
   return (
@@ -68,16 +68,18 @@ export function ScriptCard({ script, index, brandName = '', offer = '' }: Script
   const [copiedCapCut, setCopiedCapCut] = useState(false)
   const highlightTerms = [brandName, offer].filter(Boolean)
 
-  async function handleCopy() {
-    await navigator.clipboard.writeText(script.fullScript)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  function handleCopy() {
+    navigator.clipboard.writeText(script.fullScript).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
-  async function handleCopyCapCut() {
-    await navigator.clipboard.writeText(formatForCapCut(script, index))
-    setCopiedCapCut(true)
-    setTimeout(() => setCopiedCapCut(false), 2000)
+  function handleCopyCapCut() {
+    navigator.clipboard.writeText(formatForCapCut(script, index)).then(() => {
+      setCopiedCapCut(true)
+      setTimeout(() => setCopiedCapCut(false), 2000)
+    })
   }
 
   return (
