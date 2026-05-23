@@ -227,13 +227,15 @@ export async function POST(req: Request) {
     visual_timeline: geminiResult.visual_timeline,
   }
 
-  // ── 6. Persist to cache (fire-and-forget safe) ──────────────────────────────
-  service
+  // ── 6. Persist to DB — awaited so admin panel always reflects new records ──────
+  const { error: insertError } = await service
     .from('video_breakdowns')
     .insert({ url_hash: cacheKey, video_id: meta.id, payload })
-    .then(({ error }) => {
-      if (error) console.error('[analyze] cache write error:', error.message)
-    })
+
+  if (insertError) {
+    // Log but do not fail the response — client already has the analysis
+    console.error('[analyze] DB insert error:', insertError.message, insertError.code)
+  }
 
   // ── 7. Trigger SEO flywheel — invalidate public /viral/[id] page ────────────
   try {

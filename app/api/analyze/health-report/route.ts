@@ -77,17 +77,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'AI analysis failed — try again later' }, { status: 500 })
   }
 
-  // ── 4. Cache (fire-and-forget) ──────────────────────────────────────────────
-  service
+  // ── 4. Persist to DB — awaited so admin panel always reflects new records ──────
+  const { error: insertError } = await service
     .from('video_breakdowns')
     .insert({
       url_hash: cacheKey,
       video_id: meta.id,
       payload:  { health_report: report },
     })
-    .then(({ error }) => {
-      if (error) console.error('[health-report] cache write error:', error.message)
-    })
+
+  if (insertError) {
+    console.error('[health-report] DB insert error:', insertError.message, insertError.code)
+  }
 
   return NextResponse.json({ report, fromCache: false })
 }
