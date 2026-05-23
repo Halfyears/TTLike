@@ -11,7 +11,7 @@ import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { LocalDate } from '@/components/ui/LocalDate'
-import { VideoBreakdown } from '@/components/VideoBreakdown'
+import { VideoBreakdownWithTier } from '@/components/VideoBreakdownWithTier'
 import { StructuralHealthReport } from '@/components/StructuralHealthReport'
 import { formatNumber } from '@/lib/utils'
 
@@ -510,7 +510,7 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
                   AI · On Demand
                 </span>
               </div>
-              <VideoBreakdown videoId={id} autoLoad={autoAnalyze} />
+              <VideoBreakdownWithTier videoId={id} autoLoad={autoAnalyze} />
             </CardContent>
           </Card>
 

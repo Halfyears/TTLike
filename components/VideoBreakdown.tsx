@@ -5,13 +5,15 @@ import Link from 'next/link'
 import { Loader2, Zap, AlertTriangle, ExternalLink } from 'lucide-react'
 import { VideoAnalysis } from '@/components/VideoAnalysis'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
+import type { TierName } from '@/lib/constants'
 
 interface Props {
   videoId:   string
   autoLoad?: boolean  // true = auto-trigger on mount (used when redirected after URL analysis)
+  tier?:     TierName
 }
 
-export function VideoBreakdown({ videoId, autoLoad = false }: Props) {
+export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Props) {
   const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [data, setData]   = useState<VideoBreakdownPayload | null>(null)
   const [errMsg, setErr]  = useState('')
@@ -117,7 +119,7 @@ export function VideoBreakdown({ videoId, autoLoad = false }: Props) {
           Regenerate
         </button>
       </div>
-      <VideoAnalysis data={data} showPremiumCta={false} />
+      <VideoAnalysis data={data} showPremiumCta={false} tier={tier} />
     </div>
   )
 }

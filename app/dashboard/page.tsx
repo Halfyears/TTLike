@@ -5,7 +5,6 @@ import {
   Clapperboard, ArrowRight, Flame, BarChart2,
   Sparkles, ChevronRight,
 } from 'lucide-react'
-import { IS_BETA_PHASE } from '@/lib/constants'
 import UrlIngestion from '@/components/UrlIngestion'
 
 export const metadata = { title: 'Dashboard · TTLike' }
@@ -114,12 +113,6 @@ export default async function DashboardPage() {
         </div>
 
         <div className="relative">
-          {IS_BETA_PHASE && (
-            <div className="inline-flex items-center gap-1.5 mb-3 px-2.5 py-1 rounded-full bg-pink-500/20 border border-pink-500/30">
-              <Sparkles className="h-3 w-3 text-pink-400" />
-              <span className="text-[11px] font-bold text-pink-300 uppercase tracking-wide">Beta — All Pro features free</span>
-            </div>
-          )}
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             {greeting}, {firstName}! 👋
           </h1>
