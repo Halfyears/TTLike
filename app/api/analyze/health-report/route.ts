@@ -77,21 +77,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'AI analysis failed — try again later' }, { status: 500 })
   }
 
-  // ── 4. Persist to DB — upsert so duplicate url_hash never crashes the save ──
-  const { error: insertError } = await service
+  // ── 4. Persist to DB ────────────────────────────────────────────────────────
+  const { data: insertedRow, error: insertError } = await service
     .from('video_breakdowns')
-    .upsert(
-      { url_hash: cacheKey, video_id: meta.id, payload: { health_report: report } },
-      { onConflict: 'url_hash', ignoreDuplicates: true }
-    )
+    .insert({ url_hash: cacheKey, video_id: meta.id, payload: { health_report: report } })
     .select('id')
     .maybeSingle()
 
   if (insertError) {
-    console.error('[health-report] DB upsert error — code:', insertError.code,
-      '| message:', insertError.message,
-      '| details:', insertError.details,
-      '| hint:', insertError.hint)
+    if (insertError.code === '23505') {
+      console.log('[health-report] duplicate url_hash (race condition) — record already exists:', cacheKey)
+    } else {
+      console.error('[health-report] DB INSERT FAILED — code:', insertError.code,
+        '| message:', insertError.message,
+        '| details:', insertError.details,
+        '| hint:', insertError.hint)
+    }
+  } else {
+    console.log('[health-report] report saved OK — db_id:', insertedRow?.id)
   }
 
   return NextResponse.json({ report, fromCache: false })

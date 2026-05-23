@@ -262,23 +262,30 @@ export async function POST(req: Request) {
     visual_timeline: geminiResult.visual_timeline,
   }
 
-  // ── 6. Persist to DB — upsert so duplicate url_hash never crashes the save ──
-  const { data: saved, error: insertError } = await service
+  // ── 6. Persist to DB ────────────────────────────────────────────────────────
+  // Plain INSERT — cache check above already confirmed no existing record.
+  // On the rare 23505 duplicate (race condition), the row already exists → OK.
+  // Any other error is a genuine failure and must be logged.
+  const { data: insertedRow, error: insertError } = await service
     .from('video_breakdowns')
-    .upsert(
-      { url_hash: cacheKey, video_id: meta.id, payload },
-      { onConflict: 'url_hash', ignoreDuplicates: true }
-    )
+    .insert({ url_hash: cacheKey, video_id: meta.id, payload })
     .select('id')
     .maybeSingle()
 
+  let saved = true
   if (insertError) {
-    console.error('[analyze] DB upsert error — code:', insertError.code,
-      '| message:', insertError.message,
-      '| details:', insertError.details,
-      '| hint:', insertError.hint)
+    if (insertError.code === '23505') {
+      // Race-condition duplicate — record was written by a concurrent request; fine.
+      console.log('[analyze] duplicate url_hash (race condition) — breakdown already exists:', cacheKey)
+    } else {
+      saved = false
+      console.error('[analyze] DB INSERT FAILED — code:', insertError.code,
+        '| message:', insertError.message,
+        '| details:', insertError.details,
+        '| hint:', insertError.hint)
+    }
   } else {
-    console.log('[analyze] breakdown saved OK — db_id:', saved?.id ?? '(existing record, not replaced)')
+    console.log('[analyze] breakdown saved OK — db_id:', insertedRow?.id)
   }
 
   // ── 6b. Increment quota usage for authenticated users ──────────────────────
@@ -303,7 +310,7 @@ export async function POST(req: Request) {
     breakdown:  payload,
     video_id:   meta.id,
     fromCache:  false,
-    saved:      !insertError,   // false = DB write failed; check Vercel logs for code/message
+    saved,   // true = written OK (or race-condition duplicate); false = genuine DB failure
   })
 }
 
