@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Copy, Check } from 'lucide-react'
+import { Copy, Check, Film } from 'lucide-react'
 
 interface Script {
   title: string
@@ -43,14 +43,41 @@ function HighlightedText({ text, terms }: { text: string; terms: string[] }) {
   )
 }
 
+/** Format fullScript into a CapCut-friendly paste-ready string */
+function formatForCapCut(script: Script, index: number): string {
+  return [
+    `=== TTLike Script #${index + 1}: ${script.title} ===`,
+    `Paste into CapCut Script Mode`,
+    '',
+    `[0s–3s] HOOK`,
+    `🎤 "${script.hook}"`,
+    '',
+    `[3s–25s] BODY`,
+    script.body,
+    '',
+    `[25s–30s] CTA`,
+    `🎤 "${script.cta}"`,
+    '',
+    '--- Full Script ---',
+    script.fullScript,
+  ].join('\n')
+}
+
 export function ScriptCard({ script, index, brandName = '', offer = '' }: ScriptCardProps) {
-  const [copied, setCopied] = useState(false)
+  const [copied,       setCopied]       = useState(false)
+  const [copiedCapCut, setCopiedCapCut] = useState(false)
   const highlightTerms = [brandName, offer].filter(Boolean)
 
   async function handleCopy() {
     await navigator.clipboard.writeText(script.fullScript)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  async function handleCopyCapCut() {
+    await navigator.clipboard.writeText(formatForCapCut(script, index))
+    setCopiedCapCut(true)
+    setTimeout(() => setCopiedCapCut(false), 2000)
   }
 
   return (
@@ -65,7 +92,7 @@ export function ScriptCard({ script, index, brandName = '', offer = '' }: Script
 
       {/* Hook — most prominent */}
       <div className="mx-4 sm:mx-6 mb-4 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 p-4 sm:p-5">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-pink-200 mb-2">Hook (0–3s)</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-pink-200 mb-2">Hook (0–3s)</p>
         <p className="text-lg sm:text-xl font-bold text-white leading-snug">
           &ldquo;<HighlightedText text={script.hook} terms={highlightTerms} />&rdquo;
         </p>
@@ -73,7 +100,7 @@ export function ScriptCard({ script, index, brandName = '', offer = '' }: Script
 
       {/* Body */}
       <div className="mx-4 sm:mx-6 mb-3 rounded-xl bg-gray-50 p-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Body (3–25s)</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">Body (3–25s)</p>
         <p className="text-sm text-gray-700 whitespace-pre-line leading-relaxed">
           <HighlightedText text={script.body} terms={highlightTerms} />
         </p>
@@ -81,13 +108,13 @@ export function ScriptCard({ script, index, brandName = '', offer = '' }: Script
 
       {/* CTA */}
       <div className="mx-4 sm:mx-6 mb-4 rounded-xl bg-green-50 border border-green-100 p-4">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-green-500 mb-2">CTA (25–30s)</p>
+        <p className="text-xs font-bold uppercase tracking-widest text-green-500 mb-2">CTA (25–30s)</p>
         <p className="text-sm font-medium text-green-800">
           <HighlightedText text={script.cta} terms={highlightTerms} />
         </p>
       </div>
 
-      {/* Full script */}
+      {/* Full script expandable */}
       <div className="mx-4 sm:mx-6 mb-4">
         <details>
           <summary className="cursor-pointer text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors select-none">
@@ -99,16 +126,37 @@ export function ScriptCard({ script, index, brandName = '', offer = '' }: Script
         </details>
       </div>
 
-      {/* Copy button */}
-      <div className="px-4 sm:px-6 pb-4 sm:pb-5 mt-auto">
+      {/* Copy buttons */}
+      <div className="px-4 sm:px-6 pb-4 sm:pb-5 mt-auto flex flex-col gap-2">
+        {/* Primary: Copy Full Script */}
         <button
           onClick={handleCopy}
-          className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+          className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-bold transition-all ${
+            copied
+              ? 'bg-green-500 text-white'
+              : 'bg-slate-900 hover:bg-slate-700 text-white'
+          }`}
         >
           {copied ? (
-            <><Check className="h-4 w-4 text-green-500" /> Copied!</>
+            <><Check className="h-4 w-4" /> Copied!</>
           ) : (
             <><Copy className="h-4 w-4" /> Copy Full Script</>
+          )}
+        </button>
+
+        {/* Secondary: Copy for CapCut */}
+        <button
+          onClick={handleCopyCapCut}
+          className={`flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-all ${
+            copiedCapCut
+              ? 'bg-green-500 text-white'
+              : 'bg-black hover:bg-gray-800 text-white'
+          }`}
+        >
+          {copiedCapCut ? (
+            <><Check className="h-4 w-4" /> Copied for CapCut!</>
+          ) : (
+            <><Film className="h-4 w-4" /> Copy for CapCut</>
           )}
         </button>
       </div>
