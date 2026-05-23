@@ -77,17 +77,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'AI analysis failed — try again later' }, { status: 500 })
   }
 
-  // ── 4. Persist to DB — awaited so admin panel always reflects new records ──────
+  // ── 4. Persist to DB — upsert so duplicate url_hash never crashes the save ──
   const { error: insertError } = await service
     .from('video_breakdowns')
-    .insert({
-      url_hash: cacheKey,
-      video_id: meta.id,
-      payload:  { health_report: report },
-    })
+    .upsert(
+      { url_hash: cacheKey, video_id: meta.id, payload: { health_report: report } },
+      { onConflict: 'url_hash', ignoreDuplicates: true }
+    )
+    .select('id')
+    .maybeSingle()
 
   if (insertError) {
-    console.error('[health-report] DB insert error:', insertError.message, insertError.code)
+    console.error('[health-report] DB upsert error — code:', insertError.code,
+      '| message:', insertError.message,
+      '| details:', insertError.details,
+      '| hint:', insertError.hint)
   }
 
   return NextResponse.json({ report, fromCache: false })

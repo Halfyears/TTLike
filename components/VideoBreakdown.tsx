@@ -39,6 +39,10 @@ export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Pro
       })
       const json2 = await res2.json()
       if (!res2.ok) throw new Error(json2.error ?? `HTTP ${res2.status}`)
+      // json2.saved === false means DB write failed — log for diagnostics
+      if (json2.saved === false) {
+        console.warn('[VideoBreakdown] analysis generated but DB save failed — check Vercel logs')
+      }
       setData(json2.breakdown as VideoBreakdownPayload)
       setState('done')
     } catch (e) {

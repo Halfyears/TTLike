@@ -262,13 +262,23 @@ export async function POST(req: Request) {
     visual_timeline: geminiResult.visual_timeline,
   }
 
-  // ── 6. Persist to DB — awaited so admin panel always reflects new records ──────
-  const { error: insertError } = await service
+  // ── 6. Persist to DB — upsert so duplicate url_hash never crashes the save ──
+  const { data: saved, error: insertError } = await service
     .from('video_breakdowns')
-    .insert({ url_hash: cacheKey, video_id: meta.id, payload })
+    .upsert(
+      { url_hash: cacheKey, video_id: meta.id, payload },
+      { onConflict: 'url_hash', ignoreDuplicates: true }
+    )
+    .select('id')
+    .maybeSingle()
 
   if (insertError) {
-    console.error('[analyze] DB insert error:', insertError.message, insertError.code)
+    console.error('[analyze] DB upsert error — code:', insertError.code,
+      '| message:', insertError.message,
+      '| details:', insertError.details,
+      '| hint:', insertError.hint)
+  } else {
+    console.log('[analyze] breakdown saved OK — db_id:', saved?.id ?? '(existing record, not replaced)')
   }
 
   // ── 6b. Increment quota usage for authenticated users ──────────────────────
@@ -289,7 +299,12 @@ export async function POST(req: Request) {
     console.warn('[analyze] revalidatePath failed (non-fatal):', e)
   }
 
-  return NextResponse.json({ breakdown: payload, video_id: meta.id, fromCache: false })
+  return NextResponse.json({
+    breakdown:  payload,
+    video_id:   meta.id,
+    fromCache:  false,
+    saved:      !insertError,   // false = DB write failed; check Vercel logs for code/message
+  })
 }
 
 // ── GET /api/analyze?video_id=xxx — convenience alias ─────────────────────────

@@ -67,7 +67,7 @@ export default async function BreakdownsAdminPage() {
 
   const { data: rows, error } = await service
     .from('video_breakdowns')
-    .select('id, url_hash, video_id, payload, created_at, tiktok_videos(id, title, product_name, niche, cover_url, views, viral_score)')
+    .select('id, url_hash, video_id, payload, created_at, tiktok_videos!left(id, title, product_name, niche, cover_url, views, viral_score)')
     .order('created_at', { ascending: false })
     .limit(500)
 
