@@ -49,6 +49,35 @@ function extractVideoId(raw: string): string | null {
   return m ? m[1] : null
 }
 
+/** Known TikTok short-link hostnames that must be resolved via redirect. */
+const SHORT_DOMAINS = new Set(['vm.tiktok.com', 'vt.tiktok.com', 'm.tiktok.com'])
+
+/**
+ * Resolve a TikTok short URL to its canonical long-form URL by following the
+ * redirect chain server-side.  Falls back to the original string on any error
+ * so the rest of the pipeline can degrade gracefully.
+ *
+ * Only fires for short-link hostnames — standard www.tiktok.com URLs are
+ * returned immediately with no network round-trip.
+ */
+async function resolveShortUrl(raw: string): Promise<string> {
+  try {
+    const hostname = new URL(raw).hostname
+    if (!SHORT_DOMAINS.has(hostname)) return raw
+
+    const res = await fetch(raw, {
+      method:   'HEAD',
+      redirect: 'follow',
+      // 5-second ceiling — never block the analysis pipeline
+      signal:   AbortSignal.timeout(5_000),
+    })
+    // res.url is the final URL after all redirects
+    return res.url || raw
+  } catch {
+    return raw   // timeout, network error, invalid URL — continue with original
+  }
+}
+
 export async function POST(req: Request) {
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: 'AI service not configured' }, { status: 503 })
@@ -68,8 +97,15 @@ export async function POST(req: Request) {
 
   const service = createServiceClient()
 
+  // ── 0. Resolve short URLs before any cache or DB lookup ────────────────────
+  // vm.tiktok.com / vt.tiktok.com → canonical www.tiktok.com URL (5 s timeout)
+  const resolvedUrl = (!video_id && url) ? await resolveShortUrl(url) : undefined
+
   // ── 1. Zero-token DB deduplication ─────────────────────────────────────────
-  const cacheKey = video_id ? urlHash(`video:${video_id}`) : urlHash(url!)
+  // Use resolved URL so canonical and short-link callers share the same cache entry
+  const cacheKey = video_id
+    ? urlHash(`video:${video_id}`)
+    : urlHash(resolvedUrl ?? url!)
 
   const { data: cached } = await service
     .from('video_breakdowns')
@@ -103,7 +139,7 @@ export async function POST(req: Request) {
       .maybeSingle()
     meta = data as VideoRow | null
   } else {
-    const rawUrl     = url!
+    const rawUrl     = resolvedUrl ?? url!   // already resolved above
     const cleanUrl   = normalizeUrl(rawUrl)
     const tikVideoId = extractVideoId(rawUrl)
 
