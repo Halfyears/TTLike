@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ExternalLink, Zap, TrendingUp, BarChart2, Database } from 'lucide-react'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
+import { BatchTrigger } from './BatchTrigger'
 
 export const dynamic = 'force-dynamic'
 
@@ -94,6 +95,9 @@ export default async function BreakdownsAdminPage() {
           Gemini-generated creative workbooks · SEO page auto-generated per entry
         </p>
       </div>
+
+      {/* Batch generator */}
+      <BatchTrigger />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
