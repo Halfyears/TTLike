@@ -131,7 +131,7 @@ export async function POST(req: Request) {
       if (error) console.error('[analyze] cache write error:', error.message)
     })
 
-  return NextResponse.json({ breakdown: payload, fromCache: false })
+  return NextResponse.json({ breakdown: payload, video_id: meta.id, fromCache: false })
 }
 
 // ── GET /api/analyze?video_id=xxx — convenience alias ─────────────────────────

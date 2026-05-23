@@ -44,11 +44,10 @@ export default function UrlIngestion() {
         return
       }
 
-      // Find the video_id from the breakdown and redirect to its product page
-      const payload = data.breakdown
-      if (payload?.url_hash) {
-        // Look up by url to get video_id via GET with url param
-        // For now redirect to search
+      // Redirect to the video's product detail page
+      if (data.video_id) {
+        router.push(`/products/${data.video_id}`)
+      } else {
         router.push(`/products?q=${encodeURIComponent(trimmed)}`)
       }
     } catch {
