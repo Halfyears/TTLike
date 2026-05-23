@@ -142,9 +142,16 @@ export function VideoAnalysis({ data, showPremiumCta = false, tier = 'free' }: P
                 return (
                   <div key={idx} className="border border-slate-100 p-4 bg-slate-50/40 rounded-lg">
 
-                    {/* Title */}
-                    <div className="font-bold text-slate-800 leading-tight text-sm">
-                      {idx + 1}. {formula.title}
+                    {/* Title + optional timestamp anchor */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="font-bold text-slate-800 leading-tight text-sm">
+                        {idx + 1}. {formula.title}
+                      </div>
+                      {formula.timestamp && (
+                        <span className="shrink-0 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                          📹 {formula.timestamp}
+                        </span>
+                      )}
                     </div>
 
                     {/* example_script with prefix badge */}
@@ -296,21 +303,47 @@ export function VideoAnalysis({ data, showPremiumCta = false, tier = 'free' }: P
           </div>
         )}
 
-        {/* ── Section 3: Premium CTA ── */}
-        {showPremiumCta && (
-          <div className="border-2 border-dashed border-amber-300 p-4 bg-amber-50/30 text-center rounded-lg">
-            <div className="text-[10px] font-bold uppercase text-amber-800 tracking-wider mb-1">
-              ⚠️ Go Deeper — Strategy Audit Available
+        {/* ── Section 3: Retention Leak Teaser ── */}
+        {!isPaid ? (
+          <div className="border-2 border-dashed border-red-200 rounded-lg overflow-hidden">
+            <div className="px-4 py-2.5 bg-red-50/60 flex items-center justify-between gap-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-red-800">
+                ⚠️ Retention Drop Signal Detected
+              </span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-600 text-white uppercase tracking-wide">
+                Creator Required
+              </span>
             </div>
-            <p className="text-xs text-slate-600 max-w-md mx-auto mb-3 leading-relaxed">
-              The formulas above are what you can copy. The audit reveals what you can <em>beat</em> — conversion leaks,
-              structural flaws, and a zero-cost script to outperform this video head-on.
-            </p>
-            <Link href="/pricing">
-              <button className="bg-amber-600 hover:bg-amber-700 text-white font-mono text-xs uppercase px-5 py-2 font-bold transition-colors rounded">
-                🔬 Unlock Full Strategy Audit (Pro)
-              </button>
-            </Link>
+            {/* Blurred placeholder — purely visual teaser, no real data needed */}
+            <div className="relative px-4 py-3 select-none">
+              <div className="space-y-1.5 blur-sm pointer-events-none" aria-hidden>
+                <p className="text-xs font-bold text-slate-700">📉 CRITICAL — 14% audience exits at 00:12</p>
+                <p className="text-xs text-slate-500">Audio decibel dip + passive CTA triggers algorithm penalty at this timestamp</p>
+                <p className="text-xs text-slate-500">Counter-attack: re-cut at 00:11 with a direct urgency line to recover 8–12% watch-through</p>
+              </div>
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 gap-2 text-center px-4">
+                <p className="text-xs font-bold text-slate-700">
+                  Unlock forensic audit — pinpoint exact drop-off seconds &amp; counter-attack script
+                </p>
+                <Link href="/pricing">
+                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-900 hover:bg-slate-700 text-white transition-all cursor-pointer">
+                    <Lock className="h-3 w-3" /> Upgrade to Creator — $29/mo
+                  </span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="border border-red-100 rounded-lg px-4 py-3 bg-red-50/30 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <p className="text-xs font-bold text-red-700">🔬 AI Structural Health Report available</p>
+              <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
+                Hook mechanics · Leak detection · Counter-attack blueprint
+              </p>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-100 uppercase tracking-wide shrink-0">
+              Scroll up ↑
+            </span>
           </div>
         )}
 

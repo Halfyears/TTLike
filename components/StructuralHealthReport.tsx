@@ -63,10 +63,11 @@ function formatCounterAttack(report: ReportType): string {
 }
 
 export function StructuralHealthReport({ videoId }: Props) {
-  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
-  const [report, setReport] = useState<ReportType | null>(null)
-  const [errMsg, setErr]    = useState('')
-  const { copied, copy }   = useCopy()
+  const [state, setState]     = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [report, setReport]   = useState<ReportType | null>(null)
+  const [errMsg, setErr]      = useState('')
+  const [showTooltip, setTip] = useState(false)
+  const { copied, copy }      = useCopy()
 
   async function generate() {
     setState('loading')
@@ -91,7 +92,28 @@ export function StructuralHealthReport({ videoId }: Props) {
     return (
       <div className="border-2 border-dashed border-red-200 rounded-xl p-5 text-center bg-red-50/30">
         <div className="text-2xl mb-2">🔬</div>
-        <h3 className="text-sm font-black text-slate-800 mb-1 font-mono">AI Structural Health Report</h3>
+        <div className="flex items-center justify-center gap-1.5 mb-1">
+          <h3 className="text-sm font-black text-slate-800 font-mono">AI Structural Health Report</h3>
+          {/* Hover tooltip */}
+          <div className="relative">
+            <button
+              onMouseEnter={() => setTip(true)}
+              onMouseLeave={() => setTip(false)}
+              onFocus={() => setTip(true)}
+              onBlur={() => setTip(false)}
+              className="h-4 w-4 rounded-full border border-slate-300 text-slate-400 hover:border-slate-500 hover:text-slate-600 text-[10px] font-bold flex items-center justify-center transition-colors"
+              aria-label="What is this report?"
+            >
+              ?
+            </button>
+            {showTooltip && (
+              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-64 p-3 bg-slate-900 text-white text-[10px] leading-relaxed rounded-lg z-50 shadow-xl text-left pointer-events-none">
+                <p className="font-bold mb-1 text-slate-200">How this works:</p>
+                <p>Compares this video against top-100 benchmark TikTok ads in the same niche. Identifies hook retention mechanics, audience trust triggers, exact drop-off timestamps, and generates a zero-cost counter-attack script template.</p>
+              </div>
+            )}
+          </div>
+        </div>
         <p className="text-xs text-slate-500 mb-4 max-w-xs mx-auto leading-relaxed font-mono">
           Hook Retention · Trust Blueprint · Leak Detection · Counter-Attack
         </p>

@@ -20,6 +20,8 @@ CRITICAL OUTPUT RULES:
 
 FIELD-LEVEL REQUIREMENTS:
 
+"timestamp": The approximate moment in the video where this formula is used. Format: "00:XX". Estimate from context if exact data unavailable.
+
 "example_script": Must begin with one of these prefixes: "Say:", "Do:", or "Edit:".
   - Say: for verbal hooks and spoken script lines
   - Do: for physical shooting or framing instructions
@@ -44,6 +46,7 @@ Output this exact JSON structure:
   "viral_formulas": [
     {
       "title": "Memorable name for this viral strategy (3-5 words)",
+      "timestamp": "00:03",
       "example_script": "Say: / Do: / Edit: + exact instruction from original video",
       "mechanism": "One sentence: the psychology or algorithm trick that makes this work.",
       "your_version": "The fully filled-in version using the actual product name and niche context."

@@ -3,10 +3,11 @@
 // Each breakdown = 3 copy-pasteable viral formulas + full scene-by-scene timeline.
 
 export interface ViralFormula {
-  title:          string  // e.g. "The Negative Filter Opener"
-  example_script: string  // Say: / Do: / Edit: + exact instruction from original video
-  mechanism:      string  // 1-sentence why this spikes retention or cheats the algorithm
-  your_version:   string  // Product-specific copy-pasteable version for the seller
+  title:          string   // e.g. "The Negative Filter Opener"
+  timestamp?:     string   // Approximate video timestamp, e.g. "00:03"
+  example_script: string   // Say: / Do: / Edit: + exact instruction from original video
+  mechanism:      string   // 1-sentence why this spikes retention or cheats the algorithm
+  your_version:   string   // Product-specific copy-pasteable version for the seller
 }
 
 export interface TimelineScene {
