@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Eye, Heart, Share2, Sparkles, ExternalLink, Zap } from 'lucide-react'
 import { SITE_URL, SITE_NAME } from '@/lib/constants'
-import { HOOK_TYPE_LABELS, HookType } from '@/lib/types/intelligence'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 import { VideoAnalysis } from '@/components/VideoAnalysis'
 
@@ -14,7 +13,6 @@ async function getBreakdownWithVideo(videoId: string) {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   const headers = { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
 
-  // Fetch breakdown joined with video
   const url = new URL(`/rest/v1/video_breakdowns`, base)
   url.searchParams.set('select', 'payload,created_at,video_id,tiktok_videos(id,title,product_name,niche,cover_url,video_url,author,views,likes,shares,viral_score)')
   url.searchParams.set('video_id', `eq.${videoId}`)
@@ -26,9 +24,14 @@ async function getBreakdownWithVideo(videoId: string) {
   if (!Array.isArray(rows) || rows.length === 0) return null
 
   const row = rows[0]
-  const video = row.tiktok_videos as Record<string, unknown> | null
+  const video    = row.tiktok_videos as Record<string, unknown> | null
   const breakdown = row.payload as VideoBreakdownPayload | null
-  if (!video || !breakdown || !breakdown.analysis) return null
+
+  // Support V2.5 (viral_formulas) and legacy (analysis) payloads
+  if (!video || !breakdown) return null
+  const hasV25     = breakdown.viral_formulas?.length > 0
+  const hasLegacy  = !!((breakdown as unknown) as Record<string, unknown>).analysis
+  if (!hasV25 && !hasLegacy) return null
 
   return { video, breakdown, created_at: row.created_at as string }
 }
@@ -52,22 +55,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!result) return { title: 'Ad Strategy Breakdown | TTLike' }
 
   const { video, breakdown } = result
-  const productName = String(video.product_name ?? video.title ?? 'Viral Product')
-  const cleanName   = cleanTitle(productName)
-  const niche       = String(video.niche ?? 'General')
-  const hookType    = breakdown.analysis.hook.type as HookType
-  const hookLabel   = HOOK_TYPE_LABELS[hookType]
-  const hookEn      = hookLabel?.en ?? hookType
-  const views       = Number(video.views ?? 0)
+  const productName  = String(video.product_name ?? video.title ?? 'Viral Product')
+  const cleanName    = cleanTitle(productName)
+  const niche        = String(video.niche ?? 'E-Commerce')
+  const views        = Number(video.views ?? 0)
 
-  const title       = `${cleanName} — ${hookEn} Hook Strategy | ${SITE_NAME}`
-  const description = `Reverse-engineer how this viral TikTok ad used ${hookEn} psychology to reach ${(views / 1000).toFixed(0)}K+ views. Full ad structure breakdown: opening hook, buying motivation, editing pace & CTA — with seller tips.`
+  const firstFormula = breakdown.viral_formulas?.[0]
+  const strategyName = firstFormula?.title ?? 'Viral Ad Strategy'
+
+  const title       = `${cleanName} — ${strategyName} | ${SITE_NAME}`
+  const description = `Reverse-engineer how this viral TikTok ad reached ${(views / 1000).toFixed(0)}K+ views. Full breakdown: viral formulas, copy-paste scripts, visual timeline & seller tips.`
 
   return {
     title,
     description,
     keywords: [
-      'TikTok viral strategy', 'TikTok ad breakdown', hookEn, niche,
+      'TikTok viral strategy', 'TikTok ad breakdown', strategyName, niche,
       'UGC script', 'TikTok hook', 'viral ad analysis', 'TTLike',
     ].join(', '),
     openGraph: {
@@ -95,14 +98,14 @@ export default async function ViralBreakdownPage({ params }: Props) {
   if (!result) notFound()
 
   const { video, breakdown, created_at } = result
-  const { analysis, metrics } = breakdown
 
-  const productName = String(video.product_name ?? video.title ?? 'Viral Product')
-  const cleanName   = cleanTitle(productName)
-  const niche       = String(video.niche ?? 'General')
-  const viralScore  = Number(video.viral_score ?? 0)
+  const productName  = String(video.product_name ?? video.title ?? 'Viral Product')
+  const cleanName    = cleanTitle(productName)
+  const niche        = String(video.niche ?? 'E-Commerce')
+  const viralScore   = Number(video.viral_score ?? 0)
 
-  const hookLabel = HOOK_TYPE_LABELS[analysis.hook.type as HookType]
+  const firstFormula = breakdown.viral_formulas?.[0]
+  const strategyName = firstFormula?.title ?? 'Viral Ad Strategy'
 
   const cloneHref = `/dashboard/ai-scripts?from_video=${encodeURIComponent(id)}&suggested_title=${encodeURIComponent(cleanName)}&niche=${encodeURIComponent(niche)}&keywords=${encodeURIComponent(productName)}`
 
@@ -110,14 +113,14 @@ export default async function ViralBreakdownPage({ params }: Props) {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Article',
-    headline: `${cleanName} — ${hookLabel?.en ?? analysis.hook.type} Hook Strategy`,
-    description: `Full TikTok ad structure breakdown: ${analysis.hook.mechanism}`,
+    headline: `${cleanName} — ${strategyName}`,
+    description: `Full TikTok ad structure breakdown: viral formulas, copy-paste scripts, visual timeline`,
     image: video.cover_url ? String(video.cover_url) : undefined,
     datePublished: created_at,
     author: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
     publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
     mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/viral/${id}` },
-    keywords: `TikTok ad strategy, ${hookLabel?.en ?? ''}, ${niche}, viral marketing`,
+    keywords: `TikTok ad strategy, ${strategyName}, ${niche}, viral marketing`,
   }
 
   return (
@@ -147,7 +150,7 @@ export default async function ViralBreakdownPage({ params }: Props) {
               </span>
             )}
             <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 uppercase tracking-wide">
-              ✦ Ad Structure X-Ray
+              ✦ Inspiration Engine V2.5
             </span>
           </div>
 
@@ -165,7 +168,7 @@ export default async function ViralBreakdownPage({ params }: Props) {
             <div className="relative aspect-video bg-gray-100">
               <img
                 src={String(video.cover_url)}
-                alt={cleanName || 'Product video cover'}
+                alt={cleanName.slice(0, 80) || 'Product video cover'}
                 className="w-full h-full object-cover object-center"
               />
               {video.video_url != null && (
@@ -190,9 +193,9 @@ export default async function ViralBreakdownPage({ params }: Props) {
           {/* Metrics strip */}
           <div className="grid grid-cols-3 divide-x divide-gray-100 bg-white">
             {[
-              { icon: Eye,    label: 'Views',  value: metrics.views },
-              { icon: Heart,  label: 'Likes',  value: metrics.likes },
-              { icon: Share2, label: 'Shares', value: metrics.shares },
+              { icon: Eye,    label: 'Views',  value: breakdown.metrics?.views  ?? '—' },
+              { icon: Heart,  label: 'Likes',  value: breakdown.metrics?.likes  ?? '—' },
+              { icon: Share2, label: 'Shares', value: breakdown.metrics?.shares ?? '—' },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex flex-col items-center justify-center py-3.5 px-2">
                 <Icon className="h-3.5 w-3.5 text-pink-400 mb-1" />
@@ -203,9 +206,9 @@ export default async function ViralBreakdownPage({ params }: Props) {
           </div>
         </div>
 
-        {/* ── Breakdown report (uses shared VideoAnalysis component) ── */}
+        {/* ── Breakdown report ── */}
         <div className="mb-6">
-          <VideoAnalysis data={breakdown} />
+          <VideoAnalysis data={breakdown} hasReport={true} />
         </div>
 
         {/* ── CTA strip ── */}

@@ -1,7 +1,7 @@
 /**
  * POST /api/analyze
  *
- * Cache-first structured video breakdown using Gemini 2.5 Flash.
+ * Cache-first structured video breakdown using Gemini 2.5 Flash (V2.5 Inspiration Engine).
  * Accepts either:
  *   { video_id: string }   — looks up tiktok_videos, uses stored metadata
  *   { url: string }        — checks cache by URL hash, returns cached or limited analysis
@@ -76,7 +76,6 @@ export async function POST(req: Request) {
       .maybeSingle()
     meta = data as VideoRow | null
   } else {
-    // URL mode: try to find in tiktok_videos by video_url
     const { data } = await service
       .from('tiktok_videos')
       .select('id, title, product_name, niche, views, likes, shares, author')
@@ -93,35 +92,33 @@ export async function POST(req: Request) {
     )
   }
 
-  // ── 4. Call Gemini ──────────────────────────────────────────────────────────
+  // ── 4. Call Gemini (V2.5 Inspiration Engine) ────────────────────────────────
   let geminiResult: Awaited<ReturnType<typeof callVideoBreakdown>>
   try {
     geminiResult = await callVideoBreakdown({
-      title:        String(meta.title ?? ''),
+      title:        String(meta.title        ?? ''),
       product_name: meta.product_name,
       niche:        meta.niche,
-      views:        Number(meta.views  ?? 0),
-      likes:        Number(meta.likes  ?? 0),
-      shares:       Number(meta.shares ?? 0),
-      author:       String(meta.author ?? ''),
+      views:        Number(meta.views        ?? 0),
+      likes:        Number(meta.likes        ?? 0),
+      shares:       Number(meta.shares       ?? 0),
+      author:       String(meta.author       ?? ''),
     })
   } catch (e) {
     console.error('[analyze] Gemini error:', e)
     return NextResponse.json({ error: 'AI analysis failed — try again later' }, { status: 500 })
   }
 
-  // ── 5. Build payload ────────────────────────────────────────────────────────
-  // geminiResult is { category, hook, emotion, pacing, cta } — destructure to split
-  const { category, ...analysis } = geminiResult
+  // ── 5. Build V2.5 payload ───────────────────────────────────────────────────
   const payload: VideoBreakdownPayload = {
     url_hash: cacheKey,
-    category,
     metrics: {
       views:  Number(meta.views  ?? 0).toLocaleString(),
       likes:  Number(meta.likes  ?? 0).toLocaleString(),
       shares: Number(meta.shares ?? 0).toLocaleString(),
     },
-    analysis,
+    viral_formulas:  geminiResult.viral_formulas,
+    visual_timeline: geminiResult.visual_timeline,
   }
 
   // ── 6. Persist to cache (fire-and-forget safe) ──────────────────────────────
@@ -148,7 +145,6 @@ export async function GET(req: Request) {
   const video_id = searchParams.get('video_id')
   if (!video_id) return NextResponse.json({ error: 'video_id required' }, { status: 400 })
 
-  // Auth check — reading breakdown is public (anon RLS allows SELECT)
   const service = createServiceClient()
   const cacheKey = createHash('md5').update(`video:${video_id}`).digest('hex')
 

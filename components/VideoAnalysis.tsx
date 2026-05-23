@@ -1,129 +1,135 @@
 /**
- * VideoAnalysis — pure display component.
- * Renders a structured VideoBreakdownPayload with zero loading/async logic.
- * Used by VideoBreakdown (done state) and viral/[id] SEO page.
+ * VideoAnalysis — V2.5 Inspiration Engine display component.
+ * Pure display: zero loading/async logic.
+ * Used by VideoBreakdown (client, lazy) and viral/[id] (server, static).
+ *
+ * Props:
+ *   data               — VideoBreakdownPayload (V2.5 format)
+ *   hasReport          — true hides the premium CTA (e.g. on public SEO pages)
+ *   onGenerateReport   — callback for premium audit trigger
+ *   isGeneratingReport — loading state for premium button
  */
-import {
-  HOOK_TYPE_LABELS, EMOTION_DRIVER_LABELS, PACING_STYLE_LABELS,
-  HookType, EmotionDriver, PacingStyle,
-} from '@/lib/types/intelligence'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 
-interface Section {
-  title:     string
-  tag:       string
-  label:     string
-  behavior:  string
-  mechanism: string | null
-  advice:    string
-  border:    string
-  text:      string
-  bg:        string
+interface Props {
+  data:                VideoBreakdownPayload
+  hasReport?:          boolean
+  onGenerateReport?:   () => void
+  isGeneratingReport?: boolean
 }
 
-export function VideoAnalysis({ data }: { data: VideoBreakdownPayload }) {
-  if (!data?.analysis) return null
+export function VideoAnalysis({
+  data,
+  hasReport          = false,
+  onGenerateReport,
+  isGeneratingReport = false,
+}: Props) {
+  if (!data) return null
 
-  const { analysis, category, metrics } = data
-
-  const hookLabel    = HOOK_TYPE_LABELS[analysis.hook.type       as HookType]
-  const emotionLabel = EMOTION_DRIVER_LABELS[analysis.emotion.driver as EmotionDriver]
-  const pacingLabel  = PACING_STYLE_LABELS[analysis.pacing.style    as PacingStyle]
-
-  const sections: Section[] = [
-    {
-      title:     'Opening Hook (First 3 Seconds Strategy)',
-      tag:       hookLabel ? `${hookLabel.en} · ${hookLabel.zh}` : analysis.hook.type,
-      label:     'Original Script Line:',
-      behavior:  analysis.hook.raw_text,
-      mechanism: analysis.hook.mechanism,
-      advice:    analysis.hook.actionable_advice,
-      border:    'border-indigo-500',
-      text:      'text-indigo-600',
-      bg:        'bg-indigo-50/40',
-    },
-    {
-      title:     'Core Driver (Psychological Motivation)',
-      tag:       emotionLabel ? `${emotionLabel.en} · ${emotionLabel.zh}` : analysis.emotion.driver,
-      label:     'Target Consumer Pain:',
-      behavior:  analysis.emotion.pain_point,
-      mechanism: null,
-      advice:    analysis.emotion.actionable_advice,
-      border:    'border-emerald-500',
-      text:      'text-emerald-600',
-      bg:        'bg-emerald-50/40',
-    },
-    {
-      title:     'Editing Rhythm & Visual Pacing Style',
-      tag:       pacingLabel ? `${pacingLabel.en} · ${pacingLabel.zh}` : analysis.pacing.style,
-      label:     'Editing Execution:',
-      behavior:  analysis.pacing.raw_behavior,
-      mechanism: null,
-      advice:    analysis.pacing.actionable_advice,
-      border:    'border-sky-500',
-      text:      'text-sky-600',
-      bg:        'bg-sky-50/40',
-    },
-    {
-      title:     'Conversion Capture (Closing Strategy)',
-      tag:       'CTA',
-      label:     'Closing Action:',
-      behavior:  analysis.cta.raw_behavior,
-      mechanism: null,
-      advice:    analysis.cta.actionable_advice,
-      border:    'border-amber-500',
-      text:      'text-amber-600',
-      bg:        'bg-amber-50/40',
-    },
-  ]
+  // ── Legacy V1/V2 format detected (has analysis, no viral_formulas) ──────────
+  const isLegacy = !(data.viral_formulas?.length) && !(data.visual_timeline?.length)
+  if (isLegacy) {
+    return (
+      <div className="border border-slate-200 rounded-xl p-5 text-center text-sm text-slate-500 font-mono bg-white">
+        This breakdown was generated with an older version.
+        <br />
+        Click <span className="font-semibold text-pink-500">Regenerate</span> to unlock the V2.5 Inspiration Engine.
+      </div>
+    )
+  }
 
   return (
     <div className="border border-slate-200 rounded-xl overflow-hidden font-mono bg-white text-slate-900">
 
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="bg-slate-50 px-5 py-3 border-b border-slate-100">
         <div className="text-[10px] uppercase tracking-widest text-slate-400">
-          📡 TTLike™ Intelligence Engine — Ad Structure Report
+          📡 TTLike™ Creative Workbook Engine
         </div>
-        <p className="text-sm font-bold text-slate-700 mt-0.5">{category}</p>
+        <p className="text-sm font-bold text-slate-700 mt-0.5">Ad Reverse-Engineering Panel</p>
       </div>
 
-      {/* Metrics strip */}
-      <div className="grid grid-cols-3 gap-0 bg-slate-50 border-b border-slate-100 text-xs divide-x divide-slate-100">
-        {[
-          { label: 'Views',  value: metrics.views },
-          { label: 'Likes',  value: metrics.likes },
-          { label: 'Shares', value: metrics.shares },
-        ].map(m => (
-          <div key={m.label} className="py-2.5 px-4 text-center">
-            <span className="font-bold text-slate-800 tabular-nums">{m.value}</span>
-            <span className="text-slate-400 ml-1">{m.label}</span>
-          </div>
-        ))}
-      </div>
+      <div className="p-5 space-y-8">
 
-      {/* Analysis sections */}
-      <div className="p-5 space-y-5">
-        {sections.map((s, idx) => (
-          <div key={idx} className={`border-l-2 ${s.border} pl-4`}>
-            <div className={`text-[10px] font-bold ${s.text} uppercase tracking-wide mb-1`}>
-              [{s.title}] · {s.tag}
-            </div>
-            <div className="mt-1 text-xs text-slate-700 leading-relaxed">
-              <span className="text-slate-400">{s.label} </span>
-              {s.behavior}
-            </div>
-            {s.mechanism && (
-              <div className="mt-1 text-xs text-slate-600 leading-relaxed">
-                <span className="text-slate-400">Mechanism: </span>
-                {s.mechanism}
-              </div>
-            )}
-            <div className={`mt-2 text-xs p-2.5 rounded-lg ${s.bg} border border-slate-100 leading-relaxed`}>
-              <strong>💡 Actionable Advice for Sellers:</strong> {s.advice}
+        {/* ── Section 1: Viral Formulas ── */}
+        {data.viral_formulas?.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-indigo-600 mb-3">
+              🎬 Viral Formulas You Can Steal
+            </h3>
+            <div className="space-y-3">
+              {data.viral_formulas.map((formula, idx) => (
+                <div key={idx} className="border border-slate-100 p-3 bg-slate-50/50 rounded-lg">
+                  <div className="text-xs font-bold text-slate-800">
+                    {idx + 1}. {formula.title}
+                  </div>
+                  <div className="mt-1.5 text-xs text-slate-600 leading-relaxed">
+                    <span className="text-slate-400">Execution: </span>
+                    {formula.action_step}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-600 leading-relaxed">
+                    <span className="text-slate-400">Mechanism: </span>
+                    {formula.mechanism}
+                  </div>
+                  <div className="mt-2 p-2.5 bg-indigo-50/60 border border-indigo-100 rounded-lg text-xs text-indigo-900 leading-relaxed">
+                    <strong>Your Version:</strong> &ldquo;{formula.your_version}&rdquo;
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
+        )}
+
+        {/* ── Section 2: Visual Timeline ── */}
+        {data.visual_timeline?.length > 0 && (
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wide text-emerald-600 mb-3">
+              ⏱️ Copy-Paste Script with Visual Notes
+            </h3>
+            <div className="border border-slate-200 divide-y divide-slate-200 rounded-lg overflow-hidden">
+              {data.visual_timeline.map((scene, idx) => (
+                <div key={idx} className="p-3 text-xs hover:bg-slate-50/40 transition-colors">
+                  <div className="font-bold text-emerald-700 mb-1.5">[{scene.timecode}]</div>
+                  <div className="space-y-1 pl-3 border-l-2 border-slate-200">
+                    <div className="leading-relaxed">
+                      <span className="text-slate-400">👁️ VISUAL: </span>
+                      {scene.visual}
+                    </div>
+                    <div className="leading-relaxed">
+                      <span className="text-slate-400">🔊 AUDIO: </span>
+                      <span className="text-slate-800">&ldquo;{scene.audio}&rdquo;</span>
+                    </div>
+                    <div className="mt-1 text-slate-500 italic leading-relaxed">
+                      🎯 Why It Works: {scene.why_this_works}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Section 3: Premium Structural Audit CTA ── */}
+        {!hasReport && (
+          <div className="border-2 border-dashed border-amber-300 p-4 bg-amber-50/30 text-center rounded-lg">
+            <div className="text-[10px] font-bold uppercase text-amber-800 tracking-wider mb-1">
+              ⚠️ Premium Strategy Addon Available
+            </div>
+            <p className="text-xs text-slate-600 max-w-md mx-auto mb-3 leading-relaxed">
+              Unlock the full algorithmic health audit — conversion leaks, structural flaws, and a zero-cost script modification manual to outperform this competitor.
+            </p>
+            <button
+              onClick={onGenerateReport}
+              disabled={isGeneratingReport || !onGenerateReport}
+              className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-mono text-xs uppercase px-4 py-2 font-bold transition-colors rounded"
+            >
+              {isGeneratingReport
+                ? 'Auditing Script Mechanics…'
+                : '⚡ Generate Full Structural Audit Report'}
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   )

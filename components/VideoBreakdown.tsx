@@ -8,9 +8,10 @@ import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function VideoBreakdown({ videoId }: { videoId: string }) {
-  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
-  const [data, setData]   = useState<VideoBreakdownPayload | null>(null)
-  const [errMsg, setErr]  = useState('')
+  const [state, setState]               = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [data, setData]                 = useState<VideoBreakdownPayload | null>(null)
+  const [errMsg, setErr]                = useState('')
+  const [reportLoading, setReportLoading] = useState(false)
 
   async function load() {
     setState('loading')
@@ -41,12 +42,19 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
     }
   }
 
+  async function handleGenerateReport() {
+    setReportLoading(true)
+    // Premium structural audit — placeholder, feature coming soon
+    await new Promise(r => setTimeout(r, 1200))
+    setReportLoading(false)
+  }
+
   // ── Idle ────────────────────────────────────────────────────────────────────
   if (state === 'idle') {
     return (
       <div className="border border-dashed border-pink-200 rounded-xl p-5 text-center">
         <p className="text-sm text-gray-500 mb-3">
-          AI Ad Structure Report — hook · motivation · pacing · conversion
+          AI Ad Structure Report — formulas · timeline · retention triggers
         </p>
         <button
           onClick={load}
@@ -83,8 +91,8 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
     )
   }
 
-  // ── Done — delegate rendering to VideoAnalysis ────────────────────────────
-  if (!data || !data.analysis) return null
+  // ── Done ─────────────────────────────────────────────────────────────────────
+  if (!data) return null
 
   return (
     <div>
@@ -104,7 +112,12 @@ export function VideoBreakdown({ videoId }: { videoId: string }) {
           Regenerate
         </button>
       </div>
-      <VideoAnalysis data={data} />
+      <VideoAnalysis
+        data={data}
+        hasReport={false}
+        onGenerateReport={handleGenerateReport}
+        isGeneratingReport={reportLoading}
+      />
     </div>
   )
 }

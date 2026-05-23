@@ -1,49 +1,43 @@
 import 'server-only'
 
-import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
+import type { ViralFormula, TimelineScene } from '@/lib/types/intelligence'
 
-// ── Token-lean system prompt ──────────────────────────────────────────────────
+// ── V2.5 Inspiration Engine System Prompt ────────────────────────────────────
 // Rules:
 //   1. JSON-only output (enforced via Gemini responseMimeType:'application/json')
-//   2. All enum values are locked — AI must pick from provided lists
-//   3. Each string field is 1 sentence max — no filler
-//   4. Advice targets home-studio sellers using CapCut (剪映)
-export const PARSER_SYSTEM_PROMPT = `
-You are a cold, rational TikTok ad infrastructure parser for small e-commerce sellers and housewives.
-Translate the video metadata into a structured JSON payload. No markdown. No explanation. Raw JSON only.
+//   2. viral_formulas: EXACTLY 3 entries
+//   3. visual_timeline: EXACTLY 4 scene entries covering 00:00–00:35
+//   4. All text: dense, practical, zero marketing fluff
+//   5. "your_version" must use [brackets] for pluggable variables
+export const PARSER_SYSTEM_PROMPT = `You are a direct-response ad architect. Convert TikTok video metadata into an actionable, copy-pasteable creative workbook for independent e-commerce sellers.
 
-ENUM CONSTRAINTS — use ONLY these exact string values, no deviations:
-- hook.type: "curiosity_gap" | "contrarian_interrupt" | "problem_interrupt" | "authority_flex"
-- emotion.driver: "greed_lazy" | "anxiety_relief" | "vanity_status" | "cost_effective"
-- pacing.style: "fast_cut" | "demo_show" | "loop_replay"
+CRITICAL PROCESSING RULES:
+1. Output RAW JSON ONLY. No markdown blocks, no conversation, no preambles.
+2. "viral_formulas" must contain EXACTLY 3 entries — no more, no less.
+3. "visual_timeline" must contain EXACTLY 4 scene entries covering 00:00-00:35.
+4. Every sentence: dense, practical, zero marketing fluff.
+5. "your_version" must be a fill-in-the-blank template using [brackets] for variables.
+6. All text fields output in English only.
 
-OUTPUT SCHEMA (fill every field, no nulls):
+Output this exact JSON structure:
 {
-  "category": "plain product category, e.g. 数码配件 / 家居小工具",
-  "analysis": {
-    "hook": {
-      "type": "curiosity_gap|contrarian_interrupt|problem_interrupt|authority_flex",
-      "raw_text": "Inferred first-3-second hook line from the title/description",
-      "mechanism": "1-sentence plain explanation of why this hook inflates watch-time",
-      "actionable_advice": "1-sentence instruction for a seller shooting at home"
-    },
-    "emotion": {
-      "driver": "greed_lazy|anxiety_relief|vanity_status|cost_effective",
-      "pain_point": "Precise user pain point this video exploits",
-      "actionable_advice": "1-sentence guide to emphasize this motivation in their own video"
-    },
-    "pacing": {
-      "style": "fast_cut|demo_show|loop_replay",
-      "raw_behavior": "Brief description of the editing style inferred from context",
-      "actionable_advice": "1-sentence CapCut (剪映) instruction to replicate this pacing"
-    },
-    "cta": {
-      "raw_behavior": "How the video likely drives traffic/sales at the end",
-      "actionable_advice": "1-sentence instruction on how to close the sale"
+  "viral_formulas": [
+    {
+      "title": "Strategy name (3-5 words)",
+      "action_step": "Exact physical action or verbal pattern to execute right now.",
+      "mechanism": "One sentence: why this spikes watch-time or tricks the recommendation algorithm.",
+      "your_version": "Say: '[Your product] does X without Y — here is proof.'"
     }
-  }
-}
-`.trim()
+  ],
+  "visual_timeline": [
+    {
+      "timecode": "00:00-00:03",
+      "visual": "Phone-shooting directive: angle, environment, framing.",
+      "audio": "Exact spoken line for this time window.",
+      "why_this_works": "The micro-retention trigger keeping the user from swiping away."
+    }
+  ]
+}`.trim()
 
 // ── Gemini call for video breakdown ──────────────────────────────────────────
 interface VideoMeta {
@@ -56,20 +50,25 @@ interface VideoMeta {
   author:       string
 }
 
-export async function callVideoBreakdown(meta: VideoMeta): Promise<VideoBreakdownPayload['analysis'] & { category: string }> {
+type GeminiResult = {
+  viral_formulas:  ViralFormula[]
+  visual_timeline: TimelineScene[]
+}
+
+export async function callVideoBreakdown(meta: VideoMeta): Promise<GeminiResult> {
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
 
-  const userContent = `
-Video title: ${meta.title}
-Product name: ${meta.product_name ?? '(same as title)'}
-Niche: ${meta.niche ?? 'General'}
-Author: @${meta.author}
-Views: ${meta.views.toLocaleString()}
-Likes: ${meta.likes.toLocaleString()}
-Shares: ${meta.shares.toLocaleString()}
-Like rate: ${meta.views > 0 ? ((meta.likes / meta.views) * 100).toFixed(2) : '0'}%
-`.trim()
+  const userContent = [
+    `Video title: ${meta.title}`,
+    `Product: ${meta.product_name ?? meta.title}`,
+    `Niche: ${meta.niche ?? 'E-Commerce'}`,
+    `Author: @${meta.author}`,
+    `Views: ${meta.views.toLocaleString()}`,
+    `Likes: ${meta.likes.toLocaleString()}`,
+    `Shares: ${meta.shares.toLocaleString()}`,
+    `Like rate: ${meta.views > 0 ? ((meta.likes / meta.views) * 100).toFixed(2) : '0'}%`,
+  ].join('\n')
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
 
@@ -77,9 +76,7 @@ Like rate: ${meta.views > 0 ? ((meta.likes / meta.views) * 100).toFixed(2) : '0'
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{
-        parts: [{ text: `${PARSER_SYSTEM_PROMPT}\n\n---\nVIDEO DATA:\n${userContent}` }],
-      }],
+      contents: [{ parts: [{ text: `${PARSER_SYSTEM_PROMPT}\n\n---\nVIDEO DATA:\n${userContent}` }] }],
       generationConfig: { responseMimeType: 'application/json' },
     }),
   })
@@ -94,7 +91,7 @@ Like rate: ${meta.views > 0 ? ((meta.likes / meta.views) * 100).toFixed(2) : '0'
   if (!text) throw new Error('Gemini returned empty content')
 
   try {
-    return JSON.parse(text) as VideoBreakdownPayload['analysis'] & { category: string }
+    return JSON.parse(text) as GeminiResult
   } catch {
     throw new Error(`Gemini returned invalid JSON: ${text.slice(0, 200)}`)
   }
