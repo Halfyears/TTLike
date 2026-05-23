@@ -1,37 +1,38 @@
-// ── TTLike Intelligence Schema ─────────────────────────────────────────────────
+// ── TTLike Intelligence Schema v2 ────────────────────────────────────────────
 // Fixed enumerations keep AI output token-lean: backend passes codes,
-// frontend renders the full human-readable explanations.
+// frontend renders the full human-readable labels.
+// Enum values are passed verbatim to Gemini — do not rename without updating parserPrompt.ts.
 
-// 1. 前3秒钩子策略
+// 1. Opening hook taxonomy
 export enum HookType {
-  CURIOSITY_GAP   = 'curiosity_gap',   // 悬念设疑 — 数字悬念/隐藏过程骗完播率
-  CONTRARIAN      = 'contrarian',      // 反常识阻断 — 先推翻大众误区
-  PROBLEM_FIRST   = 'problem_first',   // 痛点直击 — 开篇放大最具体的生理/心理麻烦
-  AUTHORITY_FLEX  = 'authority_flex',  // 背书展示 — 专业身份/真实资产/具体收益
+  CURIOSITY_GAP        = 'curiosity_gap',        // Suspense/number listicles to inflate retention
+  CONTRARIAN_INTERRUPT = 'contrarian_interrupt', // Attacking industry beliefs to force cognitive dissonance
+  PROBLEM_INTERRUPT    = 'problem_interrupt',    // Amplifying a specific physical/psychological inconvenience
+  AUTHORITY_FLEX       = 'authority_flex',       // Hard assets, credentials, or massive revenue figures
 }
 
-// 2. 核心购买动机
+// 2. Core buying motivation
 export enum EmotionDriver {
-  GREED_LAZY      = 'greed_lazy',      // 追求便利/懒人捷径
-  ANXIETY_RELIEF  = 'anxiety_relief',  // 缓解焦虑/避坑防骗
-  VANITY_STATUS   = 'vanity_status',   // 追求外貌红利/阶层认同
-  COST_EFFECTIVE  = 'cost_effective',  // 追求极致性价比
+  GREED_LAZY      = 'greed_lazy',      // Shortcuts, zero configuration, plug-and-play
+  ANXIETY_RELIEF  = 'anxiety_relief',  // Shielding against mistakes, scams, or degradation
+  VANITY_STATUS   = 'vanity_status',   // Appearance capital, social envy, peer confirmation
+  COST_EFFECTIVE  = 'cost_effective',  // Price drops, liquidations, extreme clearance delta
 }
 
-// 3. 剪辑与视觉节奏
+// 3. Editing & visual pacing
 export enum PacingStyle {
-  FAST_CUT    = 'fast_cut',    // 快节奏闪切 — 每2-3秒切换
-  DEMO_SHOW   = 'demo_show',   // 第一视角实操特写
-  LOOP_REPLAY = 'loop_replay', // 无缝循环骗完播率
+  FAST_CUT    = 'fast_cut',    // Frame transitions every 2-3s to lock attention
+  DEMO_SHOW   = 'demo_show',   // First-person close-ups on sterile background
+  LOOP_REPLAY = 'loop_replay', // Seamless audio-visual stitching to trick retention algorithm
 }
 
 // ── Human-readable labels for frontend rendering ──────────────────────────────
 
 export const HOOK_TYPE_LABELS: Record<HookType, { en: string; zh: string; desc_zh: string }> = {
-  [HookType.CURIOSITY_GAP]:  { en: 'Curiosity Gap',   zh: '悬念设疑',   desc_zh: '利用数字悬念或隐藏过程骗完播率' },
-  [HookType.CONTRARIAN]:     { en: 'Contrarian',      zh: '反常识阻断', desc_zh: '先推翻一个大众误区来拦截大拇指' },
-  [HookType.PROBLEM_FIRST]:  { en: 'Problem First',   zh: '痛点直击',   desc_zh: '开篇放大最具体的生理/心理麻烦' },
-  [HookType.AUTHORITY_FLEX]: { en: 'Authority Flex',  zh: '背书展示',   desc_zh: '展示专业身份、真实资产或具体收益' },
+  [HookType.CURIOSITY_GAP]:        { en: 'Curiosity Gap',        zh: '悬念设疑',   desc_zh: '利用数字悬念或隐藏过程骗完播率' },
+  [HookType.CONTRARIAN_INTERRUPT]: { en: 'Contrarian Interrupt', zh: '反常识阻断', desc_zh: '先推翻一个大众误区来拦截大拇指' },
+  [HookType.PROBLEM_INTERRUPT]:    { en: 'Problem Interrupt',    zh: '痛点直击',   desc_zh: '开篇放大最具体的生理/心理麻烦' },
+  [HookType.AUTHORITY_FLEX]:       { en: 'Authority Flex',       zh: '背书展示',   desc_zh: '展示专业身份、真实资产或具体收益' },
 }
 
 export const EMOTION_DRIVER_LABELS: Record<EmotionDriver, { en: string; zh: string }> = {

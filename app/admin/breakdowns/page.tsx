@@ -43,10 +43,10 @@ function fmtNum(n: number | null | undefined) {
 }
 
 const HOOK_COLOR: Record<string, string> = {
-  curiosity_gap:  'bg-indigo-100 text-indigo-700',
-  contrarian:     'bg-violet-100 text-violet-700',
-  problem_first:  'bg-rose-100 text-rose-700',
-  authority_flex: 'bg-amber-100 text-amber-700',
+  curiosity_gap:        'bg-indigo-100 text-indigo-700',
+  contrarian_interrupt: 'bg-violet-100 text-violet-700',
+  problem_interrupt:    'bg-rose-100 text-rose-700',
+  authority_flex:       'bg-amber-100 text-amber-700',
 }
 
 const EMOTION_COLOR: Record<string, string> = {

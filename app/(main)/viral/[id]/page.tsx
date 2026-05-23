@@ -3,11 +3,9 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Eye, Heart, Share2, Sparkles, ExternalLink, Zap } from 'lucide-react'
 import { SITE_URL, SITE_NAME } from '@/lib/constants'
-import {
-  HOOK_TYPE_LABELS, EMOTION_DRIVER_LABELS, PACING_STYLE_LABELS,
-  HookType, EmotionDriver, PacingStyle,
-} from '@/lib/types/intelligence'
+import { HOOK_TYPE_LABELS, HookType } from '@/lib/types/intelligence'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
+import { VideoAnalysis } from '@/components/VideoAnalysis'
 
 // ── Data fetching ─────────────────────────────────────────────────────────────
 
@@ -89,35 +87,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-// ── Section component ─────────────────────────────────────────────────────────
-
-function BreakdownSection({
-  color, labelColor, bgColor, label, badge, rows,
-}: {
-  color: string; labelColor: string; bgColor: string
-  label: string; badge: string
-  rows: { key: string; value: string; highlight?: boolean }[]
-}) {
-  return (
-    <div className={`border-l-2 ${color} pl-4`}>
-      <div className={`text-[10px] font-bold uppercase tracking-widest mb-1.5 ${labelColor}`}>
-        [{label}]<span className="ml-1 font-normal opacity-70">· {badge}</span>
-      </div>
-      {rows.map(row => (
-        row.highlight ? (
-          <div key={row.key} className={`mt-2 text-xs rounded-lg px-3 py-2 leading-relaxed ${bgColor}`}>
-            <strong>💡 Seller tip: </strong>{row.value}
-          </div>
-        ) : (
-          <div key={row.key} className="mt-1 text-xs text-gray-700 leading-relaxed">
-            <span className="text-gray-400">{row.key}: </span>{row.value}
-          </div>
-        )
-      ))}
-    </div>
-  )
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function ViralBreakdownPage({ params }: Props) {
@@ -126,16 +95,14 @@ export default async function ViralBreakdownPage({ params }: Props) {
   if (!result) notFound()
 
   const { video, breakdown, created_at } = result
-  const { analysis, category, metrics } = breakdown
+  const { analysis, metrics } = breakdown
 
   const productName = String(video.product_name ?? video.title ?? 'Viral Product')
   const cleanName   = cleanTitle(productName)
   const niche       = String(video.niche ?? 'General')
   const viralScore  = Number(video.viral_score ?? 0)
 
-  const hookLabel    = HOOK_TYPE_LABELS[analysis.hook.type       as HookType]
-  const emotionLabel = EMOTION_DRIVER_LABELS[analysis.emotion.driver as EmotionDriver]
-  const pacingLabel  = PACING_STYLE_LABELS[analysis.pacing.style    as PacingStyle]
+  const hookLabel = HOOK_TYPE_LABELS[analysis.hook.type as HookType]
 
   const cloneHref = `/dashboard/ai-scripts?from_video=${encodeURIComponent(id)}&suggested_title=${encodeURIComponent(cleanName)}&niche=${encodeURIComponent(niche)}&keywords=${encodeURIComponent(productName)}`
 
@@ -236,60 +203,9 @@ export default async function ViralBreakdownPage({ params }: Props) {
           </div>
         </div>
 
-        {/* ── Breakdown report ── */}
-        <div className="border border-slate-200 rounded-2xl overflow-hidden mb-6">
-          {/* Header bar */}
-          <div className="bg-slate-50 px-5 py-3.5 border-b border-slate-100">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              ✦ {SITE_NAME}™ Ad Structure X-Ray
-            </p>
-            <p className="text-sm font-bold text-slate-700 mt-0.5">{category}</p>
-          </div>
-
-          {/* Four sections */}
-          <div className="p-5 space-y-6 bg-white">
-            <BreakdownSection
-              color="border-indigo-500" labelColor="text-indigo-600"
-              bgColor="bg-indigo-50/60 text-indigo-900"
-              label="Opening Hook"
-              badge={hookLabel ? `${hookLabel.zh} (${hookLabel.en})` : analysis.hook.type}
-              rows={[
-                { key: 'In the video', value: `"${analysis.hook.raw_text}"` },
-                { key: 'Why it works', value: analysis.hook.mechanism },
-                { key: 'tip',          value: analysis.hook.actionable_advice, highlight: true },
-              ]}
-            />
-            <BreakdownSection
-              color="border-violet-500" labelColor="text-violet-600"
-              bgColor="bg-violet-50/60 text-violet-900"
-              label="Buying Motivation"
-              badge={emotionLabel ? `${emotionLabel.zh} (${emotionLabel.en})` : analysis.emotion.driver}
-              rows={[
-                { key: 'Pain point', value: analysis.emotion.pain_point },
-                { key: 'tip',        value: analysis.emotion.actionable_advice, highlight: true },
-              ]}
-            />
-            <BreakdownSection
-              color="border-emerald-500" labelColor="text-emerald-600"
-              bgColor="bg-emerald-50/60 text-emerald-900"
-              label="Editing Pace"
-              badge={pacingLabel ? `${pacingLabel.zh} (${pacingLabel.en})` : analysis.pacing.style}
-              rows={[
-                { key: 'In the video', value: analysis.pacing.raw_behavior },
-                { key: 'tip',          value: analysis.pacing.actionable_advice, highlight: true },
-              ]}
-            />
-            <BreakdownSection
-              color="border-amber-500" labelColor="text-amber-600"
-              bgColor="bg-amber-50/60 text-amber-900"
-              label="Conversion CTA"
-              badge="Closing method"
-              rows={[
-                { key: 'In the video', value: analysis.cta.raw_behavior },
-                { key: 'tip',          value: analysis.cta.actionable_advice, highlight: true },
-              ]}
-            />
-          </div>
+        {/* ── Breakdown report (uses shared VideoAnalysis component) ── */}
+        <div className="mb-6">
+          <VideoAnalysis data={breakdown} />
         </div>
 
         {/* ── CTA strip ── */}

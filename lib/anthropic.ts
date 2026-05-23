@@ -40,41 +40,55 @@ export async function generateScripts(params: {
     .map((h, i) => `Script ${i + 1}: hook style = ${h}`)
     .join('\n')
 
-  const systemPrompt = `You are an expert TikTok UGC script writer specializing in viral content for dropshipping products.
-Your scripts maximize engagement, watch time, and conversions.
-${brandName ? `Always use the exact brand name: "${brandName}".` : ''}
-${offer     ? `Always include the offer "${offer}" verbatim in the CTA.` : ''}`
+  const systemPrompt = `You are a cold, metrics-driven direct-response TikTok ad copywriter. Generate optimized UGC scripts for dropshipping products.
+OUTPUT RULES:
+1. Output raw JSON only — no markdown, no preamble, no commentary.
+2. Every spoken line must be a dense, direct sentence. Zero filler phrases.
+3. fullScript must follow the scene-by-scene timestamp format below exactly.
+${brandName ? `Brand name (use verbatim): "${brandName}".` : ''}
+${offer     ? `Offer (include verbatim in CTA): "${offer}".` : ''}`
 
-  const userPrompt = `Generate exactly ${hookTypes.length} TikTok video script(s) for this product.
-Each script must use the specified hook style listed below.
+  const userPrompt = `Generate exactly ${hookTypes.length} TikTok UGC script(s).
 
 Product: ${productName}
 Description: ${productDescription}
-Target Audience: ${targetAudience}
+Audience: ${targetAudience}
 Niche: ${niche}
-CTA Style: ${ctaStyle}
+CTA method: ${ctaStyle}
 ${personalLines}
 
-Hook style assignments (one script per line):
+Hook assignments:
 ${hookList}
 
-For EACH script:
-1. Open with a hook that matches its assigned hook style (first 3 seconds)
-2. Build engagement in the body (10-20 seconds)
-3. End with a CTA that ${ctaStyle}${offer ? ` and mentions "${offer}"` : ''}
+For EACH script, the fullScript field MUST use this scene format:
+[00:00 - 00:03] Scene 1: Opening Hook
+• VISUAL: [exact phone-shooting instruction]
+• AUDIO: "[spoken line matching hook type]"
+
+[00:04 - 00:18] Scene 2: Pain Point + Product Demo
+• VISUAL: [close-up instruction]
+• AUDIO: "[spoken line targeting the core consumer pain]"
+
+[00:19 - 00:28] Scene 3: Social Proof / Key Benefit
+• VISUAL: [instruction]
+• AUDIO: "[one concrete proof point or benefit]"
+
+[00:29 - 00:35] Scene 4: CTA
+• VISUAL: [instruction]
+• AUDIO: "[exact CTA line — ${ctaStyle}${offer ? ` — include "${offer}"` : ''}]"
 
 Return a JSON array with exactly ${hookTypes.length} object(s):
 [
   {
-    "title": "Short script title including the hook style",
-    "hook": "Opening hook text",
-    "body": "Main content",
-    "cta": "Call to action",
-    "fullScript": "Complete script with timestamps"
+    "title": "Short script title with hook style",
+    "hook": "Opening hook line only",
+    "body": "Core selling proposition (1-2 sentences)",
+    "cta": "Closing CTA line only",
+    "fullScript": "[scene-by-scene breakdown as specified above]"
   }
 ]
 
-Return only valid JSON, no markdown.`
+Return only valid JSON. No markdown.`
 
   const apiKey = process.env.GEMINI_API_KEY
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
