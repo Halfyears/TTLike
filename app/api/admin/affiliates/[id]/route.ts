@@ -1,0 +1,63 @@
+/**
+ * PATCH  /api/admin/affiliates/[id]  — update a link
+ * DELETE /api/admin/affiliates/[id]  — delete a link
+ */
+
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+
+async function isAdmin(): Promise<boolean> {
+  try {
+    const sb = await createClient()
+    const { data: { user } } = await sb.auth.getUser()
+    if (!user) return false
+    try {
+      const u = await prisma.user.findUnique({ where: { email: user.email! } })
+      if (u?.role === 'ADMIN') return true
+    } catch {}
+    return user.email === process.env.ADMIN_EMAIL
+  } catch { return false }
+}
+
+type Ctx = { params: Promise<{ id: string }> }
+
+// ── PATCH ──────────────────────────────────────────────────────────────────────
+export async function PATCH(req: Request, { params }: Ctx) {
+  if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const { id } = await params
+  const body   = await req.json()
+
+  const update: Record<string, unknown> = {}
+  if ('destination' in body) update.destination = body.destination?.trim() || undefined
+  if ('isActive'    in body) update.isActive    = Boolean(body.isActive)
+  if ('clicks'      in body) update.clicks      = Number(body.clicks)
+  if ('conversions' in body) update.conversions = Number(body.conversions)
+  if ('revenue'     in body) update.revenue     = Number(body.revenue)
+
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 })
+  }
+
+  try {
+    const link = await prisma.affiliateLink.update({ where: { id }, data: update })
+    return NextResponse.json({ link })
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 })
+  }
+}
+
+// ── DELETE ─────────────────────────────────────────────────────────────────────
+export async function DELETE(_req: Request, { params }: Ctx) {
+  if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const { id } = await params
+
+  try {
+    await prisma.affiliateLink.delete({ where: { id } })
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    return NextResponse.json({ error: String(e) }, { status: 500 })
+  }
+}
