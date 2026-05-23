@@ -44,6 +44,7 @@ function fmtNum(n: number | null | undefined) {
 
 /** Get first formula title, or fall back to legacy hook type for old V2 records */
 function getStrategy(payload: VideoBreakdownPayload): string {
+  if (payload?.health_report) return '— (Health Report)'
   const formula = payload?.viral_formulas?.[0]
   if (formula?.title) return formula.title
   // Legacy V2 fallback
@@ -51,8 +52,12 @@ function getStrategy(payload: VideoBreakdownPayload): string {
   return legacy?.analysis?.hook?.type ?? '—'
 }
 
-function isV25(payload: VideoBreakdownPayload): boolean {
-  return !!(payload?.viral_formulas?.length)
+type RowType = 'v25' | 'health' | 'legacy'
+
+function getRowType(payload: VideoBreakdownPayload): RowType {
+  if (payload?.viral_formulas?.length) return 'v25'
+  if (payload?.health_report)          return 'health'
+  return 'legacy'
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -77,11 +82,12 @@ export default async function BreakdownsAdminPage() {
   const breakdowns = (rows ?? []) as unknown as BreakdownRow[]
 
   // ── Stats ─────────────────────────────────────────────────────────────────
-  const total      = breakdowns.length
-  const weekAgo    = Date.now() - 7 * 86_400_000
-  const thisWeek   = breakdowns.filter(b => new Date(b.created_at).getTime() > weekAgo).length
-  const v25Count   = breakdowns.filter(b => isV25(b.payload)).length
-  const legacyCount = total - v25Count
+  const total         = breakdowns.length
+  const weekAgo       = Date.now() - 7 * 86_400_000
+  const thisWeek      = breakdowns.filter(b => new Date(b.created_at).getTime() > weekAgo).length
+  const v25Count      = breakdowns.filter(b => getRowType(b.payload) === 'v25').length
+  const healthCount   = breakdowns.filter(b => getRowType(b.payload) === 'health').length
+  const legacyCount   = breakdowns.filter(b => getRowType(b.payload) === 'legacy').length
 
   return (
     <div className="space-y-6">
@@ -102,10 +108,10 @@ export default async function BreakdownsAdminPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: Database,   label: 'Total',        value: String(total),      sub: 'breakdowns cached' },
-          { icon: TrendingUp, label: 'This Week',    value: String(thisWeek),   sub: 'new this week' },
-          { icon: BarChart2,  label: 'V2.5 Engine',  value: String(v25Count),   sub: 'inspiration engine' },
-          { icon: Zap,        label: 'Legacy V2',    value: String(legacyCount), sub: 'older format' },
+          { icon: Database,   label: 'Total',          value: String(total),       sub: 'all cached entries' },
+          { icon: TrendingUp, label: 'This Week',       value: String(thisWeek),    sub: 'new this week' },
+          { icon: BarChart2,  label: 'V2.5 Engine',    value: String(v25Count),    sub: 'inspiration engine' },
+          { icon: Zap,        label: 'Health Reports', value: String(healthCount), sub: 'forensic audits' },
         ].map(({ icon: Icon, label, value, sub }) => (
           <div key={label} className="bg-gray-800 rounded-xl p-4 border border-gray-700">
             <div className="flex items-center gap-2 mb-2">
@@ -149,7 +155,7 @@ export default async function BreakdownsAdminPage() {
               ) : breakdowns.map(b => {
                 const video    = b.tiktok_videos
                 const strategy = getStrategy(b.payload)
-                const v25      = isV25(b.payload)
+                const rowType  = getRowType(b.payload)
                 const name     = video
                   ? cleanTitle(String(video.product_name ?? video.title ?? 'Untitled'))
                   : `(url-only) ${b.url_hash.slice(0, 8)}`
@@ -190,9 +196,11 @@ export default async function BreakdownsAdminPage() {
                     {/* Engine version */}
                     <td className="px-4 py-3">
                       <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        v25 ? 'bg-pink-900/40 text-pink-300' : 'bg-gray-700 text-gray-400'
+                        rowType === 'v25'    ? 'bg-pink-900/40 text-pink-300' :
+                        rowType === 'health' ? 'bg-red-900/40 text-red-300' :
+                                              'bg-gray-700 text-gray-400'
                       }`}>
-                        {v25 ? 'V2.5' : 'Legacy'}
+                        {rowType === 'v25' ? 'V2.5' : rowType === 'health' ? '🔬 Health' : 'Legacy'}
                       </span>
                     </td>
 
