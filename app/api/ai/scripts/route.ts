@@ -71,6 +71,22 @@ export async function POST(request: Request) {
     let scripts
     let fromCache = false
 
+    /** One automatic retry on transient Gemini failures (timeout / empty candidates) */
+    async function generateWithRetry() {
+      try {
+        return await generateScripts({ ...d, hookTypes, niches })
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : ''
+        // Retry on timeout or empty-candidates — not on auth / bad-request errors
+        const isTransient = msg.includes('AbortError') || msg.includes('no candidates')
+          || msg.includes('unparseable') || msg.includes('fetch') || msg.includes('504') || msg.includes('503')
+        if (!isTransient) throw err
+        console.warn('[scripts] transient Gemini error, retrying once:', msg)
+        await new Promise(r => setTimeout(r, 1_500))
+        return await generateScripts({ ...d, hookTypes, niches })
+      }
+    }
+
     // ── Cache path ────────────────────────────────────────────────────────────
     if (d.sourceVideoId) {
       const cached = await getCachedScripts(supabase, d.sourceVideoId, cacheKey)
@@ -80,11 +96,11 @@ export async function POST(request: Request) {
         scripts = applyPersonalization(cached.scripts, d.brandName, d.offer, d.ctaType)
         fromCache = true
       } else {
-        scripts = await generateScripts({ ...d, hookTypes, niches })
+        scripts = await generateWithRetry()
         saveCachedScripts(supabase, d.sourceVideoId, cacheKey, scripts)
       }
     } else {
-      scripts = await generateScripts({ ...d, hookTypes, niches })
+      scripts = await generateWithRetry()
     }
 
     // ── Save to user history ──────────────────────────────────────────────────

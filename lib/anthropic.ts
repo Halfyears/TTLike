@@ -130,8 +130,9 @@ Return only valid JSON. No markdown.`
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
 
   const response = await fetch(url, {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/json' },
+    signal:  AbortSignal.timeout(50_000),   // 50 s hard cap (Vercel limit is 60 s)
     body: JSON.stringify({
       contents: [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
       generationConfig: { responseMimeType: 'application/json' },
@@ -139,19 +140,26 @@ Return only valid JSON. No markdown.`
   })
 
   if (!response.ok) {
-    const errData = await response.json()
-    throw new Error(errData.error?.message || 'Gemini API error')
+    const errData = await response.json().catch(() => ({}))
+    throw new Error((errData as { error?: { message?: string } }).error?.message ?? `Gemini ${response.status}`)
   }
 
   const resData = await response.json()
-  const rawText = resData.candidates[0].content.parts[0].text.trim()
+  const candidate = resData.candidates?.[0]
+  if (!candidate) {
+    const reason = resData.promptFeedback?.blockReason ?? 'unknown'
+    throw new Error(`Gemini returned no candidates (blockReason: ${reason})`)
+  }
+
+  const rawText: string = candidate.content?.parts?.[0]?.text?.trim() ?? ''
+  if (!rawText) throw new Error('Gemini returned empty content')
 
   let scripts: Script[]
   try {
     scripts = JSON.parse(rawText) as Script[]
   } catch {
-    console.error('JSON parse failed, raw:', rawText)
-    throw new Error('AI returned unparseable response')
+    console.error('[anthropic] JSON parse failed, raw:', rawText.slice(0, 400))
+    throw new Error('AI returned unparseable response — try again')
   }
 
   // ── Slot substitution: replace [SLOT:key] markers in fullScript ──────────────

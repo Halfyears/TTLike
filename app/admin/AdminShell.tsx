@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Shield, LayoutDashboard, Users, Video, BookOpen, Link2, Zap, Activity, Megaphone, BrainCircuit } from 'lucide-react'
+import { Shield, LayoutDashboard, Users, Video, BookOpen, Link2, Zap, Activity, Megaphone, BrainCircuit, FileText } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -16,6 +16,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     { href: '/admin/promotions', icon: Megaphone, label: t.nav.promotions },
     { href: '/admin/scraper',     icon: Activity,      label: t.nav.scraper },
     { href: '/admin/breakdowns',  icon: BrainCircuit,  label: t.nav.breakdowns },
+    { href: '/admin/scripts',     icon: FileText,      label: t.nav.scripts },
   ]
 
   return (
