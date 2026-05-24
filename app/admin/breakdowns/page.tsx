@@ -154,15 +154,22 @@ export default async function BreakdownsAdminPage() {
                   </td>
                 </tr>
               ) : breakdowns.map(b => {
-                const video    = b.tiktok_videos
-                const strategy = getStrategy(b.payload)
-                const rowType  = getRowType(b.payload)
-                const name     = video
+                const video      = b.tiktok_videos
+                const sourceMeta = b.payload?.source_meta   // present for oEmbed-sourced rows
+                const strategy   = getStrategy(b.payload)
+                const rowType    = getRowType(b.payload)
+
+                // Name: tiktok_videos join → oEmbed source_meta title → hash fallback
+                const name = video
                   ? cleanTitle(String(video.product_name ?? video.title ?? 'Untitled'))
-                  : `(url-only) ${b.url_hash.slice(0, 8)}`
-                const videoId   = b.video_id ?? video?.id
+                  : sourceMeta?.title
+                    ? cleanTitle(sourceMeta.title)
+                    : `(url-only) ${b.url_hash.slice(0, 8)}`
+
+                const videoId   = b.video_id ?? video?.id   // null for oEmbed rows
+                const isOembed  = !videoId && !!sourceMeta
                 const coverSrc  = bestCoverUrl(null, video?.cover_url)
-                const seoTarget = b.seo_slug ?? videoId  // prefer slug, fall back to UUID
+                const seoTarget = b.seo_slug ?? videoId     // oEmbed: seo_slug always set
 
                 return (
                   <tr key={b.id} className="hover:bg-gray-700/30 transition-colors">
@@ -188,7 +195,13 @@ export default async function BreakdownsAdminPage() {
 
                     {/* Niche */}
                     <td className="px-4 py-3">
-                      <span className="text-xs text-gray-400">{video?.niche ?? '—'}</span>
+                      {isOembed ? (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-900/40 text-indigo-300">
+                          oEmbed
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">{video?.niche ?? '—'}</span>
+                      )}
                     </td>
 
                     {/* Strategy */}
@@ -230,24 +243,26 @@ export default async function BreakdownsAdminPage() {
                     {/* Links */}
                     <td className="px-4 py-3">
                       <div className="flex items-center justify-center gap-3">
+                        {/* Product page — only for DB-sourced breakdowns */}
                         {videoId && (
-                          <>
-                            <Link
-                              href={`/products/${videoId}`}
-                              target="_blank"
-                              className="text-[11px] text-gray-400 hover:text-white transition-colors"
-                            >
-                              Product
-                            </Link>
-                            <Link
-                              href={`/viral/${seoTarget}`}
-                              target="_blank"
-                              className="inline-flex items-center gap-0.5 text-[11px] text-pink-400 hover:text-pink-300 font-semibold transition-colors"
-                              title={`/viral/${seoTarget}`}
-                            >
-                              <ExternalLink className="h-3 w-3" /> SEO
-                            </Link>
-                          </>
+                          <Link
+                            href={`/products/${videoId}`}
+                            target="_blank"
+                            className="text-[11px] text-gray-400 hover:text-white transition-colors"
+                          >
+                            Product
+                          </Link>
+                        )}
+                        {/* SEO page — shown for all breakdowns with a slug (incl. oEmbed) */}
+                        {seoTarget && (
+                          <Link
+                            href={`/viral/${seoTarget}`}
+                            target="_blank"
+                            className="inline-flex items-center gap-0.5 text-[11px] text-pink-400 hover:text-pink-300 font-semibold transition-colors"
+                            title={`/viral/${seoTarget}`}
+                          >
+                            <ExternalLink className="h-3 w-3" /> SEO
+                          </Link>
                         )}
                       </div>
                     </td>
