@@ -1,8 +1,9 @@
 import Stripe from 'stripe'
 import { PAYMENT_ENABLED } from './constants'
 
-export const stripe = PAYMENT_ENABLED
-  ? new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-04-22.dahlia' })
+// Guard: even if PAYMENT_ENABLED=true, don't crash if the key is absent (e.g. preview env)
+export const stripe = (PAYMENT_ENABLED && process.env.STRIPE_SECRET_KEY)
+  ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-04-22.dahlia' })
   : null
 
 export async function createCheckoutSession(userId: string, plan: string, email: string) {

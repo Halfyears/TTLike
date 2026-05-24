@@ -12,14 +12,15 @@
  */
 
 import { NextResponse }          from 'next/server'
-
-export const dynamic = 'force-dynamic'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { prisma }                from '@/lib/prisma'
 import { stripe }                from '@/lib/stripe'
 import {
   computeTokenCost, planMonthlyValue, PLAN_MONTHLY_VALUE,
 } from '@/lib/finance/metrics'
+import type { FinanceData }      from '@/lib/finance/types'
+
+export const dynamic = 'force-dynamic'
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 async function isAdmin(): Promise<boolean> {
@@ -35,45 +36,7 @@ async function isAdmin(): Promise<boolean> {
   } catch { return false }
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-export interface FinanceData {
-  stripe: {
-    enabled:         boolean
-    account_name:    string | null
-    charges_enabled: boolean | null
-    error:           string | null
-  }
-  subscriptions: {
-    total_paid:      number
-    plan_creator:    number   // PRO
-    plan_scale:      number   // ENTERPRISE
-    plan_free:       number
-    est_mrr:         number   // USD
-    affiliate_spend: number   // USD (total revenue paid to affiliates)
-    net_mrr:         number   // est_mrr - affiliate_spend
-  }
-  token_finops: {
-    total_cost_usd:    number
-    total_generations: number
-    daily: Array<{
-      date:         string
-      cost_usd:     number
-      generations:  number
-      mrr_fraction: number  // daily share of monthly subscription revenue
-    }>
-  }
-  ltv_ranking: Array<{
-    user_id:      string
-    email:        string
-    plan:         string
-    plan_value:   number   // monthly USD
-    generations:  number   // total AI calls
-    cogs_usd:     number   // estimated token cost
-    net_usd:      number   // plan_value − cogs_usd
-    cache_hits:   number
-    label:        'whale' | 'healthy' | 'at_risk' | 'freeloader'
-  }>
-}
+// FinanceData is defined in @/lib/finance/types — imported above.
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 export async function GET() {

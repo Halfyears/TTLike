@@ -61,6 +61,7 @@ export function PromptQualityChecker() {
   async function fetchSamples() {
     setLoading(true)
     setError(null)
+    setResult(null)   // clear stale data to prevent brief flicker on resample
     try {
       const res  = await fetch('/api/admin/videos/prompt-quality-sample')
       const data = await res.json()

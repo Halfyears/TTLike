@@ -17,7 +17,7 @@ import {
   DollarSign, BarChart2, ShieldCheck, ArrowUpDown,
 } from 'lucide-react'
 import { AdminKpiCard } from '@/components/admin/AdminKpiCard'
-import type { FinanceData } from '@/app/api/admin/finance/route'
+import type { FinanceData } from '@/lib/finance/types'
 import { fmtUSD, fmtUSDShort } from '@/lib/finance/metrics'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
