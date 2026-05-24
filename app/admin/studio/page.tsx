@@ -7,6 +7,7 @@
 
 import { createServiceClient } from '@/lib/supabase/server'
 import { Clapperboard, CheckCircle2, XCircle, Clock, Users } from 'lucide-react'
+import { LocalDate } from '@/components/ui/LocalDate'
 
 export const metadata = { title: 'Studio Management · TTLike Admin' }
 export const dynamic  = 'force-dynamic'
@@ -154,10 +155,7 @@ export default async function StudioAdminPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
-                      {new Date(d.created_at).toLocaleDateString('en-GB', {
-                        day: '2-digit', month: 'short', year: '2-digit',
-                        hour: '2-digit', minute: '2-digit',
-                      })}
+                      <LocalDate date={d.created_at} format="datetime" />
                     </td>
                   </tr>
                 ))}

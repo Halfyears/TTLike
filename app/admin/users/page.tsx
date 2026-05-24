@@ -6,7 +6,8 @@ import {
   ChevronDown, Search, CheckCircle,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
-import { timeAgo, fmtDate } from '@/lib/dateUtils'
+import { timeAgo } from '@/lib/dateUtils'
+import { LocalDate } from '@/components/ui/LocalDate'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface User {
@@ -247,7 +248,7 @@ export default function AdminUsersPage() {
                       </span>
                       {user.period_end && (
                         <p className="text-[10px] text-gray-500 mt-0.5">
-                          ends {fmtDate(user.period_end)}
+                          ends <LocalDate date={user.period_end} />
                         </p>
                       )}
                     </td>
@@ -273,7 +274,7 @@ export default function AdminUsersPage() {
 
                     {/* Joined */}
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                      {fmtDate(user.created_at)}
+                      <LocalDate date={user.created_at} />
                     </td>
 
                     {/* Actions */}

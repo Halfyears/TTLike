@@ -6,16 +6,9 @@ import {
   Sparkles, ChevronRight,
 } from 'lucide-react'
 import UrlIngestion from '@/components/UrlIngestion'
+import { Greeting } from '@/components/ui/Greeting'
 
 export const metadata = { title: 'Dashboard · TTLike' }
-
-// ── Greeting by time-of-day (server-side) ─────────────────────────────────────
-function getGreeting() {
-  const h = new Date().getHours()
-  if (h < 12) return 'Good morning'
-  if (h < 18) return 'Good afternoon'
-  return 'Good evening'
-}
 
 // ── Viral score bar ───────────────────────────────────────────────────────────
 function ScoreBar({ score }: { score: number }) {
@@ -99,8 +92,6 @@ export default async function DashboardPage() {
     )
   } catch { /* ledger not yet seeded */ }
 
-  const greeting = getGreeting()
-
   return (
     <div className="space-y-6">
 
@@ -114,7 +105,7 @@ export default async function DashboardPage() {
 
         <div className="relative">
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            {greeting}, {firstName}! 👋
+            <Greeting firstName={firstName ?? 'there'} />
           </h1>
           <p className="mt-1.5 text-sm text-slate-400">
             Your AI-powered TikTok command centre.

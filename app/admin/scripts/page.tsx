@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { FileText, TrendingUp, Users, BarChart2, Database, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import { LocalDate } from '@/components/ui/LocalDate'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,9 +24,7 @@ interface ScriptRow {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
+// fmtDate removed — use <LocalDate> in JSX for browser-local timezone
 
 function fmtNum(n: number | null | undefined) {
   if (!n) return '—'
@@ -220,7 +219,7 @@ export default async function AdminScriptsPage() {
 
                     {/* Date */}
                     <td className="px-4 py-3 text-right">
-                      <span className="text-xs text-gray-500 whitespace-nowrap">{fmtDate(s.created_at)}</span>
+                      <LocalDate date={s.created_at} className="text-xs text-gray-500 whitespace-nowrap" />
                     </td>
 
                     {/* Source video */}

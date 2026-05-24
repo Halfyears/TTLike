@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { ExternalLink, Zap, TrendingUp, BarChart2, Database } from 'lucide-react'
+import { LocalDate } from '@/components/ui/LocalDate'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 import { BatchTrigger } from './BatchTrigger'
 import { bestCoverUrl } from '@/lib/tiktokImg'
@@ -33,9 +34,7 @@ function cleanTitle(text: string): string {
   return text.replace(/#[\w一-龥＀-￯]+\s*/g, '').replace(/\s{2,}/g, ' ').trim()
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-}
+// fmtDate removed — use <LocalDate> in JSX for browser-local timezone
 
 function fmtNum(n: number | null | undefined) {
   if (!n) return '—'
@@ -225,7 +224,7 @@ export default async function BreakdownsAdminPage() {
 
                     {/* Date */}
                     <td className="px-4 py-3 text-right">
-                      <span className="text-xs text-gray-500 whitespace-nowrap">{fmtDate(b.created_at)}</span>
+                      <LocalDate date={b.created_at} className="text-xs text-gray-500 whitespace-nowrap" />
                     </td>
 
                     {/* Links */}

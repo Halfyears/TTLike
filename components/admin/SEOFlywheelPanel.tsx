@@ -10,6 +10,7 @@
 import { useState } from 'react'
 import { Zap, Send, CheckCircle, Loader2, AlertTriangle, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import { LocalDate } from '@/components/ui/LocalDate'
 
 export interface BreakdownForFlywheel {
   id:               string
@@ -183,7 +184,7 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
                     <StatusBadge status={status} />
                     {row.blog_published_at && (
                       <p className="text-[10px] text-gray-500 mt-0.5">
-                        {new Date(row.blog_published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        <LocalDate date={row.blog_published_at} />
                       </p>
                     )}
                   </td>
