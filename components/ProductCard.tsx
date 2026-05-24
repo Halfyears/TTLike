@@ -7,6 +7,8 @@ import { ViralScoreBadge }  from '@/components/ui/ViralScoreBadge'
 import { Badge }            from '@/components/ui/Badge'
 import { formatNumber }     from '@/lib/utils'
 import { isTikTokUrlExpired } from '@/lib/tiktokImg'
+// NOTE: isTikTokUrlExpired is still used for admin/breakdown pages (non-user-facing).
+// ProductCard intentionally attempts the URL regardless — onError handles actual 403s.
 
 interface ProductCardProps {
   id: string
@@ -39,9 +41,9 @@ export function ProductCard({
   // Strip hashtags so card title shows only product name / type
   const displayName = productName.replace(/#[\w一-龥＀-￯]+\s*/g, '').trim() || productName
 
-  // Prefer permanent Supabase Storage URL; fall back to TikTok CDN only if not expired
-  const activeCover = coverStorageUrl
-    ?? (thumbnailUrl && !isTikTokUrlExpired(thumbnailUrl) ? thumbnailUrl : null)
+  // Prefer permanent Supabase Storage URL; always attempt TikTok CDN as fallback
+  // (some CDN URLs remain accessible past x-expires — let onError handle true 403s)
+  const activeCover = coverStorageUrl ?? thumbnailUrl ?? null
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
