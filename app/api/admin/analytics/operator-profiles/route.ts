@@ -39,8 +39,11 @@ export async function GET() {
 
   const service = createServiceClient()
 
-  // Load profiles + users in parallel
-  const [profileRes, userRes] = await Promise.all([
+  // Load profiles, custom users table, and auth users in parallel.
+  // We need auth.admin.listUsers as the authoritative email source because
+  // user_behavior_profiles.user_id references auth.users(id), and some users
+  // may not yet have a row in the custom `users` table.
+  const [profileRes, userRes, authRes] = await Promise.all([
     service
       .from('user_behavior_profiles')
       .select('user_id, peak_hour, total_analyses, profile_label, updated_at')
@@ -48,22 +51,31 @@ export async function GET() {
     service
       .from('users')
       .select('id, email, plan'),
+    service.auth.admin.listUsers({ page: 1, perPage: 1000 }),
   ])
 
-  const planByUser = new Map<string, { email: string; plan: string }>()
+  // Primary: custom users table (has plan info)
+  const infoByUser = new Map<string, { email: string; plan: string }>()
   for (const u of (userRes.data ?? []) as Array<{ id: string; email: string; plan: string }>) {
-    planByUser.set(u.id, { email: u.email, plan: u.plan })
+    infoByUser.set(u.id, { email: u.email, plan: u.plan })
+  }
+
+  // Fallback: auth system — guarantees email even if custom users row is missing
+  const emailByAuthId = new Map<string, string>()
+  for (const u of (authRes.data?.users ?? [])) {
+    if (u.email) emailByAuthId.set(u.id, u.email)
   }
 
   const profiles = (profileRes.data ?? []).map((p: {
     user_id: string; peak_hour: number | null
     total_analyses: number; profile_label: string | null; updated_at: string
   }) => {
-    const info = planByUser.get(p.user_id)
+    const info  = infoByUser.get(p.user_id)
+    const email = info?.email ?? emailByAuthId.get(p.user_id) ?? `${p.user_id.slice(0, 8)}…`
     return {
       user_id:        p.user_id,
-      email:          info?.email ?? p.user_id.slice(0, 8) + '…',
-      plan:           info?.plan  ?? 'FREE',
+      email,
+      plan:           info?.plan ?? 'FREE',
       peak_hour:      p.peak_hour,
       total_analyses: p.total_analyses,
       profile_label:  p.profile_label,

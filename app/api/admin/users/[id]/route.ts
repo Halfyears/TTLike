@@ -1,13 +1,13 @@
 /**
- * PATCH /api/admin/users/[id]
- * Body: { role: 'USER' | 'ADMIN' }
- *
- * Updates a user's role in the users table (creates row if missing).
+ * GET   /api/admin/users/[id]  — full user detail for admin inspection
+ * PATCH /api/admin/users/[id]  — update user role
  */
 
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+
+export const dynamic = 'force-dynamic'
 
 async function isAdmin(): Promise<boolean> {
   try {
@@ -22,6 +22,94 @@ async function isAdmin(): Promise<boolean> {
   } catch { return false }
 }
 
+// ── GET — full user detail ────────────────────────────────────────────────────
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const { id } = await params
+  const service = createServiceClient()
+
+  // All queries in parallel — auth user is required, rest are optional
+  const [authRes, appRes, subRes, profileRes, eventsRes, analyticsRes] = await Promise.all([
+    service.auth.admin.getUserById(id),
+    service.from('users').select('id, email, name, role, referral_source, plan').eq('id', id).maybeSingle(),
+    service.from('user_subscriptions').select('plan, status, current_period_end, stripe_customer_id').eq('user_id', id).maybeSingle(),
+    service.from('user_behavior_profiles').select('peak_hour, total_analyses, profile_label, updated_at').eq('user_id', id).maybeSingle(),
+    service.from('ledger_event_kernel')
+      .select('sequence_id, event_type, payload, emitted_at')
+      .eq('user_id', id)
+      .order('emitted_at', { ascending: false })
+      .limit(30),
+    service.from('user_analytics')
+      .select('event, feature_name, context_data, created_at')
+      .eq('user_id', id)
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ])
+
+  if (authRes.error || !authRes.data.user) {
+    return NextResponse.json({ error: 'User not found' }, { status: 404 })
+  }
+
+  const authUser = authRes.data.user
+  const app      = appRes.data
+  const sub      = subRes.data
+  const profile  = profileRes.data
+  const events   = eventsRes.data ?? []
+  const analytics = analyticsRes.data ?? []
+
+  // Summarise event activity
+  const totalAnalyses  = events.filter(e => (e as { event_type: string }).event_type === 'COMPLETE').length
+  const scriptsGenerated = analytics.filter(e => (e as { event: string }).event === 'script_generated').length
+
+  return NextResponse.json({
+    user: {
+      id,
+      email:           authUser.email ?? '',
+      name:            (app?.name as string | null) ?? (authUser.user_metadata?.full_name as string | null) ?? null,
+      role:            (app?.role as string) ?? 'USER',
+      plan:            sub?.plan ?? (app?.plan as string | null) ?? 'FREE',
+      sub_status:      sub?.status ?? 'ACTIVE',
+      period_end:      sub?.current_period_end ?? null,
+      stripe_id:       sub?.stripe_customer_id ?? null,
+      email_confirmed: !!authUser.email_confirmed_at,
+      created_at:      authUser.created_at,
+      last_sign_in:    authUser.last_sign_in_at ?? null,
+      referral_source: (app?.referral_source as string | null) ?? null,
+    },
+    profile: {
+      peak_hour:      profile?.peak_hour      ?? null,
+      total_analyses: profile?.total_analyses ?? totalAnalyses,
+      profile_label:  profile?.profile_label  ?? null,
+      updated_at:     profile?.updated_at     ?? null,
+    },
+    activity: {
+      total_analyses:     profile?.total_analyses ?? totalAnalyses,
+      scripts_generated:  scriptsGenerated,
+    },
+    recent_events: (events as Array<{
+      sequence_id: number; event_type: string
+      payload: Record<string, unknown>; emitted_at: string
+    }>).map(e => ({
+      sequence_id: e.sequence_id,
+      event_type:  e.event_type,
+      tokens:      Number((e.payload as Record<string, unknown>)?.tokens_consumed ?? 0) || null,
+      from_cache:  Boolean((e.payload as Record<string, unknown>)?.from_cache),
+      emitted_at:  e.emitted_at,
+    })),
+    recent_analytics: (analytics as Array<{
+      event: string; feature_name: string | null
+      context_data: Record<string, unknown> | null; created_at: string
+    }>),
+  })
+}
+
+// ── PATCH — update role ───────────────────────────────────────────────────────
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -39,13 +127,11 @@ export async function PATCH(
 
   const service = createServiceClient()
 
-  // Fetch auth user to get email
   const { data: { user: authUser }, error: authErr } = await service.auth.admin.getUserById(id)
   if (authErr || !authUser) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
-  // Upsert into users table
   const { error } = await service.from('users').upsert({
     id:    authUser.id,
     email: authUser.email ?? '',

@@ -6,6 +6,7 @@ import {
   ChevronDown, Search, CheckCircle, BarChart2,
   Brain, Clock, ChevronRight, RotateCcw, AlertTriangle,
 } from 'lucide-react'
+import Link           from 'next/link'
 import { Badge }      from '@/components/ui/Badge'
 import { timeAgo }    from '@/lib/dateUtils'
 import { LocalDate }  from '@/components/ui/LocalDate'
@@ -251,7 +252,11 @@ function OperatorProfilesPanel() {
                   {profiles.map(p => (
                     <tr key={p.user_id} className="hover:bg-gray-700/20 transition-colors">
                       <td className="px-5 py-2.5 max-w-[200px]">
-                        <p className="text-xs text-gray-300 font-mono truncate">{p.email}</p>
+                        <Link href={`/admin/users/${p.user_id}`} className="block group">
+                          <p className="text-xs text-gray-300 font-mono truncate group-hover:text-pink-400 transition-colors">
+                            {p.email}
+                          </p>
+                        </Link>
                       </td>
                       <td className="px-4 py-2.5">
                         <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${planColor(p.plan)}`}>
@@ -259,13 +264,15 @@ function OperatorProfilesPanel() {
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-right">
-                        <span className={`text-xs font-bold tabular-nums ${
-                          p.total_analyses >= 50 ? 'text-red-400' :
-                          p.total_analyses >= 20 ? 'text-amber-400' :
-                          p.total_analyses >= 5  ? 'text-emerald-400' : 'text-gray-400'
-                        }`}>
-                          {p.total_analyses}
-                        </span>
+                        <Link href={`/admin/users/${p.user_id}`} className="group inline-block">
+                          <span className={`text-xs font-bold tabular-nums group-hover:text-pink-400 transition-colors ${
+                            p.total_analyses >= 50 ? 'text-red-400' :
+                            p.total_analyses >= 20 ? 'text-amber-400' :
+                            p.total_analyses >= 5  ? 'text-emerald-400' : 'text-gray-400'
+                          }`}>
+                            {p.total_analyses}
+                          </span>
+                        </Link>
                       </td>
                       <td className="px-4 py-2.5 text-center">
                         <span className="text-xs text-gray-400 flex items-center justify-center gap-1">
