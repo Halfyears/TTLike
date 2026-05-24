@@ -19,7 +19,6 @@ interface ScriptRow {
   created_at: string
   deleted_at: string | null
   source_video_id: string | null
-  tiktok_videos: { id: string; title: string | null; product_name: string | null } | null
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -59,7 +58,7 @@ export default async function AdminScriptsPage() {
 
   const { data: rows, error } = await service
     .from('generated_scripts')
-    .select('id, user_id, product_name, niche, hook_type, script_count, keywords, brand_name, offer, created_at, deleted_at, source_video_id, tiktok_videos!left(id, title, product_name)')
+    .select('id, user_id, product_name, niche, hook_type, script_count, keywords, brand_name, offer, created_at, deleted_at, source_video_id')
     .order('created_at', { ascending: false })
     .limit(500)
 
