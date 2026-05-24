@@ -13,6 +13,7 @@ interface BreakdownRow {
   id: string
   url_hash: string
   video_id: string | null
+  seo_slug: string | null
   payload: VideoBreakdownPayload
   created_at: string
   tiktok_videos: {
@@ -68,7 +69,7 @@ export default async function BreakdownsAdminPage() {
 
   const { data: rows, error } = await service
     .from('video_breakdowns')
-    .select('id, url_hash, video_id, payload, created_at, tiktok_videos!left(id, title, product_name, niche, cover_url, views, viral_score)')
+    .select('id, url_hash, video_id, seo_slug, payload, created_at, tiktok_videos!left(id, title, product_name, niche, cover_url, views, viral_score)')
     .order('created_at', { ascending: false })
     .limit(500)
 
@@ -160,8 +161,9 @@ export default async function BreakdownsAdminPage() {
                 const name     = video
                   ? cleanTitle(String(video.product_name ?? video.title ?? 'Untitled'))
                   : `(url-only) ${b.url_hash.slice(0, 8)}`
-                const videoId  = b.video_id ?? video?.id
-                const coverSrc = bestCoverUrl(null, video?.cover_url)
+                const videoId   = b.video_id ?? video?.id
+                const coverSrc  = bestCoverUrl(null, video?.cover_url)
+                const seoTarget = b.seo_slug ?? videoId  // prefer slug, fall back to UUID
 
                 return (
                   <tr key={b.id} className="hover:bg-gray-700/30 transition-colors">
@@ -239,9 +241,10 @@ export default async function BreakdownsAdminPage() {
                               Product
                             </Link>
                             <Link
-                              href={`/viral/${videoId}`}
+                              href={`/viral/${seoTarget}`}
                               target="_blank"
                               className="inline-flex items-center gap-0.5 text-[11px] text-pink-400 hover:text-pink-300 font-semibold transition-colors"
+                              title={`/viral/${seoTarget}`}
                             >
                               <ExternalLink className="h-3 w-3" /> SEO
                             </Link>

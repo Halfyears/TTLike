@@ -20,6 +20,7 @@ import { fetchVideoComments }         from '@/lib/scraper'
 import { filterHighValueComments, estimateTokens } from '@/lib/sentimentFilter'
 import { createHash }                 from 'crypto'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
+import { generateViralSlug }          from '@/lib/seoSlug'
 
 function urlHash(input: string): string {
   return createHash('md5').update(input).digest('hex')
@@ -263,12 +264,21 @@ export async function POST(req: Request) {
   }
 
   // ── 6. Persist to DB ────────────────────────────────────────────────────────
+  // Generate SEO slug from video metadata + first viral formula title
+  const strategyTitle = geminiResult.viral_formulas?.[0]?.title ?? 'viral-strategy'
+  const seoSlug = generateViralSlug({
+    productName:   String(meta.product_name ?? meta.title ?? ''),
+    niche:         String(meta.niche ?? 'general'),
+    strategyTitle,
+    videoId:       meta.id,
+  })
+
   // Plain INSERT — cache check above already confirmed no existing record.
   // On the rare 23505 duplicate (race condition), the row already exists → OK.
   // Any other error is a genuine failure and must be logged.
   const { data: insertedRow, error: insertError } = await service
     .from('video_breakdowns')
-    .insert({ url_hash: cacheKey, video_id: meta.id, payload })
+    .insert({ url_hash: cacheKey, video_id: meta.id, payload, seo_slug: seoSlug })
     .select('id')
     .maybeSingle()
 
@@ -301,9 +311,10 @@ export async function POST(req: Request) {
     console.warn('[analyze] quota increment failed (non-fatal):', e)
   }
 
-  // ── 7. Trigger SEO flywheel — invalidate public /viral/[id] page ────────────
+  // ── 7. Trigger SEO flywheel — invalidate public /viral/[slug] page ──────────
   try {
-    revalidatePath(`/viral/${meta.id}`)
+    revalidatePath(`/viral/${seoSlug}`)
+    revalidatePath(`/viral/${meta.id}`)  // also bust legacy UUID path
   } catch (e) {
     console.warn('[analyze] revalidatePath failed (non-fatal):', e)
   }
@@ -311,8 +322,9 @@ export async function POST(req: Request) {
   return NextResponse.json({
     breakdown:  payload,
     video_id:   meta.id,
+    seo_slug:   seoSlug,
     fromCache:  false,
-    saved,      // true = written OK (or race-condition duplicate); false = genuine DB failure
+    saved,
     ...(dbError ? { dbError } : {}),
   })
 }

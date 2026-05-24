@@ -8,7 +8,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const base    = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     const url = new URL('/rest/v1/video_breakdowns', base)
-    url.searchParams.set('select', 'video_id,created_at')
+    url.searchParams.set('select', 'video_id,seo_slug,created_at')
     url.searchParams.set('order', 'created_at.desc')
     url.searchParams.set('limit', '1000')
 
@@ -17,11 +17,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       next: { revalidate: 3600 },
     })
     if (res.ok) {
-      const rows: Array<{ video_id: string | null; created_at: string }> = await res.json()
+      const rows: Array<{ video_id: string | null; seo_slug: string | null; created_at: string }> = await res.json()
       viralRoutes = rows
-        .filter(r => r.video_id)
+        .filter(r => r.seo_slug || r.video_id)
         .map(r => ({
-          url:             `${SITE_URL}/viral/${r.video_id}`,
+          // Prefer SEO slug; fall back to UUID for legacy entries without a slug
+          url:             `${SITE_URL}/viral/${r.seo_slug ?? r.video_id}`,
           lastModified:    new Date(r.created_at),
           changeFrequency: 'monthly' as const,
           priority:        0.8,

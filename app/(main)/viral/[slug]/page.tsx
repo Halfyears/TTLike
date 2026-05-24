@@ -1,67 +1,103 @@
 import type { Metadata } from 'next'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Eye, Heart, Share2, Sparkles, ExternalLink, Zap } from 'lucide-react'
 import { SITE_URL, SITE_NAME } from '@/lib/constants'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 import { VideoAnalysis } from '@/components/VideoAnalysis'
+import { isUuid, generateViralSlug } from '@/lib/seoSlug'
+import { createServiceClient } from '@/lib/supabase/server'
 
-// ── Data fetching ─────────────────────────────────────────────────────────────
+// ── Data fetching ──────────────────────────────────────────────────────────────
 
-async function getBreakdownWithVideo(videoId: string) {
+type BreakdownWithVideo = {
+  seo_slug:   string | null
+  payload:    VideoBreakdownPayload
+  created_at: string
+  video:      Record<string, unknown>
+}
+
+/**
+ * Fetch breakdown by SEO slug (primary path).
+ * Falls back to UUID lookup for legacy /viral/{uuid} URLs.
+ * Returns null when nothing matches.
+ */
+async function getBreakdown(slug: string): Promise<BreakdownWithVideo | null> {
   const base    = process.env.NEXT_PUBLIC_SUPABASE_URL!
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   const headers = { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
+  const select  = 'seo_slug,payload,created_at,video_id,tiktok_videos(id,title,product_name,niche,cover_url,cover_storage_url,video_url,author,views,likes,shares,viral_score)'
 
-  const url = new URL(`/rest/v1/video_breakdowns`, base)
-  url.searchParams.set('select', 'payload,created_at,video_id,tiktok_videos(id,title,product_name,niche,cover_url,video_url,author,views,likes,shares,viral_score)')
-  url.searchParams.set('video_id', `eq.${videoId}`)
-  url.searchParams.set('limit', '1')
+  // Primary: look up by seo_slug
+  const bySlug = new URL('/rest/v1/video_breakdowns', base)
+  bySlug.searchParams.set('select',   select)
+  bySlug.searchParams.set('seo_slug', `eq.${slug}`)
+  bySlug.searchParams.set('limit',    '1')
 
-  const res = await fetch(url.toString(), { headers, next: { revalidate: 3600 } })
-  if (!res.ok) return null
-  const rows = await res.json()
-  if (!Array.isArray(rows) || rows.length === 0) return null
+  const r1 = await fetch(bySlug.toString(), { headers, next: { revalidate: 3600 } })
+  if (r1.ok) {
+    const rows = await r1.json()
+    if (Array.isArray(rows) && rows.length > 0) {
+      const row = rows[0]
+      const video    = row.tiktok_videos as Record<string, unknown> | null
+      const breakdown = row.payload as VideoBreakdownPayload | null
+      if (video && breakdown && (breakdown.viral_formulas?.length > 0 || (breakdown as unknown as Record<string, unknown>).analysis)) {
+        return { seo_slug: row.seo_slug, payload: breakdown, created_at: row.created_at, video }
+      }
+    }
+  }
 
-  const row = rows[0]
+  // Fallback: legacy UUID lookup
+  if (!isUuid(slug)) return null
+
+  const byId = new URL('/rest/v1/video_breakdowns', base)
+  byId.searchParams.set('select',   select)
+  byId.searchParams.set('video_id', `eq.${slug}`)
+  byId.searchParams.set('limit',    '1')
+
+  const r2 = await fetch(byId.toString(), { headers, next: { revalidate: 3600 } })
+  if (!r2.ok) return null
+  const rows2 = await r2.json()
+  if (!Array.isArray(rows2) || rows2.length === 0) return null
+
+  const row = rows2[0]
   const video    = row.tiktok_videos as Record<string, unknown> | null
   const breakdown = row.payload as VideoBreakdownPayload | null
-
-  // Support V2.5 (viral_formulas) and legacy (analysis) payloads
   if (!video || !breakdown) return null
-  const hasV25     = breakdown.viral_formulas?.length > 0
-  const hasLegacy  = !!((breakdown as unknown) as Record<string, unknown>).analysis
+  const hasV25    = breakdown.viral_formulas?.length > 0
+  const hasLegacy = !!((breakdown as unknown) as Record<string, unknown>).analysis
   if (!hasV25 && !hasLegacy) return null
 
-  return { video, breakdown, created_at: row.created_at as string }
+  return { seo_slug: row.seo_slug as string | null, payload: breakdown, created_at: row.created_at, video }
 }
 
-// ── Clean title helper ────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function cleanTitle(text: string): string {
-  return text
-    .replace(/#[\w一-龥＀-￯]+\s*/g, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim()
+  return text.replace(/#[\w一-龥＀-￯]+\s*/g, '').replace(/\s{2,}/g, ' ').trim()
 }
 
 // ── Metadata ──────────────────────────────────────────────────────────────────
 
-interface Props { params: Promise<{ id: string }> }
+interface Props { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params
-  const result = await getBreakdownWithVideo(id)
+  const { slug } = await params
+  const result = await getBreakdown(slug)
   if (!result) return { title: 'Ad Strategy Breakdown | TTLike' }
 
-  const { video, breakdown } = result
+  const { video, payload } = result
   const productName  = String(video.product_name ?? video.title ?? 'Viral Product')
   const cleanName    = cleanTitle(productName)
   const niche        = String(video.niche ?? 'E-Commerce')
   const views        = Number(video.views ?? 0)
 
-  const firstFormula = breakdown.viral_formulas?.[0]
+  const firstFormula = payload.viral_formulas?.[0]
   const strategyName = firstFormula?.title ?? 'Viral Ad Strategy'
+
+  // Use the canonical slug URL (not UUID) for all meta tags
+  const canonicalSlug = result.seo_slug ?? slug
+  const canonicalUrl  = `${SITE_URL}/viral/${canonicalSlug}`
 
   const title       = `${cleanName} — ${strategyName} | ${SITE_NAME}`
   const description = `Reverse-engineer how this viral TikTok ad reached ${(views / 1000).toFixed(0)}K+ views. Full breakdown: viral formulas, copy-paste scripts, visual timeline & seller tips.`
@@ -77,7 +113,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       type:   'article',
-      url:    `${SITE_URL}/viral/${id}`,
+      url:    canonicalUrl,
       images: video.cover_url ? [{ url: String(video.cover_url), width: 720, height: 405 }] : [],
     },
     twitter: {
@@ -86,41 +122,71 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       images:      video.cover_url ? [String(video.cover_url)] : [],
     },
-    alternates: { canonical: `${SITE_URL}/viral/${id}` },
+    alternates: { canonical: canonicalUrl },
   }
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function ViralBreakdownPage({ params }: Props) {
-  const { id } = await params
-  const result = await getBreakdownWithVideo(id)
+  const { slug } = await params
+  const result = await getBreakdown(slug)
   if (!result) notFound()
 
-  const { video, breakdown, created_at } = result
+  const { payload, created_at, video } = result
+
+  // ── UUID → slug 301 redirect (lazy backfill for legacy URLs) ──────────────
+  if (isUuid(slug)) {
+    let targetSlug = result.seo_slug
+
+    // If no slug stored yet, generate one and persist it (lazy backfill)
+    if (!targetSlug) {
+      const productName   = String(video.product_name ?? video.title ?? '')
+      const niche         = String(video.niche ?? 'general')
+      const strategyTitle = payload.viral_formulas?.[0]?.title ?? 'viral-strategy'
+      const videoId       = String(video.id)
+      targetSlug = generateViralSlug({ productName, niche, strategyTitle, videoId })
+
+      // Persist slug to DB (fire-and-forget — page still renders either way)
+      try {
+        const service = createServiceClient()
+        await service
+          .from('video_breakdowns')
+          .update({ seo_slug: targetSlug })
+          .eq('video_id', videoId)
+          .is('seo_slug', null)
+      } catch { /* non-fatal */ }
+    }
+
+    redirect(`/viral/${targetSlug}`)
+  }
 
   const productName  = String(video.product_name ?? video.title ?? 'Viral Product')
   const cleanName    = cleanTitle(productName)
   const niche        = String(video.niche ?? 'E-Commerce')
   const viralScore   = Number(video.viral_score ?? 0)
 
-  const firstFormula = breakdown.viral_formulas?.[0]
+  const firstFormula = payload.viral_formulas?.[0]
   const strategyName = firstFormula?.title ?? 'Viral Ad Strategy'
 
-  const cloneHref = `/dashboard/ai-scripts?from_video=${encodeURIComponent(id)}&suggested_title=${encodeURIComponent(cleanName)}&niche=${encodeURIComponent(niche)}&keywords=${encodeURIComponent(productName)}`
+  const videoId   = String(video.id)
+  const coverSrc  = (video.cover_storage_url as string | null) ?? (video.cover_url as string | null) ?? null
+  const canonicalSlug = result.seo_slug ?? slug
+
+  const cloneHref = `/dashboard/ai-scripts?from_video=${encodeURIComponent(videoId)}&suggested_title=${encodeURIComponent(cleanName)}&niche=${encodeURIComponent(niche)}&keywords=${encodeURIComponent(productName)}`
 
   // ── JSON-LD structured data ─────────────────────────────────────────────────
   const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Article',
-    headline: `${cleanName} — ${strategyName}`,
-    description: `Full TikTok ad structure breakdown: viral formulas, copy-paste scripts, visual timeline`,
-    image: video.cover_url ? String(video.cover_url) : undefined,
+    '@context':  'https://schema.org',
+    '@type':     'Article',
+    headline:    `${cleanName} — ${strategyName}`,
+    description: 'Full TikTok ad structure breakdown: viral formulas, copy-paste scripts, visual timeline',
+    image:       coverSrc ?? undefined,
     datePublished: created_at,
-    author: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
-    publisher: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/viral/${id}` },
-    keywords: `TikTok ad strategy, ${strategyName}, ${niche}, viral marketing`,
+    author:      { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
+    publisher:   { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/viral/${canonicalSlug}` },
+    keywords:    `TikTok ad strategy, ${strategyName}, ${niche}, viral marketing`,
   }
 
   return (
@@ -134,7 +200,7 @@ export default async function ViralBreakdownPage({ params }: Props) {
       <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-10">
 
         {/* Back link */}
-        <Link href={`/products/${id}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
+        <Link href={`/products/${videoId}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
           <ArrowLeft className="h-4 w-4" /> Back to Product
         </Link>
 
@@ -157,19 +223,21 @@ export default async function ViralBreakdownPage({ params }: Props) {
           <h1 className="text-2xl sm:text-3xl font-black text-gray-900 leading-tight">
             {cleanName}
           </h1>
+          <p className="text-sm text-gray-500 mt-1 font-medium">{strategyName}</p>
           {video.author != null && (
-            <p className="text-sm text-gray-400 mt-1">@{String(video.author)}</p>
+            <p className="text-sm text-gray-400 mt-0.5">@{String(video.author)}</p>
           )}
         </div>
 
         {/* ── Cover + metrics ── */}
         <div className="rounded-2xl overflow-hidden border border-gray-100 mb-6">
-          {video.cover_url ? (
+          {coverSrc ? (
             <div className="relative aspect-video bg-gray-100">
               <img
-                src={String(video.cover_url)}
+                src={coverSrc}
                 alt={cleanName.slice(0, 80) || 'Product video cover'}
                 className="w-full h-full object-cover object-center"
+                onError={undefined}
               />
               {video.video_url != null && (
                 <a
@@ -193,9 +261,9 @@ export default async function ViralBreakdownPage({ params }: Props) {
           {/* Metrics strip */}
           <div className="grid grid-cols-3 divide-x divide-gray-100 bg-white">
             {[
-              { icon: Eye,    label: 'Views',  value: breakdown.metrics?.views  ?? '—' },
-              { icon: Heart,  label: 'Likes',  value: breakdown.metrics?.likes  ?? '—' },
-              { icon: Share2, label: 'Shares', value: breakdown.metrics?.shares ?? '—' },
+              { icon: Eye,    label: 'Views',  value: payload.metrics?.views  ?? '—' },
+              { icon: Heart,  label: 'Likes',  value: payload.metrics?.likes  ?? '—' },
+              { icon: Share2, label: 'Shares', value: payload.metrics?.shares ?? '—' },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="flex flex-col items-center justify-center py-3.5 px-2">
                 <Icon className="h-3.5 w-3.5 text-pink-400 mb-1" />
@@ -208,7 +276,7 @@ export default async function ViralBreakdownPage({ params }: Props) {
 
         {/* ── Breakdown report ── */}
         <div className="mb-6">
-          <VideoAnalysis data={breakdown} showPremiumCta={false} />
+          <VideoAnalysis data={payload} showPremiumCta={false} />
         </div>
 
         {/* ── CTA strip ── */}

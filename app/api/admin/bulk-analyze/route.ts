@@ -13,6 +13,7 @@
 import { NextResponse }         from 'next/server'
 import { revalidatePath }       from 'next/cache'
 import { createServiceClient }  from '@/lib/supabase/server'
+import { generateViralSlug }    from '@/lib/seoSlug'
 import { callVideoBreakdown }   from '@/lib/ai/parserPrompt'
 import { createHash }           from 'crypto'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
@@ -114,17 +115,27 @@ export async function POST(req: Request) {
         visual_timeline: geminiResult.visual_timeline,
       }
 
+      const seoSlug = generateViralSlug({
+        productName:   String(video.product_name ?? video.title ?? ''),
+        niche:         String(video.niche ?? 'general'),
+        strategyTitle: geminiResult.viral_formulas?.[0]?.title ?? 'viral-strategy',
+        videoId:       video.id,
+      })
+
       const { error: insertErr } = await service
         .from('video_breakdowns')
-        .insert({ url_hash: cacheKey, video_id: video.id, payload })
+        .insert({ url_hash: cacheKey, video_id: video.id, payload, seo_slug: seoSlug })
 
       if (insertErr) {
         errors.push(`${video.id}: ${insertErr.message}`)
         continue
       }
 
-      // Trigger ISR for public SEO page
-      try { revalidatePath(`/viral/${video.id}`) } catch { /* non-fatal */ }
+      // Trigger ISR for public SEO page (both slug and legacy UUID)
+      try {
+        revalidatePath(`/viral/${seoSlug}`)
+        revalidatePath(`/viral/${video.id}`)
+      } catch { /* non-fatal */ }
 
       generated++
     } catch (e) {
