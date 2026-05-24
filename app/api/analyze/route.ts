@@ -53,6 +53,36 @@ function extractVideoId(raw: string): string | null {
 /** Known TikTok short-link hostnames that must be resolved via redirect. */
 const SHORT_DOMAINS = new Set(['vm.tiktok.com', 'vt.tiktok.com', 'm.tiktok.com'])
 
+// ── TikTok oEmbed helper ──────────────────────────────────────────────────────
+
+interface TikTokOembed {
+  title?:         string
+  author_name?:   string
+  thumbnail_url?: string
+}
+
+/**
+ * Fetch basic metadata for any public TikTok video via the public oEmbed API.
+ * No auth required.  Returns null on any failure (private/deleted/timeout).
+ * Timeout: 5 s — never blocks the main pipeline.
+ */
+async function fetchTikTokOembed(videoUrl: string): Promise<TikTokOembed | null> {
+  try {
+    const endpoint = `https://www.tiktok.com/oembed?url=${encodeURIComponent(videoUrl)}`
+    const res = await fetch(endpoint, {
+      signal: AbortSignal.timeout(5_000),
+      headers: { 'User-Agent': 'TTLike-Bot/1.0' },
+    })
+    if (!res.ok) return null
+    const data = await res.json() as TikTokOembed
+    // Require at least a title to consider this usable
+    if (!data.title) return null
+    return data
+  } catch {
+    return null
+  }
+}
+
 /**
  * Resolve a TikTok short URL to its canonical long-form URL by following the
  * redirect chain server-side.  Falls back to the original string on any error
@@ -209,12 +239,46 @@ export async function POST(req: Request) {
     meta = (d1 ?? d2 ?? d3) as VideoRow | null
   }
 
+  // ── Pass 4 — oEmbed fallback for any public TikTok URL ────────────────────
+  // If the video isn't in our DB, try the public TikTok oEmbed API.
+  // On success we build a synthetic meta object and continue the normal
+  // Gemini analysis pipeline.  The breakdown is saved with video_id = null.
+  let isOembed = false
+  let oembedSourceUrl: string | null = null
+
+  if (!meta && !video_id && (resolvedUrl ?? url)) {
+    const targetUrl = resolvedUrl ?? url!
+    const oembed = await fetchTikTokOembed(targetUrl)
+
+    if (oembed) {
+      const tikId = extractVideoId(targetUrl) ?? urlHash(targetUrl).slice(0, 16)
+      meta = {
+        id:           tikId,
+        title:        oembed.title ?? '',
+        product_name: oembed.title ?? null,
+        niche:        null,
+        views:        0,
+        likes:        0,
+        shares:       0,
+        author:       oembed.author_name ?? '',
+      }
+      isOembed        = true
+      oembedSourceUrl = targetUrl
+      console.info('[analyze] oEmbed fallback succeeded for:', targetUrl)
+    } else {
+      return NextResponse.json(
+        {
+          error: 'Video not found in database. Only videos already scraped into TTLike can be analysed.',
+          hint:  'Browse the Products section to find existing viral videos, or wait for the next scheduled scrape.',
+        },
+        { status: 404 }
+      )
+    }
+  }
+
   if (!meta) {
     return NextResponse.json(
-      {
-        error: 'Video not found in database. Only videos already scraped into TTLike can be analysed.',
-        hint:  'Browse the Products section to find existing viral videos, or wait for the next scheduled scrape.',
-      },
+      { error: 'Video not found in database.', hint: 'Browse the Products section.' },
       { status: 404 }
     )
   }
@@ -261,6 +325,16 @@ export async function POST(req: Request) {
     },
     viral_formulas:  geminiResult.viral_formulas,
     visual_timeline: geminiResult.visual_timeline,
+    // Include source metadata for oEmbed-sourced breakdowns so the /viral page
+    // can render without a tiktok_videos join.
+    ...(isOembed && oembedSourceUrl ? {
+      source_meta: {
+        title:         meta.title ?? '',
+        author:        meta.author ?? '',
+        video_url:     oembedSourceUrl,
+        thumbnail_url: null,   // oEmbed thumbnail URLs expire quickly; skip
+      },
+    } : {}),
   }
 
   // ── 6. Persist to DB ────────────────────────────────────────────────────────
@@ -278,7 +352,8 @@ export async function POST(req: Request) {
   // Any other error is a genuine failure and must be logged.
   const { data: insertedRow, error: insertError } = await service
     .from('video_breakdowns')
-    .insert({ url_hash: cacheKey, video_id: meta.id, payload, seo_slug: seoSlug })
+    // oEmbed breakdowns have no tiktok_videos row — video_id stays null
+    .insert({ url_hash: cacheKey, video_id: isOembed ? null : meta.id, payload, seo_slug: seoSlug })
     .select('id')
     .maybeSingle()
 
@@ -321,8 +396,9 @@ export async function POST(req: Request) {
 
   return NextResponse.json({
     breakdown:  payload,
-    video_id:   meta.id,
+    video_id:   isOembed ? null : meta.id,
     seo_slug:   seoSlug,
+    is_oembed:  isOembed,
     fromCache:  false,
     saved,
     ...(dbError ? { dbError } : {}),

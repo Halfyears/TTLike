@@ -28,6 +28,29 @@ async function getBreakdown(slug: string): Promise<BreakdownWithVideo | null> {
   const headers = { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
   const select  = 'seo_slug,payload,created_at,video_id,tiktok_videos(id,title,product_name,niche,cover_url,cover_storage_url,video_url,author,views,likes,shares,viral_score)'
 
+  /**
+   * Build a synthetic video object from oEmbed source_meta when the
+   * tiktok_videos join returns null (video_id = null for oEmbed breakdowns).
+   */
+  function syntheticVideoFromSourceMeta(breakdown: VideoBreakdownPayload): Record<string, unknown> | null {
+    const sm = breakdown.source_meta
+    if (!sm) return null
+    return {
+      id:                null,
+      title:             sm.title,
+      product_name:      sm.title,
+      niche:             null,
+      cover_url:         sm.thumbnail_url ?? null,
+      cover_storage_url: null,
+      video_url:         sm.video_url,
+      author:            sm.author,
+      views:             0,
+      likes:             0,
+      shares:            0,
+      viral_score:       0,
+    }
+  }
+
   // Primary: look up by seo_slug
   const bySlug = new URL('/rest/v1/video_breakdowns', base)
   bySlug.searchParams.set('select',   select)
@@ -38,12 +61,19 @@ async function getBreakdown(slug: string): Promise<BreakdownWithVideo | null> {
   if (r1.ok) {
     const rows = await r1.json()
     if (Array.isArray(rows) && rows.length > 0) {
-      const row = rows[0]
-      const video    = row.tiktok_videos as Record<string, unknown> | null
+      const row       = rows[0]
       const breakdown = row.payload as VideoBreakdownPayload | null
-      if (video && breakdown && (breakdown.viral_formulas?.length > 0 || (breakdown as unknown as Record<string, unknown>).analysis)) {
-        return { seo_slug: row.seo_slug, payload: breakdown, created_at: row.created_at, video }
-      }
+      if (!breakdown) return null
+      const hasContent = breakdown.viral_formulas?.length > 0
+        || !!((breakdown as unknown as Record<string, unknown>).analysis)
+      if (!hasContent) return null
+
+      // Prefer tiktok_videos join; fall back to source_meta for oEmbed rows
+      const video = (row.tiktok_videos as Record<string, unknown> | null)
+        ?? syntheticVideoFromSourceMeta(breakdown)
+      if (!video) return null
+
+      return { seo_slug: row.seo_slug, payload: breakdown, created_at: row.created_at, video }
     }
   }
 
@@ -60,13 +90,16 @@ async function getBreakdown(slug: string): Promise<BreakdownWithVideo | null> {
   const rows2 = await r2.json()
   if (!Array.isArray(rows2) || rows2.length === 0) return null
 
-  const row = rows2[0]
-  const video    = row.tiktok_videos as Record<string, unknown> | null
+  const row       = rows2[0]
   const breakdown = row.payload as VideoBreakdownPayload | null
-  if (!video || !breakdown) return null
+  if (!breakdown) return null
   const hasV25    = breakdown.viral_formulas?.length > 0
   const hasLegacy = !!((breakdown as unknown) as Record<string, unknown>).analysis
   if (!hasV25 && !hasLegacy) return null
+
+  const video = (row.tiktok_videos as Record<string, unknown> | null)
+    ?? syntheticVideoFromSourceMeta(breakdown)
+  if (!video) return null
 
   return { seo_slug: row.seo_slug as string | null, payload: breakdown, created_at: row.created_at, video }
 }
@@ -135,17 +168,18 @@ export default async function ViralBreakdownPage({ params }: Props) {
 
   const { payload, created_at, video } = result
 
-  // ── UUID → slug 301 redirect (lazy backfill for legacy URLs) ──────────────
-  if (isUuid(slug)) {
+  // ── UUID → slug 301 redirect (lazy backfill for legacy DB-sourced URLs) ────
+  // Only applies when the slug IS a UUID and the video has a real DB row.
+  if (isUuid(slug) && video.id != null) {
     let targetSlug = result.seo_slug
 
     // If no slug stored yet, generate one and persist it (lazy backfill)
     if (!targetSlug) {
+      const dbVideoId     = String(video.id)
       const productName   = String(video.product_name ?? video.title ?? '')
       const niche         = String(video.niche ?? 'general')
       const strategyTitle = payload.viral_formulas?.[0]?.title ?? 'viral-strategy'
-      const videoId       = String(video.id)
-      targetSlug = generateViralSlug({ productName, niche, strategyTitle, videoId })
+      targetSlug = generateViralSlug({ productName, niche, strategyTitle, videoId: dbVideoId })
 
       // Persist slug to DB (fire-and-forget — page still renders either way)
       try {
@@ -153,7 +187,7 @@ export default async function ViralBreakdownPage({ params }: Props) {
         await service
           .from('video_breakdowns')
           .update({ seo_slug: targetSlug })
-          .eq('video_id', videoId)
+          .eq('video_id', dbVideoId)
           .is('seo_slug', null)
       } catch { /* non-fatal */ }
     }
@@ -169,11 +203,13 @@ export default async function ViralBreakdownPage({ params }: Props) {
   const firstFormula = payload.viral_formulas?.[0]
   const strategyName = firstFormula?.title ?? 'Viral Ad Strategy'
 
-  const videoId   = String(video.id)
-  const coverSrc  = (video.cover_storage_url as string | null) ?? (video.cover_url as string | null) ?? null
+  const videoId       = video.id != null ? String(video.id) : null
+  const coverSrc      = (video.cover_storage_url as string | null) ?? (video.cover_url as string | null) ?? null
   const canonicalSlug = result.seo_slug ?? slug
 
-  const cloneHref = `/dashboard/ai-scripts?from_video=${encodeURIComponent(videoId)}&suggested_title=${encodeURIComponent(cleanName)}&niche=${encodeURIComponent(niche)}&keywords=${encodeURIComponent(productName)}`
+  const cloneHref = videoId
+    ? `/dashboard/ai-scripts?from_video=${encodeURIComponent(videoId)}&suggested_title=${encodeURIComponent(cleanName)}&niche=${encodeURIComponent(niche)}&keywords=${encodeURIComponent(productName)}`
+    : `/dashboard/ai-scripts?suggested_title=${encodeURIComponent(cleanName)}&keywords=${encodeURIComponent(productName)}`
 
   // ── JSON-LD structured data ─────────────────────────────────────────────────
   const jsonLd = {
@@ -199,10 +235,16 @@ export default async function ViralBreakdownPage({ params }: Props) {
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-10">
 
-        {/* Back link */}
-        <Link href={`/products/${videoId}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
-          <ArrowLeft className="h-4 w-4" /> Back to Product
-        </Link>
+        {/* Back link — only shown for DB-sourced videos */}
+        {videoId ? (
+          <Link href={`/products/${videoId}`} className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
+            <ArrowLeft className="h-4 w-4" /> Back to Product
+          </Link>
+        ) : (
+          <Link href="/products" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
+            <ArrowLeft className="h-4 w-4" /> Browse Products
+          </Link>
+        )}
 
         {/* ── Header ── */}
         <div className="mb-6">

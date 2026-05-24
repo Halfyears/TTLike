@@ -47,9 +47,13 @@ export default function UrlIngestion() {
         return
       }
 
-      // Redirect with auto_analyze=1 so VideoBreakdown auto-displays the cached result
-      if (data.video_id) {
+      // oEmbed-sourced breakdowns have no video_id — redirect straight to viral page
+      if (data.is_oembed && data.seo_slug) {
+        router.push(`/viral/${data.seo_slug}`)
+      } else if (data.video_id) {
         router.push(`/products/${data.video_id}?auto_analyze=1`)
+      } else if (data.seo_slug) {
+        router.push(`/viral/${data.seo_slug}`)
       } else {
         router.push(`/products?q=${encodeURIComponent(trimmed)}`)
       }
