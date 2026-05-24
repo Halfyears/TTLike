@@ -17,7 +17,7 @@
     "@stripe/stripe-js": "^9.5.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
-    "@trigger.dev/sdk": "^4.4.6",
+    "@trigger.dev/sdk": "4.4.6",
     "axios": "^1.16.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",

@@ -26,7 +26,10 @@ import {
   RefreshCw, ExternalLink, Trash2, RotateCcw,
   GripVertical, Save, ArrowUpDown, TrendingUp,
   CheckCircle, Brain, ChevronDown, ChevronUp, Calendar,
+  Flame,
 } from 'lucide-react'
+import { PromptManager }    from './PromptManager'
+import { ViralRadarButton } from './ViralRadarButton'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Video {
@@ -39,11 +42,12 @@ interface Video {
   likes: number
   shares: number
   comments: number | null
-  viral_score: number
-  video_url: string | null
-  cover_url: string | null
-  niche: string | null
-  sort_order: number | null
+  viral_score:  number
+  is_viral_hit: boolean
+  video_url:    string | null
+  cover_url:    string | null
+  niche:        string | null
+  sort_order:   number | null
   deleted_at: string | null
   created_at: string
   published_at: string | null
@@ -293,8 +297,15 @@ function SortableRow({
       </td>
 
       {/* Viral Score */}
-      <td className={`px-3 py-2 text-sm font-bold text-right whitespace-nowrap tabular-nums ${scoreColor(video.viral_score)}`}>
-        {video.viral_score.toFixed(0)}
+      <td className="px-3 py-2 text-right whitespace-nowrap">
+        <span className={`text-sm font-bold tabular-nums ${scoreColor(video.viral_score)}`}>
+          {video.viral_score.toFixed(0)}
+        </span>
+        {video.is_viral_hit && (
+          <span title="Super Viral — analysed ≥ 5×">
+            <Flame className="h-3 w-3 text-red-400 inline ml-1 mb-0.5" />
+          </span>
+        )}
       </td>
 
       {/* Actions */}
@@ -558,6 +569,12 @@ export default function AdminVideosPage() {
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
+      </div>
+
+      {/* ── Viral Radar + Prompt Manager ─────────────────────────────────────── */}
+      <div className="mb-5 space-y-3">
+        <ViralRadarButton />
+        <PromptManager />
       </div>
 
       {/* ── Smart Recommendation Engine panel ─────────────────────────────── */}

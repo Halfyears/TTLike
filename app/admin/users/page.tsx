@@ -11,19 +11,20 @@ import { LocalDate } from '@/components/ui/LocalDate'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface User {
-  id: string
-  email: string
-  name: string | null
-  role: string
-  plan: string
-  sub_status: string
-  period_end: string | null
-  stripe_id: string | null
-  scripts_used: number
-  last_activity: string | null
-  last_sign_in: string | null
-  confirmed: boolean
-  created_at: string
+  id:               string
+  email:            string
+  name:             string | null
+  role:             string
+  plan:             string
+  sub_status:       string
+  period_end:       string | null
+  stripe_id:        string | null
+  scripts_used:     number
+  last_activity:    string | null
+  last_sign_in:     string | null
+  confirmed:        boolean
+  created_at:       string
+  referral_source:  string | null   // UTM / affiliate source at sign-up
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -206,7 +207,7 @@ export default function AdminUsersPage() {
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-gray-700">
-                  {['Status','Email / Name','Role','Plan','Scripts','Last Active','Last Login','Joined','Actions'].map(h => (
+                  {['Status','Email / Name','Source','Role','Plan','Scripts','Last Active','Last Login','Joined','Actions'].map(h => (
                     <th key={h} className="px-4 py-3 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">
                       {h}
                     </th>
@@ -230,6 +231,17 @@ export default function AdminUsersPage() {
                       )}
                       {!user.confirmed && (
                         <p className="text-[10px] text-yellow-400 mt-0.5">⚠ email unconfirmed</p>
+                      )}
+                    </td>
+
+                    {/* Referral Source */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {user.referral_source ? (
+                        <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-900/40 text-blue-300 max-w-[100px] truncate" title={user.referral_source}>
+                          {user.referral_source}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-600">—</span>
                       )}
                     </td>
 

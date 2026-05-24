@@ -169,6 +169,47 @@ export default function ScraperPage() {
         </div>
       </div>
 
+      {/* Block Rate Monitor */}
+      {logs.length > 0 && (() => {
+        const total    = logs.length
+        const errors   = logs.filter(l => l.status === 'error').length
+        const blockPct = Math.round((errors / total) * 100)
+        const isAlert  = blockPct >= 30
+        return (
+          <div className={`mb-8 rounded-xl border p-5 ${isAlert ? 'bg-red-950/30 border-red-700' : 'bg-gray-800 border-gray-700'}`}>
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className={`h-4 w-4 ${isAlert ? 'text-red-400' : 'text-amber-400'}`} />
+              <h2 className="text-white font-semibold">Block Rate Monitor</h2>
+              {isAlert && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-900/60 text-red-300 uppercase tracking-wide animate-pulse">
+                  ⚠ Alert — consider Apify fallback
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-6 flex-wrap">
+              <div>
+                <p className={`text-3xl font-black tabular-nums ${isAlert ? 'text-red-400' : 'text-amber-300'}`}>{blockPct}%</p>
+                <p className="text-xs text-gray-500 mt-0.5">error rate (last {total} runs)</p>
+              </div>
+              <div className="flex-1 min-w-[120px]">
+                <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${isAlert ? 'bg-red-500' : 'bg-amber-500'}`}
+                    style={{ width: `${Math.min(100, blockPct)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{errors} errors / {total} total · threshold: 30%</p>
+              </div>
+              {isAlert && (
+                <div className="text-xs text-red-300 bg-red-950/50 rounded-lg px-3 py-2 max-w-xs">
+                  Block rate ≥ 30%. Recommended: switch to Apify or Bright Data bridge to maintain scraping availability.
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Manual trigger */}
       <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 mb-8">
         <h2 className="text-white font-semibold mb-3">Manual Trigger</h2>

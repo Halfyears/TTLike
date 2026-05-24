@@ -2,6 +2,24 @@ import 'server-only'
 
 import type { ViralFormula, TimelineScene } from '@/lib/types/intelligence'
 import { compileVideoPayload }              from '@/lib/ai/payloadCompiler'
+import { createServiceClient }             from '@/lib/supabase/server'
+
+// ── Prompt hot-update: reads admin_config at call time ────────────────────────
+// If admin sets a non-empty override in /admin/videos (Prompt Manager panel),
+// that override is used instead of the hardcoded PARSER_SYSTEM_PROMPT.
+// Falls back silently on any DB error.
+async function getActiveSystemPrompt(): Promise<string> {
+  try {
+    const service = createServiceClient()
+    const { data } = await service
+      .from('admin_config')
+      .select('value')
+      .eq('key', 'ai_prompt_override')
+      .maybeSingle()
+    if (data?.value?.trim()) return data.value.trim()
+  } catch { /* non-fatal — use hardcoded default */ }
+  return PARSER_SYSTEM_PROMPT
+}
 
 // ── V2.5 Inspiration Engine System Prompt ────────────────────────────────────
 // Key rules:
@@ -88,14 +106,14 @@ export async function callVideoBreakdown(meta: VideoMeta): Promise<GeminiResult>
   const nicheLabel   = meta.niche ?? 'E-Commerce'
 
   // ── Compile dense payload via payloadCompiler (signal-window approach) ───────
-  // Derives engagement signal windows (like rate, share rate, eng rate) as
-  // synthetic "frame samples" from the metric curve — near-zero token overhead.
   const productReminder = [
     `REMINDER: "your_version" in viral_formulas must reference "${productLabel}" (${nicheLabel}) by name.`,
     `DO NOT output generic [bracket] placeholders in "your_version".`,
   ].join('\n')
 
-  const userContent = compileVideoPayload(meta, productReminder)
+  const userContent    = compileVideoPayload(meta, productReminder)
+  // Hot-update: use admin override if set, else fall back to hardcoded prompt
+  const systemPrompt   = await getActiveSystemPrompt()
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
 
@@ -103,7 +121,7 @@ export async function callVideoBreakdown(meta: VideoMeta): Promise<GeminiResult>
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: `${PARSER_SYSTEM_PROMPT}\n\n---\nVIDEO DATA:\n${userContent}` }] }],
+      contents: [{ parts: [{ text: `${systemPrompt}\n\n---\nVIDEO DATA:\n${userContent}` }] }],
       generationConfig: { responseMimeType: 'application/json' },
     }),
   })
