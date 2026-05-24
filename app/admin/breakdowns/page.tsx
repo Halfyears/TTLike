@@ -168,7 +168,7 @@ export default async function BreakdownsAdminPage() {
 
                 const videoId   = b.video_id ?? video?.id   // null for oEmbed rows
                 const isOembed  = !videoId && !!sourceMeta
-                const coverSrc  = bestCoverUrl(null, video?.cover_url)
+                const coverSrc  = bestCoverUrl(null, video?.cover_url ?? sourceMeta?.thumbnail_url)
                 const seoTarget = b.seo_slug ?? videoId     // oEmbed: seo_slug always set
 
                 return (
@@ -179,7 +179,7 @@ export default async function BreakdownsAdminPage() {
                         {coverSrc ? (
                           <img
                             src={coverSrc}
-                            alt=""
+                            alt={name}
                             className="h-9 w-16 object-cover rounded-md shrink-0 bg-gray-700"
                           />
                         ) : (
