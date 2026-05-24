@@ -46,7 +46,7 @@ CREATE INDEX idx_ute_time    ON upgrade_trigger_events(triggered_at);
 -- ── REQ-4: Time-segment label ───────────────────────────────────────────────────
 ALTER TABLE user_behavior_profiles
   ADD COLUMN IF NOT EXISTS time_segment_label TEXT;
--- 早起型创作者(6-10) | 午间活跃(11-14) | 下午场(15-18) | 夜猫子(19-23) | 深夜玩家(0-5)
+-- 早起型创作者[6,11) | 午间活跃[11,15) | 下午场[15,19) | 夜猫子[19,24) | 深夜玩家[0,6)
 
 -- ── REQ-5: Niche profiling ──────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS user_niche_profiles (

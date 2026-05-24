@@ -54,10 +54,13 @@ export async function POST(req: Request) {
 
     if (event_type === 'feature_click') {
       if (!feature_name) return NextResponse.json({ ok: false, error: 'feature_name required' }, { status: 400 })
+      // Truncate to guard against oversized/malformed inputs
+      const safeName = feature_name.slice(0, 100)
+      const safePage = page.slice(0, 100)
       await service.from('feature_click_events').insert({
         user_id:      user.id,
-        feature_name,
-        page,
+        feature_name: safeName,
+        page:         safePage,
         plan,
         clicked_at:   new Date().toISOString(),
       })
@@ -66,7 +69,7 @@ export async function POST(req: Request) {
       if (!dwell_seconds || dwell_seconds <= 0) return NextResponse.json({ ok: true, skipped: true })
       await service.from('page_dwell_events').insert({
         user_id:       user.id,
-        page,
+        page:          page.slice(0, 100),
         dwell_seconds: Math.min(dwell_seconds, 3600), // cap at 1h to avoid runaway values
         plan,
         recorded_at:   new Date().toISOString(),

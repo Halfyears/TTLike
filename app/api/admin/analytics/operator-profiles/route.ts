@@ -252,7 +252,7 @@ export async function POST() {
     for (let i = 0; i < nicheRows.length; i += 500) {
       await service
         .from('user_niche_profiles')
-        .upsert(nicheRows.slice(i, i + 500), { onConflict: 'user_id,niche' })
+        .upsert(nicheRows.slice(i, i + 500), { onConflict: 'user_id, niche' })
     }
   }
 
