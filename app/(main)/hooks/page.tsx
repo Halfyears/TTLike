@@ -1,10 +1,12 @@
-import Link from 'next/link'
-import { Zap, Copy } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/Card'
-import { Badge } from '@/components/ui/Badge'
-import { HOOK_TYPES } from '@/lib/constants'
+'use client'
 
-export const metadata = { title: 'Hook Library · TTLike' }
+import { useState } from 'react'
+import Link from 'next/link'
+import { Zap, Sparkles, Loader2 } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/Card'
+import { HOOK_TYPES } from '@/lib/constants'
+import ActionableHookCard from '@/components/ActionableHookCard'
+import type { TTLikeHookResponse } from '@/lib/types/hooks'
 
 const HOOK_PATTERNS = [
   { id: '1', type: 'SURPRISE', title: 'The "I Had No Idea" Hook', template: 'I had no idea [product] could do [unexpected benefit] until I tried it...', example: 'I had no idea a $15 massage gun could fix my 2-year back pain until I tried it...', viralScore: 94, useCount: 2847 },
@@ -22,14 +24,114 @@ const HOOK_PATTERNS = [
 ]
 
 const hookTypeColors: Record<string, string> = {
-  SURPRISE: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  QUESTION: 'bg-blue-100 text-blue-700 border-blue-200',
-  EMOTIONAL: 'bg-pink-100 text-pink-700 border-pink-200',
-  FOMO: 'bg-red-100 text-red-700 border-red-200',
-  CONTRARIAN: 'bg-violet-100 text-violet-700 border-violet-200',
-  STORY: 'bg-green-100 text-green-700 border-green-200',
+  SURPRISE:    'bg-yellow-100 text-yellow-700 border-yellow-200',
+  QUESTION:    'bg-blue-100 text-blue-700 border-blue-200',
+  EMOTIONAL:   'bg-pink-100 text-pink-700 border-pink-200',
+  FOMO:        'bg-red-100 text-red-700 border-red-200',
+  CONTRARIAN:  'bg-violet-100 text-violet-700 border-violet-200',
+  STORY:       'bg-green-100 text-green-700 border-green-200',
   EDUCATIONAL: 'bg-cyan-100 text-cyan-700 border-cyan-200',
 }
+
+// ── Hook Machine section ──────────────────────────────────────────────────────
+
+function HookMachine() {
+  const [text,    setText]    = useState('')
+  const [loading, setLoading] = useState(false)
+  const [result,  setResult]  = useState<TTLikeHookResponse | null>(null)
+  const [error,   setError]   = useState<string | null>(null)
+
+  const analyse = async () => {
+    if (!text.trim() || loading) return
+    setLoading(true)
+    setError(null)
+    setResult(null)
+
+    try {
+      const res = await fetch('/api/hooks', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ text: text.trim() }),
+      })
+      const data = await res.json() as TTLikeHookResponse & { error?: string }
+      if (!res.ok || data.error) {
+        throw new Error(data.error ?? `Server error ${res.status}`)
+      }
+      setResult(data)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong — try again')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) analyse()
+  }
+
+  return (
+    <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-slate-900 to-indigo-950 p-6 mb-10 shadow-xl">
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-1">
+        <Sparkles className="h-5 w-5 text-pink-400" />
+        <h2 className="text-lg font-bold text-white">Hook Machine</h2>
+        <span className="ml-1 text-[10px] font-semibold bg-pink-500/20 text-pink-300 border border-pink-500/40 px-2 py-0.5 rounded-full">
+          v1.0
+        </span>
+      </div>
+      <p className="text-sm text-slate-400 mb-5">
+        Paste your hook below. Get a scroll-stop score + 4 anti-duplication variants ready for CapCut.
+      </p>
+
+      {/* Input */}
+      <div className="flex flex-col gap-3">
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={handleKey}
+          placeholder="e.g. I had no idea this $12 gadget would replace my $300 morning routine…"
+          rows={3}
+          maxLength={500}
+          className="w-full rounded-xl bg-slate-800/80 border border-slate-600 text-white text-sm
+            placeholder:text-slate-500 px-4 py-3 resize-none focus:outline-none
+            focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-colors"
+        />
+
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-xs text-slate-600">{text.length}/500 · ⌘↵ to analyse</span>
+          <button
+            onClick={analyse}
+            disabled={loading || !text.trim()}
+            className="flex items-center gap-2 bg-pink-500 hover:bg-pink-400 disabled:bg-slate-700
+              disabled:text-slate-500 text-white font-semibold text-sm px-5 py-2.5 rounded-xl
+              transition-colors shadow-lg shadow-pink-900/30"
+          >
+            {loading
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Analysing…</>
+              : <><Zap className="h-4 w-4" /> Analyse Hook</>
+            }
+          </button>
+        </div>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="mt-4 rounded-xl bg-red-950/50 border border-red-800 text-red-300 text-sm px-4 py-3">
+          {error}
+        </div>
+      )}
+
+      {/* Result */}
+      {result && (
+        <div className="mt-6">
+          <ActionableHookCard result={result} originalText={text.trim()} />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function HooksPage() {
   return (
@@ -37,6 +139,15 @@ export default function HooksPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Hook Library</h1>
         <p className="text-gray-600">Battle-tested hooks that make people stop scrolling</p>
+      </div>
+
+      {/* ── AI Hook Machine (above fold) ───────────────────────────────────── */}
+      <HookMachine />
+
+      {/* ── Static library ─────────────────────────────────────────────────── */}
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-800 mb-1">Hook Library</h2>
+        <p className="text-sm text-gray-500">12 proven patterns — click any to jump to the script generator</p>
       </div>
 
       {/* Hook type filter */}
