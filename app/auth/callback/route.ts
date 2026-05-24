@@ -6,7 +6,11 @@ import { prisma }        from '@/lib/prisma'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/dashboard'
+
+  // Guard against open-redirect: next must be a relative path starting with /
+  // and must NOT start with // (which browsers treat as protocol-relative URL).
+  const rawNext = searchParams.get('next') ?? '/dashboard'
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard'
 
   // Prefer explicit site URL (set in Vercel env) to avoid localhost redirects
   // when the server-side request.url resolves to an internal or preview address.
