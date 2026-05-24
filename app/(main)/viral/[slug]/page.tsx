@@ -249,9 +249,12 @@ export default async function ViralBreakdownPage({ params }: Props) {
         {/* ── Header ── */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-pink-50 text-pink-700">
-              {niche}
-            </span>
+            {/* Only show niche badge when we have real data (oEmbed rows have niche=null) */}
+            {video.niche != null && (
+              <span className="inline-block text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-pink-50 text-pink-700">
+                {niche}
+              </span>
+            )}
             {viralScore > 0 && (
               <span className="inline-block text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-orange-50 text-orange-700">
                 🔥 Viral Score {viralScore.toFixed(0)}

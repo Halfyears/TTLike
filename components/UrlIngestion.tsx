@@ -108,9 +108,9 @@ export default function UrlIngestion() {
           <div className="flex items-start gap-2 text-xs text-amber-800">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5 text-amber-500" />
             <span>
-              <strong>Video not in our database yet.</strong>{' '}
-              Our scraper indexes viral TikTok Shop videos on a scheduled basis.
-              Try one of the options below:
+              <strong>Video could not be accessed.</strong>{' '}
+              This video may be private, deleted, or region-restricted.
+              Browse our existing viral library instead:
             </span>
           </div>
           <div className="flex flex-wrap gap-2 pt-0.5">

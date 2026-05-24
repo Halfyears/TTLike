@@ -175,12 +175,19 @@ export async function POST(req: Request) {
 
   const { data: cached } = await service
     .from('video_breakdowns')
-    .select('payload')
+    .select('payload, video_id, seo_slug')
     .eq('url_hash', cacheKey)
     .maybeSingle()
 
   if (cached?.payload) {
-    return NextResponse.json({ breakdown: cached.payload, fromCache: true })
+    const cachedPayload = cached.payload as VideoBreakdownPayload
+    return NextResponse.json({
+      breakdown:  cachedPayload,
+      video_id:   cached.video_id  ?? null,
+      seo_slug:   cached.seo_slug  ?? null,
+      is_oembed:  cached.video_id == null && !!cachedPayload.source_meta,
+      fromCache:  true,
+    })
   }
 
   // ── 2. Fetch video metadata ─────────────────────────────────────────────────
@@ -284,9 +291,9 @@ export async function POST(req: Request) {
   }
 
   // ── 3. Fetch + filter buyer-signal comments (pre-LLM, zero token waste) ────
-  // fetchVideoComments: graceful degradation — returns [] if table unavailable
-  // filterHighValueComments: keyword-dict scoring, hard-caps at 15 comments
-  const rawComments      = await fetchVideoComments(meta.id)
+  // Skip comment fetch for oEmbed rows — meta.id is a TikTok numeric ID, not
+  // a Supabase UUID, so the query would never match and wastes a round-trip.
+  const rawComments      = isOembed ? [] : await fetchVideoComments(meta.id)
   const filteredComments = filterHighValueComments(rawComments)
 
   // Debug: log token budget impact (non-blocking)
@@ -319,9 +326,10 @@ export async function POST(req: Request) {
   const payload: VideoBreakdownPayload = {
     url_hash: cacheKey,
     metrics: {
-      views:  Number(meta.views  ?? 0).toLocaleString(),
-      likes:  Number(meta.likes  ?? 0).toLocaleString(),
-      shares: Number(meta.shares ?? 0).toLocaleString(),
+      // oEmbed videos have no stats — use em-dash so the UI shows "—" not "0"
+      views:  isOembed ? '—' : Number(meta.views  ?? 0).toLocaleString(),
+      likes:  isOembed ? '—' : Number(meta.likes  ?? 0).toLocaleString(),
+      shares: isOembed ? '—' : Number(meta.shares ?? 0).toLocaleString(),
     },
     viral_formulas:  geminiResult.viral_formulas,
     visual_timeline: geminiResult.visual_timeline,
