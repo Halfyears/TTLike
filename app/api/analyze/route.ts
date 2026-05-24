@@ -399,12 +399,26 @@ export async function POST(req: Request) {
     console.log('[analyze] breakdown saved OK — db_id:', insertedRow?.id)
   }
 
-  // ── 6b. Increment quota usage for authenticated users ──────────────────────
+  // ── 6b. Increment quota + log niche to user_analytics ────────────────────
   try {
     const authClient = await createClient()
     const { data: { user } } = await authClient.auth.getUser()
     if (user) {
       await service.rpc('increment_analysis_credit', { uid: user.id })
+
+      // Log niche for REQ-5 (operator niche profiling)
+      // feature_name stores the niche so operator-profiles can aggregate it
+      if (meta.niche) {
+        await service.from('user_analytics').insert({
+          user_id:      user.id,
+          event:        'analysis_complete',
+          feature_name: meta.niche,
+          context_data: { video_id: meta.id, is_cache_hit: false },
+          created_at:   new Date().toISOString(),
+        }).then(({ error }) => {
+          if (error) console.warn('[analyze] user_analytics niche log failed (non-fatal):', error.message)
+        })
+      }
     }
   } catch (e) {
     console.warn('[analyze] quota increment failed (non-fatal):', e)

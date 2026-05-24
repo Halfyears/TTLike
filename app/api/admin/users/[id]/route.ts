@@ -39,7 +39,7 @@ export async function GET(
     service.auth.admin.getUserById(id),
     service.from('users').select('id, email, name, role, referral_source, plan').eq('id', id).maybeSingle(),
     service.from('user_subscriptions').select('plan, status, current_period_end, stripe_customer_id').eq('user_id', id).maybeSingle(),
-    service.from('user_behavior_profiles').select('peak_hour, total_analyses, profile_label, updated_at').eq('user_id', id).maybeSingle(),
+    service.from('user_behavior_profiles').select('peak_hour, total_analyses, profile_label, time_segment_label, niche_label, updated_at').eq('user_id', id).maybeSingle(),
     service.from('ledger_event_kernel')
       .select('sequence_id, event_type, payload, emitted_at')
       .eq('user_id', id)
@@ -85,10 +85,12 @@ export async function GET(
       referral_source: (app?.referral_source as string | null) ?? null,
     },
     profile: {
-      peak_hour:      profile?.peak_hour      ?? null,
-      total_analyses: profile?.total_analyses ?? recentCompleteCount,
-      profile_label:  profile?.profile_label  ?? null,
-      updated_at:     profile?.updated_at     ?? null,
+      peak_hour:          profile?.peak_hour                   ?? null,
+      total_analyses:     profile?.total_analyses              ?? recentCompleteCount,
+      profile_label:      profile?.profile_label               ?? null,
+      time_segment_label: (profile as Record<string, unknown> | null)?.time_segment_label as string | null ?? null,
+      niche_label:        (profile as Record<string, unknown> | null)?.niche_label        as string | null ?? null,
+      updated_at:         profile?.updated_at                  ?? null,
     },
     activity: {
       // Prefer full aggregate from profile table; fall back to recent-window count

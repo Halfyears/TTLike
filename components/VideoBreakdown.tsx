@@ -142,7 +142,7 @@ export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Pro
           Regenerate
         </button>
       </div>
-      <VideoAnalysis data={data} showPremiumCta={false} tier={tier} />
+      <VideoAnalysis data={data} showPremiumCta={false} tier={tier} videoId={videoId} />
     </div>
   )
 }

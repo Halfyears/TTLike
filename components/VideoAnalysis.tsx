@@ -9,12 +9,33 @@
  *       "Copy for CapCut" timeline export.
  */
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { Copy, Check, Film, Download, Lock, Zap, LayoutList, Search } from 'lucide-react'
 import type { VideoBreakdownPayload, TimelineScene } from '@/lib/types/intelligence'
 import { deriveCommercePayload } from '@/lib/types/intelligence'
 import type { TierName } from '@/lib/constants'
+
+/** Fire-and-forget upgrade trigger event — never blocks UX */
+function trackUpgrade(payload: {
+  cta_label:     string
+  page?:         string
+  video_id?:     string
+  trigger_type?: string
+  insight_label?: string
+}) {
+  fetch('/api/analytics/upgrade-trigger', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      trigger_type:  payload.trigger_type ?? 'curiosity',
+      cta_label:     payload.cta_label,
+      page:          payload.page ?? 'products',
+      video_id:      payload.video_id ?? null,
+      insight_label: payload.insight_label ?? null,
+    }),
+  }).catch(() => { /* never throw */ })
+}
 
 interface Props {
   data:            VideoBreakdownPayload
@@ -25,6 +46,8 @@ interface Props {
   productName?:    string
   niche?:          string
   viralScore?:     number
+  /** tiktok_videos.id — used for upgrade trigger attribution */
+  videoId?:        string
 }
 
 // ── Trend-badge helpers ───────────────────────────────────────────────────────
@@ -93,9 +116,15 @@ export function VideoAnalysis({
   productName = '',
   niche = 'General',
   viralScore = 0,
+  videoId,
 }: Props) {
   const { copied, copy } = useCopy()
   const isPaid = tier === 'creator' || tier === 'scale'
+
+  // Upgrade CTA tracker (memoised, fire-and-forget)
+  const onUpgradeClick = useCallback((ctaLabel: string, triggerType = 'curiosity', insightLabel?: string) => {
+    trackUpgrade({ cta_label: ctaLabel, video_id: videoId, trigger_type: triggerType, insight_label: insightLabel })
+  }, [videoId])
 
   if (!data) return null
 
@@ -382,7 +411,7 @@ export function VideoAnalysis({
                   )}
                 </button>
               ) : (
-                <Link href="/pricing">
+                <Link href="/pricing" onClick={() => onUpgradeClick('Creator — CapCut Export', 'curiosity')}>
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-all cursor-pointer">
                     <Lock className="h-3.5 w-3.5" /> Creator — CapCut Export
                   </span>
@@ -451,7 +480,7 @@ export function VideoAnalysis({
                 )}
               </button>
             ) : (
-              <Link href="/pricing" className="block mt-3">
+              <Link href="/pricing" className="block mt-3" onClick={() => onUpgradeClick('Upgrade to Creator — Unlock Full Script Export', 'loss_aversion')}>
                 <div className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-all cursor-pointer">
                   <Lock className="h-4 w-4" /> Upgrade to Creator — Unlock Full Script Export
                 </div>
@@ -469,7 +498,7 @@ export function VideoAnalysis({
                 Hook mechanics · Leak detection · Counter-attack blueprint
               </p>
             </div>
-            <Link href="/pricing">
+            <Link href="/pricing" onClick={() => onUpgradeClick('Creator — $29/mo', 'curiosity', 'AI Structural Health Report')}>
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-all cursor-pointer">
                 <Lock className="h-3 w-3" /> Creator — $29/mo
               </span>

@@ -6,7 +6,8 @@ import {
   Sparkles, ChevronRight,
 } from 'lucide-react'
 import UrlIngestion from '@/components/UrlIngestion'
-import { Greeting } from '@/components/ui/Greeting'
+import { Greeting }  from '@/components/ui/Greeting'
+import { DashboardTracker } from '@/components/DashboardTracker'
 
 export const metadata = { title: 'Dashboard · TTLike' }
 
@@ -94,6 +95,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Invisible behaviour tracker — dwell time + feature clicks */}
+      <DashboardTracker page="dashboard" />
 
       {/* ── Hero greeting ── */}
       <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-5 py-6 sm:px-8 sm:py-8">
@@ -140,7 +143,7 @@ export default async function DashboardPage() {
         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-0.5">Create</p>
         <div className="grid grid-cols-2 gap-3">
           {/* AI Scripts — primary */}
-          <Link href="/dashboard/ai-scripts" className="group col-span-1">
+          <Link href="/dashboard/ai-scripts" className="group col-span-1" data-track-feature="ai-scripts">
             <div className="relative h-full rounded-2xl bg-gradient-to-br from-pink-500 to-rose-500 p-5 overflow-hidden shadow-lg shadow-pink-500/20 hover:shadow-pink-500/30 hover:scale-[1.02] transition-all">
               <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/5" />
               <div className="absolute -bottom-6 -left-6 h-20 w-20 rounded-full bg-white/5" />
@@ -158,7 +161,7 @@ export default async function DashboardPage() {
           </Link>
 
           {/* AI Studio */}
-          <Link href="/dashboard/studio" className="group col-span-1">
+          <Link href="/dashboard/studio" className="group col-span-1" data-track-feature="ai-studio">
             <div className="relative h-full rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 p-5 overflow-hidden shadow-lg shadow-violet-500/20 hover:shadow-violet-500/30 hover:scale-[1.02] transition-all">
               <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-white/5" />
               <div className="absolute -bottom-6 -left-6 h-20 w-20 rounded-full bg-white/5" />
@@ -182,13 +185,14 @@ export default async function DashboardPage() {
         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 px-0.5">Discover</p>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { href: '/products',  icon: Search,     label: 'Products',     color: 'text-blue-500',   bg: 'bg-blue-50',   border: 'border-blue-100' },
-            { href: '/trending',  icon: TrendingUp, label: 'Trending',     color: 'text-green-500',  bg: 'bg-green-50',  border: 'border-green-100' },
-            { href: '/hooks',     icon: BookOpen,   label: 'Hook Library', color: 'text-amber-500',  bg: 'bg-amber-50',  border: 'border-amber-100' },
-          ].map(({ href, icon: Icon, label, color, bg, border }) => (
+            { href: '/products',  icon: Search,     label: 'Products',     color: 'text-blue-500',   bg: 'bg-blue-50',   border: 'border-blue-100', track: 'products' },
+            { href: '/trending',  icon: TrendingUp, label: 'Trending',     color: 'text-green-500',  bg: 'bg-green-50',  border: 'border-green-100', track: 'trending' },
+            { href: '/hooks',     icon: BookOpen,   label: 'Hook Library', color: 'text-amber-500',  bg: 'bg-amber-50',  border: 'border-amber-100', track: 'hook-library' },
+          ].map(({ href, icon: Icon, label, color, bg, border, track }) => (
             <Link
               key={href}
               href={href}
+              data-track-feature={track}
               className={`group flex flex-col items-center gap-2 p-3 sm:p-4 rounded-xl border ${border} ${bg} hover:scale-[1.03] active:scale-[0.98] transition-all`}
             >
               <div className={`h-9 w-9 rounded-lg bg-white flex items-center justify-center shadow-sm`}>

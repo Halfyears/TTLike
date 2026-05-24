@@ -6,7 +6,7 @@ import Link from 'next/link'
 import {
   ArrowLeft, Mail, CreditCard, Zap, Clock, Brain,
   CheckCircle, XCircle, RefreshCw, Calendar, Tag,
-  Cpu, BarChart2, AlertTriangle,
+  Cpu, BarChart2, AlertTriangle, Layers,
 } from 'lucide-react'
 import { timeAgo, fmtDateTime } from '@/lib/dateUtils'
 
@@ -27,10 +27,12 @@ interface UserDetail {
     referral_source:  string | null
   }
   profile: {
-    peak_hour:      number | null
-    total_analyses: number
-    profile_label:  string | null
-    updated_at:     string | null
+    peak_hour:          number | null
+    total_analyses:     number
+    profile_label:      string | null
+    time_segment_label: string | null
+    niche_label:        string | null
+    updated_at:         string | null
   }
   activity: {
     total_analyses:    number
@@ -87,6 +89,85 @@ function Stat({ icon: Icon, label, value, color }: {
         <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{label}</span>
       </div>
       <p className="text-2xl font-black text-white tabular-nums">{value}</p>
+    </div>
+  )
+}
+
+// ── Niche Profile Card ────────────────────────────────────────────────────────
+interface NicheRow { user_id: string; niche: string; analysis_count: number; percentage: number }
+
+function NicheProfileCard({ userId, nicheLabel }: { userId: string; nicheLabel: string | null }) {
+  const [niches,  setNiches]  = useState<NicheRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`/api/admin/analytics/user-niches?user_id=${userId}`)
+      .then(r => r.json())
+      .then(d => { if (d.niches) setNiches(d.niches as NicheRow[]) })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [userId])
+
+  const NICHE_LABEL_COLORS: Record<string, string> = {
+    '家居垂直大卖':  'bg-amber-900/40 text-amber-300 border border-amber-700',
+    '美妆矩阵玩家':  'bg-pink-900/40 text-pink-300 border border-pink-700',
+    '美食达人':      'bg-orange-900/40 text-orange-300 border border-orange-700',
+    '健身达人':      'bg-emerald-900/40 text-emerald-300 border border-emerald-700',
+    '科技极客':      'bg-blue-900/40 text-blue-300 border border-blue-700',
+    '时尚玩家':      'bg-fuchsia-900/40 text-fuchsia-300 border border-fuchsia-700',
+    '宠物博主':      'bg-teal-900/40 text-teal-300 border border-teal-700',
+    '多品类探索者':  'bg-gray-700 text-gray-300 border border-gray-600',
+  }
+
+  const NICHE_BAR_COLORS = [
+    'bg-pink-500', 'bg-violet-500', 'bg-blue-500',
+    'bg-emerald-500', 'bg-amber-500', 'bg-orange-500', 'bg-gray-500',
+  ]
+
+  return (
+    <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
+      <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+        <Layers className="h-4 w-4 text-amber-400" /> Niche Profile
+      </h2>
+
+      {/* Label badge */}
+      {nicheLabel ? (
+        <div className="mb-4">
+          <span className={`inline-block text-xs font-bold px-3 py-1.5 rounded-full ${NICHE_LABEL_COLORS[nicheLabel] ?? 'bg-gray-700 text-gray-400'}`}>
+            {nicheLabel}
+          </span>
+        </div>
+      ) : (
+        <p className="text-xs text-gray-600 mb-4">
+          No niche profile yet — click Recompute on the Users page after a few analyses.
+        </p>
+      )}
+
+      {/* Distribution bars */}
+      {loading ? (
+        <p className="text-xs text-gray-600">Loading niche data…</p>
+      ) : niches.length === 0 ? (
+        <p className="text-xs text-gray-600">No analysis_complete events found yet.</p>
+      ) : (
+        <div className="space-y-2.5">
+          {niches.sort((a, b) => b.analysis_count - a.analysis_count).map((n, i) => (
+            <div key={n.niche}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-300">{n.niche}</span>
+                <span className="text-[10px] text-gray-400 tabular-nums">
+                  {n.analysis_count} <span className="text-gray-600">({n.percentage.toFixed(0)}%)</span>
+                </span>
+              </div>
+              <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${NICHE_BAR_COLORS[i % NICHE_BAR_COLORS.length]}`}
+                  style={{ width: `${n.percentage}%`, transition: 'width 0.5s ease' }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -296,6 +377,9 @@ export default function UserDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Niche Profile card */}
+      <NicheProfileCard userId={userId} nicheLabel={profile.niche_label ?? null} />
 
       {/* Recent AI events */}
       <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
