@@ -2,6 +2,22 @@ import { createClient } from '@/lib/supabase/server'
 import { Users, Video, FileText, Link2, TrendingUp, Zap, Activity } from 'lucide-react'
 import Link from 'next/link'
 
+// ── Gemini live ping (server-side, runs at page render) ───────────────────────
+async function checkGemini(): Promise<{ ok: boolean; latency_ms?: number; error?: string }> {
+  try {
+    const base = process.env.NEXT_PUBLIC_SITE_URL ?? process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000'
+    const res = await fetch(`${base}/api/admin/gemini-ping`, {
+      next: { revalidate: 60 },   // cache 60 s — don't hit Gemini on every visitor
+    })
+    if (!res.ok) return { ok: false, error: `HTTP ${res.status}` }
+    return await res.json() as { ok: boolean; latency_ms?: number; error?: string }
+  } catch {
+    return { ok: false, error: 'Network error' }
+  }
+}
+
 export const metadata = { title: 'Admin Dashboard · TTLike' }
 
 async function getKpis() {
@@ -40,7 +56,7 @@ async function getRecentActivity() {
 }
 
 export default async function AdminDashboardPage() {
-  const [kpis, activity] = await Promise.all([getKpis(), getRecentActivity()])
+  const [kpis, activity, gemini] = await Promise.all([getKpis(), getRecentActivity(), checkGemini()])
 
   const KPI_CARDS = [
     { label: 'Total Users', value: kpis.users.toLocaleString(), icon: Users, change: 'Registered accounts', color: 'text-blue-400' },
@@ -103,10 +119,9 @@ export default async function AdminDashboardPage() {
           <h2 className="text-white font-semibold mb-4">System Status</h2>
           <div className="space-y-3">
             {[
-              { label: 'Database', status: kpis.videos > 0 ? 'Connected' : 'Check SUPABASE keys', ok: kpis.videos > 0 },
-              { label: 'Gemini AI', status: 'Set GEMINI_API_KEY', ok: false },
-              { label: 'GitHub Actions', status: 'Runs every 6 hours', ok: true },
-              { label: 'Stripe', status: 'Disabled (Beta Phase)', ok: true },
+              { label: 'Database',        status: kpis.videos > 0 ? 'Connected' : 'Check SUPABASE keys', ok: kpis.videos > 0 },
+              { label: 'GitHub Actions',  status: 'Runs every 6 hours',           ok: true },
+              { label: 'Stripe',          status: 'Disabled (Beta Phase)',         ok: true },
             ].map(({ label, status, ok }) => (
               <div key={label} className="flex items-center justify-between">
                 <span className="text-sm text-gray-300">{label}</span>
@@ -115,6 +130,20 @@ export default async function AdminDashboardPage() {
                 </span>
               </div>
             ))}
+            {/* Gemini — live ping result */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-300">Gemini AI</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                gemini.ok
+                  ? 'bg-green-900/50 text-green-400'
+                  : 'bg-red-900/50 text-red-400'
+              }`}>
+                {gemini.ok
+                  ? `OK · ${gemini.latency_ms}ms`
+                  : (gemini.error ?? 'Unreachable')
+                }
+              </span>
+            </div>
           </div>
         </div>
       </div>

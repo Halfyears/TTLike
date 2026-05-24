@@ -15,6 +15,7 @@ const translations = {
       scraper: 'Scraper',
       breakdowns: 'Breakdowns',
       scripts: 'Scripts',
+      studio:  'Studio',
     },
     admin: {
       title: 'TTLike Admin',
@@ -41,6 +42,7 @@ const translations = {
       scraper: '爬虫监控',
       breakdowns: '拆解管理',
       scripts: '脚本管理',
+      studio:  '剧情管理',
     },
     admin: {
       title: 'TTLike 管理后台',
