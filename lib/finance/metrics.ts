@@ -57,9 +57,11 @@ export function fmtUSD(amount: number, decimals = 2): string {
   return `${sign}$${abs.toFixed(decimals)}`
 }
 
-/** Format large USD amounts with K/M suffix */
+/** Format large USD amounts with K/M suffix (handles negatives correctly) */
 export function fmtUSDShort(amount: number): string {
-  if (amount >= 1_000_000) return `$${(amount / 1_000_000).toFixed(1)}M`
-  if (amount >= 1_000)     return `$${(amount / 1_000).toFixed(1)}K`
+  const sign = amount < 0 ? '−' : ''
+  const abs  = Math.abs(amount)
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`
+  if (abs >= 1_000)     return `${sign}$${(abs / 1_000).toFixed(1)}K`
   return fmtUSD(amount)
 }

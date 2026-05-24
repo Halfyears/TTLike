@@ -304,7 +304,7 @@ export default function FinancePage() {
               <AdminKpiCard icon={Zap}      label="Total AI Cost"    value={fmtUSD(d.token_finops.total_cost_usd)}  sub="all time (est.)"         color="amber" />
               <AdminKpiCard icon={BarChart2} label="Generations"     value={d.token_finops.total_generations}       sub="COMPLETE events"          color="pink" />
               <AdminKpiCard icon={TrendingUp} label="Cost per Gen."  value={fmtUSD(d.token_finops.total_generations > 0 ? d.token_finops.total_cost_usd / d.token_finops.total_generations : 0, 5)} sub="avg. Gemini 2.5 Flash" color="gray" />
-              <AdminKpiCard icon={DollarSign} label="COGS Ratio"     value={d.subscriptions.est_mrr > 0 ? `${((d.token_finops.total_cost_usd / 30 / (d.subscriptions.est_mrr / 30)) * 100).toFixed(1)}%` : '—'} sub="daily cost / daily MRR" color="red" />
+              <AdminKpiCard icon={DollarSign} label="COGS Ratio"     value={d.subscriptions.est_mrr > 0 ? `${((d.token_finops.total_cost_usd / 30 / (d.subscriptions.est_mrr / 30)) * 100).toFixed(1)}%` : '—'} sub="30-day cost / monthly MRR" color="red" />
             </div>
 
             <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
