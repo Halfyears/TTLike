@@ -39,11 +39,9 @@ export async function GET() {
 
   const service = createServiceClient()
 
-  // Load profiles, custom users table, and auth users in parallel.
-  // We need auth.admin.listUsers as the authoritative email source because
-  // user_behavior_profiles.user_id references auth.users(id), and some users
-  // may not yet have a row in the custom `users` table.
-  const [profileRes, userRes, authRes] = await Promise.all([
+  // Load profiles and custom users table in parallel.
+  // Auth users are fetched with full pagination (Supabase max perPage=1000 per call).
+  const [profileRes, userRes] = await Promise.all([
     service
       .from('user_behavior_profiles')
       .select('user_id, peak_hour, total_analyses, profile_label, updated_at')
@@ -51,8 +49,18 @@ export async function GET() {
     service
       .from('users')
       .select('id, email, plan'),
-    service.auth.admin.listUsers({ page: 1, perPage: 1000 }),
   ])
+
+  // Paginate through auth.admin.listUsers to get ALL users (handles >1000 accounts)
+  const allAuthUsers: Array<{ id: string; email?: string }> = []
+  let page = 1
+  for (;;) {
+    const { data, error } = await service.auth.admin.listUsers({ page, perPage: 1000 })
+    if (error || !data) break
+    allAuthUsers.push(...data.users)
+    if (data.users.length < 1000) break   // last page
+    page++
+  }
 
   // Primary: custom users table (has plan info)
   const infoByUser = new Map<string, { email: string; plan: string }>()
@@ -62,7 +70,7 @@ export async function GET() {
 
   // Fallback: auth system — guarantees email even if custom users row is missing
   const emailByAuthId = new Map<string, string>()
-  for (const u of (authRes.data?.users ?? [])) {
+  for (const u of allAuthUsers) {
     if (u.email) emailByAuthId.set(u.id, u.email)
   }
 
@@ -71,7 +79,7 @@ export async function GET() {
     total_analyses: number; profile_label: string | null; updated_at: string
   }) => {
     const info  = infoByUser.get(p.user_id)
-    const email = info?.email ?? emailByAuthId.get(p.user_id) ?? `${p.user_id.slice(0, 8)}…`
+    const email = info?.email ?? emailByAuthId.get(p.user_id) ?? `[uid:${p.user_id.slice(0, 8)}…]`
     return {
       user_id:        p.user_id,
       email,

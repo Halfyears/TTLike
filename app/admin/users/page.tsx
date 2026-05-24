@@ -149,6 +149,9 @@ function OperatorProfilesPanel() {
       const res  = await fetch('/api/admin/analytics/operator-profiles')
       const data = await res.json()
       if (res.ok) setProfiles(data.profiles ?? [])
+      else setComputeMsg({ ok: false, text: data.error ?? 'Failed to load profiles' })
+    } catch (e) {
+      setComputeMsg({ ok: false, text: e instanceof Error ? e.message : 'Network error' })
     } finally {
       setLoading(false)
     }

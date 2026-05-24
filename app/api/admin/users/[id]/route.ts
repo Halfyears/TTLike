@@ -63,9 +63,11 @@ export async function GET(
   const events   = eventsRes.data ?? []
   const analytics = analyticsRes.data ?? []
 
-  // Summarise event activity
-  const totalAnalyses  = events.filter(e => (e as { event_type: string }).event_type === 'COMPLETE').length
-  const scriptsGenerated = analytics.filter(e => (e as { event: string }).event === 'script_generated').length
+  // Summarise event activity from recent window
+  // totalAnalyses: real-time count from fetched events (limited to last 30)
+  // profile?.total_analyses: full aggregate from last recompute — used by profile card
+  const recentCompleteCount = events.filter(e => (e as { event_type: string }).event_type === 'COMPLETE').length
+  const scriptsGenerated    = analytics.filter(e => (e as { event: string }).event === 'script_generated').length
 
   return NextResponse.json({
     user: {
@@ -84,13 +86,14 @@ export async function GET(
     },
     profile: {
       peak_hour:      profile?.peak_hour      ?? null,
-      total_analyses: profile?.total_analyses ?? totalAnalyses,
+      total_analyses: profile?.total_analyses ?? recentCompleteCount,
       profile_label:  profile?.profile_label  ?? null,
       updated_at:     profile?.updated_at     ?? null,
     },
     activity: {
-      total_analyses:     profile?.total_analyses ?? totalAnalyses,
-      scripts_generated:  scriptsGenerated,
+      // Prefer full aggregate from profile table; fall back to recent-window count
+      total_analyses:    profile?.total_analyses ?? recentCompleteCount,
+      scripts_generated: scriptsGenerated,
     },
     recent_events: (events as Array<{
       sequence_id: number; event_type: string
@@ -98,7 +101,7 @@ export async function GET(
     }>).map(e => ({
       sequence_id: e.sequence_id,
       event_type:  e.event_type,
-      tokens:      Number((e.payload as Record<string, unknown>)?.tokens_consumed ?? 0) || null,
+      tokens:      (() => { const tc = (e.payload as Record<string, unknown>)?.tokens_consumed; return (tc !== undefined && tc !== null) ? Number(tc) : null })(),
       from_cache:  Boolean((e.payload as Record<string, unknown>)?.from_cache),
       emitted_at:  e.emitted_at,
     })),
@@ -119,9 +122,10 @@ export async function PATCH(
   }
 
   const { id } = await params
-  const { role } = await req.json() as { role: string }
+  const body = await req.json() as { role?: unknown }
+  const { role } = body
 
-  if (!['USER', 'ADMIN'].includes(role)) {
+  if (typeof role !== 'string' || !['USER', 'ADMIN'].includes(role)) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
   }
 
