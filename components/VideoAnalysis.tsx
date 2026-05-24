@@ -11,8 +11,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Copy, Check, Film, Download, Lock } from 'lucide-react'
+import { Copy, Check, Film, Download, Lock, Zap, LayoutList, Search } from 'lucide-react'
 import type { VideoBreakdownPayload, TimelineScene } from '@/lib/types/intelligence'
+import { deriveCommercePayload } from '@/lib/types/intelligence'
 import type { TierName } from '@/lib/constants'
 
 interface Props {
@@ -20,6 +21,10 @@ interface Props {
   showPremiumCta?: boolean
   /** User's current tier — gates Copy for CapCut & full timeline export */
   tier?:           TierName
+  /** Product metadata for commerce payload derivation */
+  productName?:    string
+  niche?:          string
+  viralScore?:     number
 }
 
 // ── Trend-badge helpers ───────────────────────────────────────────────────────
@@ -81,11 +86,23 @@ function useCopy(ms = 2000) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function VideoAnalysis({ data, showPremiumCta = false, tier = 'free' }: Props) {
+export function VideoAnalysis({
+  data,
+  showPremiumCta = false,
+  tier = 'free',
+  productName = '',
+  niche = 'General',
+  viralScore = 0,
+}: Props) {
   const { copied, copy } = useCopy()
   const isPaid = tier === 'creator' || tier === 'scale'
 
   if (!data) return null
+
+  // Derive commerce payload (pure, zero network cost)
+  const commerce = (data.viral_formulas?.length > 0)
+    ? deriveCommercePayload(data, productName, niche, viralScore)
+    : null
 
   const isLegacy = !(data.viral_formulas?.length) && !(data.visual_timeline?.length)
   if (isLegacy) {
@@ -125,6 +142,146 @@ export function VideoAnalysis({ data, showPremiumCta = false, tier = 'free' }: P
       </div>
 
       <div className="p-4 space-y-6">
+
+        {/* ── Section 0: Commerce Execution Layer (first fold) ── */}
+        {commerce && (
+          <div className="space-y-3">
+
+            {/* Index bar */}
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="bg-pink-50 border border-pink-100 rounded-lg px-2 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-pink-400">Viral Pressure</p>
+                <p className="text-xl font-black text-pink-600 tabular-nums">
+                  {commerce.indexing_engine.ttlike_viral_pressure_index}
+                </p>
+              </div>
+              <div className="bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-400">Commerce Index</p>
+                <p className="text-xl font-black text-indigo-600 tabular-nums">
+                  {commerce.indexing_engine.commerce_intent_index}
+                </p>
+              </div>
+              <div className="bg-amber-50 border border-amber-100 rounded-lg px-2 py-2">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500">Taxonomy</p>
+                <p className="text-[11px] font-black text-amber-700 leading-tight mt-0.5">
+                  {commerce.indexing_engine.primary_attention_taxonomy.replace(/_/g, ' ')}
+                </p>
+              </div>
+            </div>
+
+            {/* Hook anti-duplication library */}
+            <div className="border border-slate-200 rounded-lg overflow-hidden">
+              <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex items-center gap-2">
+                <Zap className="h-3.5 w-3.5 text-pink-500" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  Hook Anti-Duplication Library
+                </span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {commerce.execution_payload.hook_library.map((hook, hi) => (
+                  <div key={hi} className="px-3 py-2.5">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded font-mono">
+                        {hook.timestamp}
+                      </span>
+                      <span className="text-[10px] font-semibold text-slate-600 truncate">{hook.type}</span>
+                    </div>
+                    <div className="space-y-1">
+                      {hook.anti_duplication_variants.map((v, vi) => {
+                        const vKey = `hook-${hi}-${vi}`
+                        return (
+                          <div key={vi} className="flex items-start justify-between gap-2 bg-indigo-50/40 rounded px-2 py-1.5">
+                            <p className="text-xs text-indigo-800 leading-snug flex-1">&ldquo;{v}&rdquo;</p>
+                            <button
+                              onClick={() => copy(v, vKey)}
+                              className={`shrink-0 flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold transition-all ${
+                                copied === vKey ? 'bg-green-500 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                              }`}
+                            >
+                              {copied === vKey ? <Check className="h-2.5 w-2.5" /> : <Copy className="h-2.5 w-2.5" />}
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Storyboard flow */}
+            <div className="border border-slate-200 rounded-lg overflow-hidden">
+              <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex items-center gap-2">
+                <LayoutList className="h-3.5 w-3.5 text-emerald-500" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  Storyboard Flow — MakeUGC / Canva Ready
+                </span>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {commerce.execution_payload.storyboard_flow.map((slide) => {
+                  const sKey = `slide-${slide.slide_number}`
+                  const typeColors: Record<string, string> = {
+                    hook:              'bg-red-100 text-red-700',
+                    agitate_pain:      'bg-orange-100 text-orange-700',
+                    value_proposition: 'bg-blue-100 text-blue-700',
+                    cta:               'bg-emerald-100 text-emerald-700',
+                  }
+                  return (
+                    <div key={slide.slide_number} className="px-3 py-2.5 flex items-start gap-2.5">
+                      <span className="shrink-0 text-[10px] font-black text-slate-400 tabular-nums w-4 pt-0.5">
+                        {slide.slide_number}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded mb-1 ${typeColors[slide.type] ?? 'bg-slate-100 text-slate-500'}`}>
+                          {slide.type.replace(/_/g, ' ').toUpperCase()}
+                        </span>
+                        <p className="text-xs text-slate-700 leading-snug whitespace-pre-line">{slide.exact_copy}</p>
+                      </div>
+                      <button
+                        onClick={() => copy(slide.exact_copy, sKey)}
+                        className={`shrink-0 flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold transition-all ${
+                          copied === sKey ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {copied === sKey ? <Check className="h-2.5 w-2.5" /> : <Copy className="h-2.5 w-2.5" />}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Pinterest search terms */}
+            <div className="border border-slate-200 rounded-lg overflow-hidden">
+              <div className="bg-slate-50 px-3 py-2 border-b border-slate-100 flex items-center gap-2">
+                <Search className="h-3.5 w-3.5 text-orange-500" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                  Pinterest Asset Search — 9:16 Ready
+                </span>
+              </div>
+              <div className="px-3 py-2.5 flex flex-wrap gap-2">
+                {commerce.execution_payload.upstream_search_queries.pinterest_search_terms.map((term, ti) => {
+                  const tKey = `pin-${ti}`
+                  return (
+                    <button
+                      key={ti}
+                      onClick={() => copy(term, tKey)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium border transition-all ${
+                        copied === tKey
+                          ? 'bg-green-500 text-white border-green-500'
+                          : 'bg-white text-slate-700 border-slate-200 hover:border-orange-300 hover:text-orange-700'
+                      }`}
+                    >
+                      {copied === tKey ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3 text-slate-400" />}
+                      {term}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+          </div>
+        )}
 
         {/* ── Section 1: Viral Formulas ── */}
         {data.viral_formulas?.length > 0 && (
@@ -303,47 +460,20 @@ export function VideoAnalysis({ data, showPremiumCta = false, tier = 'free' }: P
           </div>
         )}
 
-        {/* ── Section 3: Retention Leak Teaser ── */}
-        {!isPaid ? (
-          <div className="border-2 border-dashed border-red-200 rounded-lg overflow-hidden">
-            <div className="px-4 py-2.5 bg-red-50/60 flex items-center justify-between gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-red-800">
-                ⚠️ Retention Drop Signal Detected
-              </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-600 text-white uppercase tracking-wide">
-                Creator Required
-              </span>
-            </div>
-            {/* Blurred placeholder — purely visual teaser, no real data needed */}
-            <div className="relative px-4 py-3 select-none">
-              <div className="space-y-1.5 blur-sm pointer-events-none" aria-hidden>
-                <p className="text-xs font-bold text-slate-700">📉 CRITICAL — 14% audience exits at 00:12</p>
-                <p className="text-xs text-slate-500">Audio decibel dip + passive CTA triggers algorithm penalty at this timestamp</p>
-                <p className="text-xs text-slate-500">Counter-attack: re-cut at 00:11 with a direct urgency line to recover 8–12% watch-through</p>
-              </div>
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 gap-2 text-center px-4">
-                <p className="text-xs font-bold text-slate-700">
-                  Unlock forensic audit — pinpoint exact drop-off seconds &amp; counter-attack script
-                </p>
-                <Link href="/pricing">
-                  <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-900 hover:bg-slate-700 text-white transition-all cursor-pointer">
-                    <Lock className="h-3 w-3" /> Upgrade to Creator — $29/mo
-                  </span>
-                </Link>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="border border-red-100 rounded-lg px-4 py-3 bg-red-50/30 flex items-center justify-between gap-3 flex-wrap">
+        {/* ── Section 3: Health Report prompt (clean, no blur) ── */}
+        {showPremiumCta && !isPaid && (
+          <div className="border border-indigo-100 rounded-lg px-4 py-3 bg-indigo-50/40 flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <p className="text-xs font-bold text-red-700">🔬 AI Structural Health Report available</p>
+              <p className="text-xs font-bold text-indigo-700">🔬 AI Structural Health Report</p>
               <p className="text-[10px] text-slate-400 mt-0.5 font-mono">
                 Hook mechanics · Leak detection · Counter-attack blueprint
               </p>
             </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-50 text-red-600 border border-red-100 uppercase tracking-wide shrink-0">
-              Scroll up ↑
-            </span>
+            <Link href="/pricing">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition-all cursor-pointer">
+                <Lock className="h-3 w-3" /> Creator — $29/mo
+              </span>
+            </Link>
           </div>
         )}
 

@@ -89,8 +89,8 @@ async function generateBlogHtml(p: BlogFlywheelPayload): Promise<string> {
     `[${s.time}] ${s.description}`
   ).join('\n')
 
-  const prompt = `You are an expert TikTok e-commerce content analyst and SEO writer.
-Write a comprehensive, engaging SEO blog article analyzing a viral TikTok video.
+  const prompt = `You are a direct-response copywriter targeting TikTok eCommerce Media Buyers and Matrix Studio Operators.
+Write an analytical teardown article based on the provided video schema.
 Output ONLY valid HTML (no markdown, no code fences, no commentary).
 
 VIDEO DATA:
@@ -105,14 +105,27 @@ ${formulasSummary}
 VISUAL TIMELINE:
 ${timelineSummary}
 
-ARTICLE REQUIREMENTS:
-- H1: Engaging title like "Why This [Product] TikTok Hit [X] Views: A Complete Breakdown"
-- H2 sections: Hook Analysis · Viral Formula Breakdown · Visual Timeline · Key Takeaways
-- For each viral formula: explain the psychological mechanism, why it works, how creators can adapt it
-- 600–800 words total — dense, actionable, zero fluff
-- ONE natural CTA at the end (last paragraph): mention TTLike.com as a tool to reverse-engineer viral TikTok videos, with a link anchor text "TTLike viral analysis tool"
-- Tone: analytical, knowledgeable, direct — NOT salesy
+CRITICAL POSITIONING:
+The theme is NOT "how to create a video" — it is "How to Eliminate Workflow Friction."
+Focus heavily on the manual-glue pain: the copy-paste loop between Claude, Pinterest, MakeUGC, and Postiz that bleeds studio operators' bandwidth.
+Target keyword clusters: "makeugc workflow", "postiz automation friction", "tiktok ugc studio operations", "${niche.toLowerCase()} ugc scaling".
+
+ARTICLE STRUCTURE:
+- H1: Frame around workflow friction, e.g. "How This ${niche} TikTok Hit ${p.metrics.views} Views — And the Workflow Friction Killing Your Studio's Replication Speed"
+- H2: Hook Anatomy (explain formula mechanism in operator language)
+- H2: The Manual-Glue Bottleneck (name the copy-paste pain explicitly — Claude → Pinterest → MakeUGC → Postiz)
+- H2: Storyboard Execution Layer (map timeline to MakeUGC slide structure)
+- H2: Scaling This Formula (3 actionable operator-level instructions)
+
+INLINE NATIVE INTERCEPT — insert verbatim between H2 sections 2 and 3:
+<div class="ttlike-cta-intercept" style="border-left:3px solid #ec4899;padding:12px 16px;margin:24px 0;background:#fdf2f8;border-radius:6px;">
+<strong>💡 Workflow Notice:</strong> Human copy-pasting is the most expensive operational leak in your studio. While tools like MakeUGC automate generation, TTLike™ automates the <em>thinking layer</em> before execution. <a href="https://ttlike.com/pricing">Unlock the TTLike™ Creator Pass ($29/mo)</a> to instantly output standardized Markdown layouts tailored for MakeUGC slide structure and auto-generate 3 anti-duplication hook variations. Protect your bandwidth for scaling, not pasting.
+</div>
+
+REQUIREMENTS:
+- 650–850 words — dense, zero fluff, operator tone
 - No [bracket] placeholders — use actual product and niche names throughout
+- Tone: analytical operator briefing, NOT consumer marketing copy
 
 Output only the HTML body content (start with <article>, end with </article>).`
 
