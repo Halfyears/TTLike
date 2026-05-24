@@ -26,7 +26,7 @@ interface User {
   created_at: string
 }
 
-// ── Helpers ── (timeAgo + fmtDate imported from lib/dateUtils) ────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function planColor(plan: string) {
   if (plan === 'ENTERPRISE') return 'bg-violet-900/40 text-violet-300 border border-violet-700'
