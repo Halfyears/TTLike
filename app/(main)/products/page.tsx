@@ -82,13 +82,33 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     if (q)                  query = query.ilike('title', `%${q}%`)
     if (niche && niche !== 'All') query = query.eq('niche', niche)
 
-    const { data, count, error } = await query
+    let { data, count, error } = await query
+
+    // Graceful fallback: cover_storage_url column doesn't exist yet (migration pending)
+    // Retry without it so the products page never goes blank before migration is run.
+    if (error?.code === '42703') {
+      console.warn('[products] cover_storage_url column missing — run migration 20260523_cover_storage.sql')
+      const fbQuery = supabase
+        .from('tiktok_videos')
+        .select('id,product_name,title,niche,viral_score,views,likes,shares,author,cover_url,video_url', { count: 'exact' })
+        .is('deleted_at', null)
+        .range(offset, offset + PER_PAGE - 1)
+      const sorted = sortKey
+        ? fbQuery.order(sortKey, { ascending: false })
+        : fbQuery.order('sort_order', { ascending: true, nullsFirst: false }).order('viral_score', { ascending: false })
+      const filtered = q ? sorted.ilike('title', `%${q}%`) : sorted
+      const filtered2 = (niche && niche !== 'All') ? filtered.eq('niche', niche) : filtered
+      const fb = await filtered2
+      data  = fb.data as typeof data
+      count = fb.count
+      error = fb.error
+    }
 
     if (error) {
       console.error('[products] query error:', error)
     } else {
       total = count ?? 0
-      products = (data as Row[]).map(r => ({
+      products = ((data ?? []) as Row[]).map(r => ({
         id:          r.id,
         productName: r.product_name ?? r.title ?? '',
         niche:       r.niche ?? 'General',
@@ -98,7 +118,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         shares:      r.shares ?? 0,
         author:      r.author ?? '',
         cover_url:         r.cover_url         ?? null,
-        cover_storage_url: r.cover_storage_url ?? null,
+        cover_storage_url: (r as Row).cover_storage_url ?? null,
         video_url:         r.video_url         ?? null,
       }))
     }

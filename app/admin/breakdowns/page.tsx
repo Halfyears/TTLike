@@ -160,16 +160,17 @@ export default async function BreakdownsAdminPage() {
                 const name     = video
                   ? cleanTitle(String(video.product_name ?? video.title ?? 'Untitled'))
                   : `(url-only) ${b.url_hash.slice(0, 8)}`
-                const videoId = b.video_id ?? video?.id
+                const videoId  = b.video_id ?? video?.id
+                const coverSrc = bestCoverUrl(null, video?.cover_url)
 
                 return (
                   <tr key={b.id} className="hover:bg-gray-700/30 transition-colors">
                     {/* Product */}
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        {bestCoverUrl(null, video?.cover_url) ? (
+                        {coverSrc ? (
                           <img
-                            src={bestCoverUrl(null, video?.cover_url)!}
+                            src={coverSrc}
                             alt=""
                             className="h-9 w-16 object-cover rounded-md shrink-0 bg-gray-700"
                           />
