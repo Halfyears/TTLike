@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ExternalLink, Zap, TrendingUp, BarChart2, Database } from 'lucide-react'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 import { BatchTrigger } from './BatchTrigger'
+import { bestCoverUrl } from '@/lib/tiktokImg'
 
 export const dynamic = 'force-dynamic'
 
@@ -166,9 +167,9 @@ export default async function BreakdownsAdminPage() {
                     {/* Product */}
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
-                        {video?.cover_url ? (
+                        {bestCoverUrl(null, video?.cover_url) ? (
                           <img
-                            src={String(video.cover_url)}
+                            src={bestCoverUrl(null, video?.cover_url)!}
                             alt=""
                             className="h-9 w-16 object-cover rounded-md shrink-0 bg-gray-700"
                           />

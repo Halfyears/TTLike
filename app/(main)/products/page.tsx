@@ -50,13 +50,13 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     id: string; product_name: string | null; title: string | null;
     niche: string | null; viral_score: number; views: number;
     likes: number; shares: number; author: string;
-    cover_url: string | null; video_url: string | null;
+    cover_url: string | null; cover_storage_url: string | null; video_url: string | null;
   }
 
   let products: Array<{
     id: string; productName: string; niche: string; viralScore: number;
     views: number; likes: number; shares: number; author: string;
-    cover_url: string | null; video_url: string | null;
+    cover_url: string | null; cover_storage_url: string | null; video_url: string | null;
   }> = []
   let total = 0
 
@@ -65,7 +65,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
     let query = supabase
       .from('tiktok_videos')
-      .select('id,product_name,title,niche,viral_score,views,likes,shares,author,cover_url,video_url', { count: 'exact' })
+      .select('id,product_name,title,niche,viral_score,views,likes,shares,author,cover_url,cover_storage_url,video_url', { count: 'exact' })
       .is('deleted_at', null)
       .range(offset, offset + PER_PAGE - 1)
 
@@ -97,8 +97,9 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
         likes:       r.likes ?? 0,
         shares:      r.shares ?? 0,
         author:      r.author ?? '',
-        cover_url:   r.cover_url ?? null,
-        video_url:   r.video_url ?? null,
+        cover_url:         r.cover_url         ?? null,
+        cover_storage_url: r.cover_storage_url ?? null,
+        video_url:         r.video_url         ?? null,
       }))
     }
   } catch (err) {
@@ -184,6 +185,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
                 shareCount={product.shares}
                 authorHandle={product.author}
                 thumbnailUrl={product.cover_url}
+                coverStorageUrl={product.cover_storage_url}
                 videoUrl={product.video_url}
               />
             ))}

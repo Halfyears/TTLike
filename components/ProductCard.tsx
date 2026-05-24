@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Eye, Heart, Share2, Play, ExternalLink } from 'lucide-react'
-import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
-import { Badge } from '@/components/ui/Badge'
-import { formatNumber } from '@/lib/utils'
+import { ViralScoreBadge }  from '@/components/ui/ViralScoreBadge'
+import { Badge }            from '@/components/ui/Badge'
+import { formatNumber }     from '@/lib/utils'
+import { isTikTokUrlExpired } from '@/lib/tiktokImg'
 
 interface ProductCardProps {
   id: string
@@ -16,7 +17,8 @@ interface ProductCardProps {
   likeCount: number
   shareCount?: number
   authorHandle: string
-  thumbnailUrl?: string | null
+  thumbnailUrl?: string | null       // TikTok CDN URL (may expire)
+  coverStorageUrl?: string | null    // Supabase Storage URL (permanent, preferred)
   videoUrl?: string | null
 }
 
@@ -30,19 +32,24 @@ export function ProductCard({
   shareCount,
   authorHandle,
   thumbnailUrl,
+  coverStorageUrl,
   videoUrl,
 }: ProductCardProps) {
   const [imgFailed, setImgFailed] = useState(false)
   // Strip hashtags so card title shows only product name / type
   const displayName = productName.replace(/#[\w一-龥＀-￯]+\s*/g, '').trim() || productName
 
+  // Prefer permanent Supabase Storage URL; fall back to TikTok CDN only if not expired
+  const activeCover = coverStorageUrl
+    ?? (thumbnailUrl && !isTikTokUrlExpired(thumbnailUrl) ? thumbnailUrl : null)
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
       {/* Thumbnail — clicking goes to internal detail page */}
       <Link href={`/products/${id}`} className="relative h-52 w-full bg-gray-100 overflow-hidden block group">
-        {thumbnailUrl && !imgFailed ? (
+        {activeCover && !imgFailed ? (
           <img
-            src={thumbnailUrl}
+            src={activeCover}
             alt={productName.slice(0, 80)}
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
             onError={() => setImgFailed(true)}
