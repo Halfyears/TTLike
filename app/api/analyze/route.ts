@@ -21,6 +21,7 @@ import { filterHighValueComments, estimateTokens } from '@/lib/sentimentFilter'
 import { createHash }                 from 'crypto'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 import { generateViralSlug }          from '@/lib/seoSlug'
+import { cacheCoverImage }            from '@/lib/imageStorage'
 
 function urlHash(input: string): string {
   return createHash('md5').update(input).digest('hex')
@@ -250,8 +251,10 @@ export async function POST(req: Request) {
   // If the video isn't in our DB, try the public TikTok oEmbed API.
   // On success we build a synthetic meta object and continue the normal
   // Gemini analysis pipeline.  The breakdown is saved with video_id = null.
-  let isOembed = false
-  let oembedSourceUrl: string | null = null
+  let isOembed             = false
+  let oembedSourceUrl:     string | null = null
+  let oembedRawThumb:      string | null = null   // raw TikTok CDN URL from oEmbed
+  let oembedCachedThumb:   string | null = null   // permanent Supabase Storage URL
 
   if (!meta && !video_id && (resolvedUrl ?? url)) {
     const targetUrl = resolvedUrl ?? url!
@@ -271,6 +274,7 @@ export async function POST(req: Request) {
       }
       isOembed        = true
       oembedSourceUrl = targetUrl
+      oembedRawThumb  = oembed.thumbnail_url ?? null
       console.info('[analyze] oEmbed fallback succeeded for:', targetUrl)
     } else {
       return NextResponse.json(
@@ -304,7 +308,14 @@ export async function POST(req: Request) {
     )
   }
 
-  // ── 4. Call Gemini with enriched payload ────────────────────────────────────
+  // ── 4. Call Gemini (+ proxy oEmbed thumbnail in parallel) ───────────────────
+  // For oEmbed rows, kick off the thumbnail upload alongside Gemini — both
+  // are I/O-bound so they run concurrently with no latency cost.
+  const thumbPromise: Promise<string | null> =
+    isOembed && oembedRawThumb
+      ? cacheCoverImage(`oembed-${cacheKey}`, oembedRawThumb).catch(() => null)
+      : Promise.resolve(null)
+
   let geminiResult: Awaited<ReturnType<typeof callVideoBreakdown>>
   try {
     geminiResult = await callVideoBreakdown({
@@ -321,6 +332,9 @@ export async function POST(req: Request) {
     console.error('[analyze] Gemini error:', e)
     return NextResponse.json({ error: 'AI analysis failed — try again later' }, { status: 500 })
   }
+
+  // Collect the thumbnail result (should already be resolved by now)
+  oembedCachedThumb = await thumbPromise
 
   // ── 5. Build V2.5 payload ───────────────────────────────────────────────────
   const payload: VideoBreakdownPayload = {
@@ -340,7 +354,9 @@ export async function POST(req: Request) {
         title:         meta.title ?? '',
         author:        meta.author ?? '',
         video_url:     oembedSourceUrl,
-        thumbnail_url: null,   // oEmbed thumbnail URLs expire quickly; skip
+        // Permanent Supabase Storage URL (proxied from TikTok CDN during analysis).
+        // Falls back to null if the upload failed — UI shows a placeholder icon.
+        thumbnail_url: oembedCachedThumb,
       },
     } : {}),
   }

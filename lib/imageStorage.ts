@@ -18,13 +18,13 @@ const BUCKET = 'covers'
 /**
  * Download a TikTok CDN image and upload it to Supabase Storage.
  *
- * @param videoId   The tiktok_videos.id — used as the storage filename
- * @param sourceUrl The TikTok CDN URL to download from
- * @returns         The permanent Supabase Storage public URL, or null on failure
+ * @param storageKey  Filename stem for the stored object (e.g. tiktok_videos.id or url_hash)
+ * @param sourceUrl   The TikTok CDN URL to download from
+ * @returns           The permanent Supabase Storage public URL, or null on failure
  */
 export async function cacheCoverImage(
-  videoId:   string,
-  sourceUrl: string,
+  storageKey: string,
+  sourceUrl:  string,
 ): Promise<string | null> {
   if (!sourceUrl.includes('tiktokcdn')) {
     // Not a TikTok CDN URL — return as-is
@@ -42,7 +42,7 @@ export async function cacheCoverImage(
     })
 
     if (!fetchRes.ok) {
-      console.warn(`[imageStorage] TikTok CDN fetch failed ${fetchRes.status} for video ${videoId}`)
+      console.warn(`[imageStorage] TikTok CDN fetch failed ${fetchRes.status} for key ${storageKey}`)
       return null
     }
 
@@ -51,7 +51,7 @@ export async function cacheCoverImage(
     const ext         = contentType.includes('jpeg') ? 'jpg'
                       : contentType.includes('png')  ? 'png'
                       : 'webp'
-    const storagePath = `${videoId}.${ext}`
+    const storagePath = `${storageKey}.${ext}`
 
     const service = createServiceClient()
     const { error: uploadError } = await service.storage
@@ -63,7 +63,7 @@ export async function cacheCoverImage(
       })
 
     if (uploadError) {
-      console.error(`[imageStorage] Upload failed for video ${videoId}:`, uploadError.message)
+      console.error(`[imageStorage] Upload failed for key ${storageKey}:`, uploadError.message)
       return null
     }
 
@@ -74,7 +74,7 @@ export async function cacheCoverImage(
 
     return publicUrl
   } catch (e) {
-    console.error(`[imageStorage] Error caching cover for video ${videoId}:`, e)
+    console.error(`[imageStorage] Error caching cover for key ${storageKey}:`, e)
     return null
   }
 }
