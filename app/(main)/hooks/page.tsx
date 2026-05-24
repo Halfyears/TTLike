@@ -1,12 +1,39 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { Zap, Sparkles, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { HOOK_TYPES } from '@/lib/constants'
 import ActionableHookCard from '@/components/ActionableHookCard'
+import { SignupPromptModal } from '@/components/hooks/SignupPromptModal'
+import { createClient } from '@/lib/supabase/client'
 import type { TTLikeHookResponse } from '@/lib/types/hooks'
+
+// ── Anonymous generation tracking ─────────────────────────────────────────────
+
+const STORAGE_KEY = 'ttlike_hook_count'
+const MODAL_DISMISSED_KEY = 'ttlike_hook_modal_v1'
+const SOFT_THRESHOLD = 5
+const HARD_THRESHOLD = 10
+
+function getStoredCount(): number {
+  try { return parseInt(localStorage.getItem(STORAGE_KEY) ?? '0', 10) || 0 } catch { return 0 }
+}
+function incStoredCount(): number {
+  const next = getStoredCount() + 1
+  try { localStorage.setItem(STORAGE_KEY, String(next)) } catch { /* ignore */ }
+  return next
+}
+function wasDismissedAt(threshold: number): boolean {
+  try {
+    const val = localStorage.getItem(`${MODAL_DISMISSED_KEY}_${threshold}`)
+    return val === '1'
+  } catch { return false }
+}
+function markDismissed(threshold: number) {
+  try { localStorage.setItem(`${MODAL_DISMISSED_KEY}_${threshold}`, '1') } catch { /* ignore */ }
+}
 
 const HOOK_PATTERNS = [
   { id: '1', type: 'SURPRISE', title: 'The "I Had No Idea" Hook', template: 'I had no idea [product] could do [unexpected benefit] until I tried it...', example: 'I had no idea a $15 massage gun could fix my 2-year back pain until I tried it...', viralScore: 94, useCount: 2847 },
@@ -36,10 +63,33 @@ const hookTypeColors: Record<string, string> = {
 // ── Hook Machine section ──────────────────────────────────────────────────────
 
 function HookMachine() {
-  const [text,    setText]    = useState('')
-  const [loading, setLoading] = useState(false)
-  const [result,  setResult]  = useState<TTLikeHookResponse | null>(null)
-  const [error,   setError]   = useState<string | null>(null)
+  const [text,        setText]       = useState('')
+  const [loading,     setLoading]    = useState(false)
+  const [result,      setResult]     = useState<TTLikeHookResponse | null>(null)
+  const [error,       setError]      = useState<string | null>(null)
+  const [showModal,   setShowModal]  = useState(false)
+  const [modalCount,  setModalCount] = useState(0)
+  const [isLoggedIn,  setIsLoggedIn] = useState(false)
+
+  // Check auth status once on mount
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsLoggedIn(!!session)
+    }).catch(() => { /* ignore */ })
+  }, [])
+
+  const maybeShowModal = useCallback((count: number) => {
+    if (isLoggedIn) return
+    const threshold =
+      count >= HARD_THRESHOLD && !wasDismissedAt(HARD_THRESHOLD) ? HARD_THRESHOLD :
+      count >= SOFT_THRESHOLD && !wasDismissedAt(SOFT_THRESHOLD) ? SOFT_THRESHOLD :
+      0
+    if (threshold > 0) {
+      setModalCount(count)
+      setShowModal(true)
+    }
+  }, [isLoggedIn])
 
   const analyse = async () => {
     if (!text.trim() || loading) return
@@ -58,6 +108,11 @@ function HookMachine() {
         throw new Error(data.error ?? `Server error ${res.status}`)
       }
       setResult(data)
+      // Track generation count (anonymous only)
+      if (!isLoggedIn) {
+        const newCount = incStoredCount()
+        maybeShowModal(newCount)
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong — try again')
     } finally {
@@ -69,7 +124,16 @@ function HookMachine() {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) analyse()
   }
 
+  const handleDismiss = () => {
+    // Mark the crossed threshold as dismissed so it doesn't appear again this session
+    if (modalCount >= HARD_THRESHOLD) markDismissed(HARD_THRESHOLD)
+    else if (modalCount >= SOFT_THRESHOLD) markDismissed(SOFT_THRESHOLD)
+    setShowModal(false)
+  }
+
   return (
+    <>
+    {showModal && <SignupPromptModal count={modalCount} onDismiss={handleDismiss} />}
     <div className="rounded-2xl border border-indigo-200 bg-gradient-to-br from-slate-900 to-indigo-950 p-6 mb-10 shadow-xl">
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
@@ -128,6 +192,7 @@ function HookMachine() {
         </div>
       )}
     </div>
+    </>
   )
 }
 
@@ -158,6 +223,31 @@ export default function HooksPage() {
             {hook.label}
           </span>
         ))}
+      </div>
+
+      {/* ── Niche SEO pages ─────────────────────────────────────────────────── */}
+      <div className="mb-8 p-4 rounded-xl border border-gray-100 bg-gray-50">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+          Hooks by Niche
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { slug: 'beauty',  label: '💄 Beauty',    },
+            { slug: 'fitness', label: '💪 Fitness',   },
+            { slug: 'home',    label: '🏠 Home',      },
+            { slug: 'tech',    label: '📱 Tech',      },
+            { slug: 'fashion', label: '👗 Fashion',   },
+            { slug: 'pet',     label: '🐾 Pets',      },
+            { slug: 'food',    label: '🍳 Food',      },
+            { slug: 'gadgets', label: '🔧 Gadgets',   },
+          ].map(({ slug, label }) => (
+            <Link key={slug} href={`/hooks/${slug}`}>
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full border border-gray-200 text-sm text-gray-600 hover:border-pink-300 hover:text-pink-600 transition-colors bg-white cursor-pointer">
+                {label}
+              </span>
+            </Link>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

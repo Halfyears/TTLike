@@ -41,6 +41,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/auth/signup`, lastModified: new Date(), changeFrequency: 'monthly' as const, priority: 0.6 },
   ]
 
+  // Programmatic SEO niche pages
+  const nicheRoutes = [
+    'beauty', 'fitness', 'home', 'tech', 'fashion', 'pet', 'food', 'gadgets',
+  ].map(niche => ({
+    url:             `${SITE_URL}/hooks/${niche}`,
+    lastModified:    new Date(),
+    changeFrequency: 'monthly' as const,
+    priority:        0.75,
+  }))
+
   const blogSlugs = [
     'tiktok-viral-products-2024',
     'hook-formula-guide',
@@ -57,5 +67,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }))
 
-  return [...staticRoutes, ...blogRoutes, ...viralRoutes]
+  return [...staticRoutes, ...nicheRoutes, ...blogRoutes, ...viralRoutes]
 }

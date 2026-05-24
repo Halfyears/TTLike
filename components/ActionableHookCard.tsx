@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { Copy, Check, Zap, Brain, Eye } from 'lucide-react'
+import { Copy, Check, Zap, Brain, Eye, Share2 } from 'lucide-react'
 import type { TTLikeHookResponse, HookVariant } from '@/lib/types/hooks'
 
 // ── Bold text renderer: **text** → <strong class="text-amber-400"> ─────────────
@@ -150,6 +150,47 @@ interface ActionableHookCardProps {
   originalText: string
 }
 
+function ShareCardButton({ result, originalText }: { result: TTLikeHookResponse; originalText: string }) {
+  const [copied, setCopied] = useState(false)
+
+  function buildShareUrl() {
+    const p = new URLSearchParams({
+      score:   String(result.original_analysis.scroll_stop_score),
+      pattern: result.hook_classification.primary_pattern,
+      hook:    originalText.slice(0, 120),
+    })
+    result.variants.slice(0, 4).forEach((v, i) => p.set(`v${i + 1}`, v.text.slice(0, 80)))
+    return `/api/og/hook?${p.toString()}`
+  }
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}${buildShareUrl()}`
+    // Open in new tab (shows the card image — user can save/screenshot)
+    window.open(url, '_blank')
+    // Also copy the URL
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch { /* ignore */ }
+  }
+
+  return (
+    <button
+      onClick={handleShare}
+      title="Generate share card (opens in new tab)"
+      className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md
+        bg-indigo-900/50 hover:bg-indigo-800/60 text-indigo-300 hover:text-indigo-200
+        transition-colors border border-indigo-700/50 hover:border-indigo-600"
+    >
+      {copied
+        ? <><Check className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400">Link copied!</span></>
+        : <><Share2 className="h-3 w-3" />Share Card</>
+      }
+    </button>
+  )
+}
+
 export default function ActionableHookCard({ result, originalText }: ActionableHookCardProps) {
   const { original_analysis, hook_classification, variants } = result
   const score = Math.min(100, Math.max(0, original_analysis.scroll_stop_score))
@@ -188,12 +229,13 @@ export default function ActionableHookCard({ result, originalText }: ActionableH
           </div>
         </div>
 
-        {/* Zap badge */}
-        <div className="shrink-0">
+        {/* Right side: badge + share */}
+        <div className="shrink-0 flex flex-col items-end gap-2">
           <div className="flex items-center gap-1 bg-pink-950/50 border border-pink-800 text-pink-300 text-[10px] font-semibold px-2.5 py-1 rounded-full">
             <Zap className="h-3 w-3" />
             Hook Machine
           </div>
+          <ShareCardButton result={result} originalText={originalText} />
         </div>
       </div>
 
