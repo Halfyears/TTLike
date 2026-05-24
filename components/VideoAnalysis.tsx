@@ -9,9 +9,9 @@
  *       "Copy for CapCut" timeline export.
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
-import { Copy, Check, Film, Download, Lock, Zap, LayoutList, Search } from 'lucide-react'
+import { Copy, Check, Film, Download, Lock, Zap, LayoutList, Search, FileText } from 'lucide-react'
 import type { VideoBreakdownPayload, TimelineScene } from '@/lib/types/intelligence'
 import { deriveCommercePayload } from '@/lib/types/intelligence'
 import type { TierName } from '@/lib/constants'
@@ -48,6 +48,8 @@ interface Props {
   viralScore?:     number
   /** tiktok_videos.id — used for upgrade trigger attribution */
   videoId?:        string
+  /** video_breakdowns.id — required for PDF export */
+  breakdownId?:    string
 }
 
 // ── Trend-badge helpers ───────────────────────────────────────────────────────
@@ -117,14 +119,35 @@ export function VideoAnalysis({
   niche = 'General',
   viralScore = 0,
   videoId,
+  breakdownId,
 }: Props) {
   const { copied, copy } = useCopy()
-  const isPaid = tier === 'creator' || tier === 'scale'
+  const isPaid  = tier === 'creator' || tier === 'scale'
+  const isScale = tier === 'scale'
 
   // Upgrade CTA tracker (memoised, fire-and-forget)
   const onUpgradeClick = useCallback((ctaLabel: string, triggerType = 'curiosity', insightLabel?: string) => {
     trackUpgrade({ cta_label: ctaLabel, video_id: videoId, trigger_type: triggerType, insight_label: insightLabel })
   }, [videoId])
+
+  // ── PDF pass balance ───────────────────────────────────────────────────────
+  const [pdfCanExport, setPdfCanExport] = useState(false)
+  const [pdfExporting, setPdfExporting] = useState(false)
+  useEffect(() => {
+    if (!breakdownId) return
+    fetch('/api/user/pdf-pass-balance')
+      .then(r => r.json())
+      .then((d: { can_export?: boolean }) => { if (d.can_export) setPdfCanExport(true) })
+      .catch(() => { /* ignore */ })
+  }, [breakdownId])
+
+  function handlePdfExport() {
+    if (!breakdownId || pdfExporting) return
+    setPdfExporting(true)
+    window.open(`/api/user/export-pdf?breakdown_id=${breakdownId}`, '_blank')
+    // Reset after a short delay so the button isn't stuck in loading state
+    setTimeout(() => setPdfExporting(false), 3000)
+  }
 
   if (!data) return null
 
@@ -155,19 +178,37 @@ export function VideoAnalysis({
           </div>
           <p className="text-sm font-bold text-slate-700 mt-0.5">Ad Reverse-Engineering Panel</p>
         </div>
-        {data.metrics && (
-          <div className="flex gap-1.5 text-[10px] font-bold shrink-0">
-            <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
-              👁 {data.metrics.views}
-            </span>
-            <span className="bg-pink-50 text-pink-600 px-2 py-0.5 rounded font-mono">
-              ♥ {data.metrics.likes}
-            </span>
-            <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded font-mono">
-              ↗ {data.metrics.shares}
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {data.metrics && (
+            <div className="flex gap-1.5 text-[10px] font-bold">
+              <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono">
+                👁 {data.metrics.views}
+              </span>
+              <span className="bg-pink-50 text-pink-600 px-2 py-0.5 rounded font-mono">
+                ♥ {data.metrics.likes}
+              </span>
+              <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded font-mono">
+                ↗ {data.metrics.shares}
+              </span>
+            </div>
+          )}
+          {/* Export PDF — visible when user has a pass OR is Scale tier */}
+          {breakdownId && (isScale || pdfCanExport) && (
+            <button
+              onClick={handlePdfExport}
+              disabled={pdfExporting}
+              title="Export white-label PDF"
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
+                pdfExporting
+                  ? 'bg-slate-200 text-slate-400 cursor-wait'
+                  : 'bg-slate-700 hover:bg-slate-800 text-white'
+              }`}
+            >
+              <FileText className="h-3 w-3" />
+              {pdfExporting ? 'Opening…' : 'Export PDF'}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="p-4 space-y-6">

@@ -4,6 +4,7 @@ import { Badge }               from '@/components/ui/Badge'
 import { LocalDate }           from '@/components/ui/LocalDate'
 import { SEOFlywheelPanel }    from '@/components/admin/SEOFlywheelPanel'
 import type { BreakdownForFlywheel } from '@/components/admin/SEOFlywheelPanel'
+import { SitemapSubmitPanel }  from '@/components/admin/SitemapSubmitPanel'
 import Link from 'next/link'
 
 export const dynamic  = 'force-dynamic'
@@ -67,7 +68,10 @@ export default async function AdminBlogPage() {
         </p>
       </div>
 
-      {/* ── Section 1: SEO Content Flywheel ── */}
+      {/* ── Section 1: Sitemap Auto-Submit ── */}
+      <SitemapSubmitPanel />
+
+      {/* ── Section 2: SEO Content Flywheel ── */}
       <div>
         <p className="text-xs text-gray-500 uppercase tracking-widest font-semibold mb-3">
           📡 SEO Content Flywheel — n8n → Ghost → Social

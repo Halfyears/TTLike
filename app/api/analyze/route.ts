@@ -176,18 +176,19 @@ export async function POST(req: Request) {
 
   const { data: cached } = await service
     .from('video_breakdowns')
-    .select('payload, video_id, seo_slug')
+    .select('id, payload, video_id, seo_slug')
     .eq('url_hash', cacheKey)
     .maybeSingle()
 
   if (cached?.payload) {
     const cachedPayload = cached.payload as VideoBreakdownPayload
     return NextResponse.json({
-      breakdown:  cachedPayload,
-      video_id:   cached.video_id  ?? null,
-      seo_slug:   cached.seo_slug  ?? null,
-      is_oembed:  cached.video_id == null && !!cachedPayload.source_meta,
-      fromCache:  true,
+      breakdown:    cachedPayload,
+      breakdown_id: (cached as { id?: string }).id ?? null,
+      video_id:     cached.video_id  ?? null,
+      seo_slug:     cached.seo_slug  ?? null,
+      is_oembed:    cached.video_id == null && !!cachedPayload.source_meta,
+      fromCache:    true,
     })
   }
 
@@ -433,11 +434,12 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json({
-    breakdown:  payload,
-    video_id:   isOembed ? null : meta.id,
-    seo_slug:   seoSlug,
-    is_oembed:  isOembed,
-    fromCache:  false,
+    breakdown:    payload,
+    video_id:     isOembed ? null : meta.id,
+    breakdown_id: insertedRow?.id ?? null,
+    seo_slug:     seoSlug,
+    is_oembed:    isOembed,
+    fromCache:    false,
     saved,
     ...(dbError ? { dbError } : {}),
   })
@@ -454,10 +456,15 @@ export async function GET(req: Request) {
 
   const { data } = await service
     .from('video_breakdowns')
-    .select('payload, created_at')
+    .select('id, payload, created_at')
     .eq('url_hash', cacheKey)
     .maybeSingle()
 
   if (!data) return NextResponse.json({ breakdown: null, fromCache: false })
-  return NextResponse.json({ breakdown: data.payload, fromCache: true, cached_at: data.created_at })
+  return NextResponse.json({
+    breakdown:    data.payload,
+    breakdown_id: (data as { id?: string }).id ?? null,
+    fromCache:    true,
+    cached_at:    data.created_at,
+  })
 }

@@ -14,10 +14,11 @@ interface Props {
 }
 
 export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Props) {
-  const [state, setState]   = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
-  const [data, setData]     = useState<VideoBreakdownPayload | null>(null)
-  const [errMsg, setErr]    = useState('')
-  const [dbWarn, setDbWarn] = useState<string | null>(null)  // visible DB-save diagnostic
+  const [state,       setState]      = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [data,        setData]       = useState<VideoBreakdownPayload | null>(null)
+  const [errMsg,      setErr]        = useState('')
+  const [dbWarn,      setDbWarn]     = useState<string | null>(null)
+  const [breakdownId, setBreakdownId] = useState<string | null>(null)
 
   async function load() {
     setState('loading')
@@ -29,6 +30,7 @@ export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Pro
 
       if (json.breakdown) {
         setData(json.breakdown as VideoBreakdownPayload)
+        setBreakdownId((json as { breakdown_id?: string }).breakdown_id ?? null)
         setState('done')
         return
       }
@@ -40,10 +42,11 @@ export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Pro
         body:    JSON.stringify({ video_id: videoId }),
       })
       const json2 = await res2.json() as {
-        breakdown?: VideoBreakdownPayload
-        saved?:     boolean
-        dbError?:   string
-        error?:     string
+        breakdown?:    VideoBreakdownPayload
+        breakdown_id?: string
+        saved?:        boolean
+        dbError?:      string
+        error?:        string
       }
       if (!res2.ok) throw new Error(json2.error ?? `HTTP ${res2.status}`)
 
@@ -55,6 +58,7 @@ export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Pro
       }
 
       setData(json2.breakdown as VideoBreakdownPayload)
+      setBreakdownId(json2.breakdown_id ?? null)
       setState('done')
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Analysis failed')
@@ -142,7 +146,7 @@ export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Pro
           Regenerate
         </button>
       </div>
-      <VideoAnalysis data={data} showPremiumCta={false} tier={tier} videoId={videoId} />
+      <VideoAnalysis data={data} showPremiumCta={false} tier={tier} videoId={videoId} breakdownId={breakdownId ?? undefined} />
     </div>
   )
 }
