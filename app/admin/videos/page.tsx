@@ -28,8 +28,9 @@ import {
   CheckCircle, Brain, ChevronDown, ChevronUp, Calendar,
   Flame,
 } from 'lucide-react'
-import { PromptManager }    from './PromptManager'
-import { ViralRadarButton } from './ViralRadarButton'
+import { PromptManager }        from './PromptManager'
+import { ViralRadarButton }    from './ViralRadarButton'
+import { PromptQualityChecker } from './PromptQualityChecker'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Video {
@@ -571,9 +572,10 @@ export default function AdminVideosPage() {
         </button>
       </div>
 
-      {/* ── Viral Radar + Prompt Manager ─────────────────────────────────────── */}
+      {/* ── Viral Radar + Prompt Manager + Quality Checker ──────────────────── */}
       <div className="mb-5 space-y-3">
         <ViralRadarButton />
+        <PromptQualityChecker />
         <PromptManager />
       </div>
 

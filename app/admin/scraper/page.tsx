@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Activity, CheckCircle, XCircle, RefreshCw, Play, Database, Clock, Image, AlertTriangle } from 'lucide-react'
+import { Activity, CheckCircle, XCircle, RefreshCw, Play, Database, Clock, Image, AlertTriangle, ToggleLeft, ToggleRight, Shield } from 'lucide-react'
 import { fmtDateTime } from '@/lib/dateUtils'
 
 interface ScraperLog {
@@ -45,9 +45,15 @@ export default function ScraperPage() {
   const [refreshing, setRefreshing] = useState(false)
 
   // ── Cover cache state ──────────────────────────────────────────────────────
-  const [caching, setCaching] = useState(false)
+  const [caching,     setCaching]     = useState(false)
   const [cacheResult, setCacheResult] = useState<CacheResult | null>(null)
-  const [cacheLimit, setCacheLimit] = useState(100)
+  const [cacheLimit,  setCacheLimit]  = useState(100)
+
+  // ── Fallback switch state ──────────────────────────────────────────────────
+  const [fallbackEnabled,  setFallbackEnabled]  = useState(false)
+  const [fallbackLoading,  setFallbackLoading]  = useState(false)
+  const [fallbackUpdated,  setFallbackUpdated]  = useState<string | null>(null)
+  const [fallbackMsg,      setFallbackMsg]      = useState<{ ok: boolean; text: string } | null>(null)
 
   const supabase = createClient()
 
@@ -74,11 +80,51 @@ export default function ScraperPage() {
     }
   }, [])
 
+  // ── Fetch fallback config ──────────────────────────────────────────────────
+  const fetchFallback = useCallback(async () => {
+    try {
+      const res  = await fetch('/api/admin/scraper/fallback-config')
+      const data = await res.json()
+      if (res.ok) {
+        setFallbackEnabled(data.enabled)
+        setFallbackUpdated(data.updated_at)
+      }
+    } catch { /* ignore */ }
+  }, [])
+
   useEffect(() => {
     fetchData()
+    fetchFallback()
     const id = setInterval(fetchData, 5 * 60 * 1000)
     return () => clearInterval(id)
-  }, [fetchData])
+  }, [fetchData, fetchFallback])
+
+  // ── Toggle fallback ────────────────────────────────────────────────────────
+  async function handleToggleFallback() {
+    setFallbackLoading(true)
+    setFallbackMsg(null)
+    try {
+      const next = !fallbackEnabled
+      const res  = await fetch('/api/admin/scraper/fallback-config', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ enabled: next }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setFallbackEnabled(data.enabled)
+        setFallbackUpdated(data.updated_at)
+        setFallbackMsg({
+          ok:   true,
+          text: `Fallback scraper ${data.enabled ? 'ENABLED — Apify bridge will be used when block rate ≥ 30%' : 'DISABLED — native HTTP fetch active'}`,
+        })
+      } else {
+        setFallbackMsg({ ok: false, text: data.error ?? 'Failed to toggle' })
+      }
+    } finally {
+      setFallbackLoading(false)
+    }
+  }
 
   async function handleTrigger() {
     setTriggering(true)
@@ -209,6 +255,60 @@ export default function ScraperPage() {
           </div>
         )
       })()}
+
+      {/* Fallback Switch */}
+      <div className={`mb-8 rounded-xl border p-5 ${fallbackEnabled ? 'bg-amber-950/20 border-amber-700' : 'bg-gray-800 border-gray-700'}`}>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Shield className={`h-4 w-4 ${fallbackEnabled ? 'text-amber-400' : 'text-gray-500'}`} />
+            <h2 className="text-white font-semibold">Fallback Scraper</h2>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${
+              fallbackEnabled
+                ? 'bg-amber-900/60 text-amber-300'
+                : 'bg-gray-700 text-gray-500'
+            }`}>
+              {fallbackEnabled ? 'Apify Bridge ON' : 'Native HTTP'}
+            </span>
+          </div>
+
+          <button
+            onClick={handleToggleFallback}
+            disabled={fallbackLoading}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 ${
+              fallbackEnabled
+                ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+            }`}
+          >
+            {fallbackEnabled
+              ? <ToggleRight className="h-4 w-4" />
+              : <ToggleLeft  className="h-4 w-4" />
+            }
+            {fallbackLoading
+              ? 'Updating…'
+              : fallbackEnabled ? 'Disable Fallback' : 'Enable Apify Fallback'
+            }
+          </button>
+        </div>
+
+        <p className="text-xs text-gray-400 mt-3">
+          When enabled, the scraper routes requests through Apify / Bright Data commercial proxies,
+          bypassing TikTok&apos;s rate-limit blocks. Recommended when block rate ≥ 30%.
+          {fallbackUpdated && (
+            <span className="text-gray-600 ml-1">Last changed: {fmtDateTime(fallbackUpdated)}</span>
+          )}
+        </p>
+
+        {fallbackMsg && (
+          <div className={`mt-3 px-3 py-2 rounded-lg text-xs ${
+            fallbackMsg.ok
+              ? 'bg-emerald-900/40 border border-emerald-700 text-emerald-300'
+              : 'bg-red-900/40 border border-red-700 text-red-300'
+          }`}>
+            {fallbackMsg.text}
+          </div>
+        )}
+      </div>
 
       {/* Manual trigger */}
       <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 mb-8">
