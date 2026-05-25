@@ -77,12 +77,30 @@ export async function POST(req: Request) {
 
   const { provider, mode, secretKey, publicKey, webhookSecret, clientId, extraConfig, isEnabled } = body
   if (!provider) return NextResponse.json({ error: 'provider is required' }, { status: 400 })
+  if (!['stripe', 'paypal'].includes(provider)) {
+    return NextResponse.json({ error: 'provider must be stripe or paypal' }, { status: 400 })
+  }
 
   // Sentinel "__unchanged__" means don't overwrite existing value
   const SENTINEL = '__unchanged__'
 
   // Fetch existing to preserve keys when sentinel sent
   const existing = await prisma.paymentConfig.findUnique({ where: { provider } })
+
+  // Guard: disallow explicit empty-string submission for sensitive fields that are already set
+  // (frontend sends SENTINEL for unchanged fields; empty string is always a mistake here)
+  const sensitiveFields = [
+    { name: 'secretKey',     val: secretKey,     has: existing?.secretKey },
+    { name: 'webhookSecret', val: webhookSecret, has: existing?.webhookSecret },
+  ]
+  for (const { name, val, has } of sensitiveFields) {
+    if (val === '' && has) {
+      return NextResponse.json(
+        { error: `Cannot clear existing ${name} — leave blank to keep current value` },
+        { status: 400 },
+      )
+    }
+  }
 
   const updated = await prisma.paymentConfig.upsert({
     where:  { provider },

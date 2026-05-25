@@ -384,9 +384,9 @@ export default function FinancePage() {
                         <td className="px-5 py-3 text-xs text-gray-600 tabular-nums">{i + 1}</td>
                         <td className="px-4 py-3 max-w-[220px]">
                           <p className="text-xs text-white font-medium truncate">
-                            {(u as unknown as { name?: string }).name ?? u.email}
+                            {u.name ?? u.email}
                           </p>
-                          {(u as unknown as { name?: string }).name && (
+                          {u.name && (
                             <p className="text-[10px] text-gray-500 truncate font-mono mt-0.5">{u.email}</p>
                           )}
                         </td>

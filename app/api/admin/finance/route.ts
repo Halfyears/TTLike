@@ -189,6 +189,7 @@ export async function GET() {
     ranking.push({
       user_id:    uid,
       email:      userInfo?.email ?? uid.slice(0, 8) + '…',
+      name:       (userInfo as { name?: string | null } | undefined)?.name ?? null,
       plan,
       plan_value: planValue,
       generations: stats.gens,

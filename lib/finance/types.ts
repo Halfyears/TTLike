@@ -34,6 +34,7 @@ export interface FinanceData {
   ltv_ranking: Array<{
     user_id:      string
     email:        string
+    name:         string | null   // display name (may be null for older accounts)
     plan:         string
     plan_value:   number   // monthly USD
     generations:  number   // total AI calls
