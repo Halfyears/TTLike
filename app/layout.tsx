@@ -21,15 +21,15 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
   },
   twitter: { card: 'summary_large_image' },
-  verification: {
-    // Bing Webmaster Tools — https://www.bing.com/webmaster
-    other: { 'msvalidate.01': '701F44DD8CD51992D895FDE510E30B05' },
-  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={geist.variable} suppressHydrationWarning>
+      <head>
+        {/* Bing Webmaster Tools site verification */}
+        <meta name="msvalidate.01" content="701F44DD8CD51992D895FDE510E30B05" />
+      </head>
       <body className="min-h-screen bg-white font-sans antialiased">
         {children}
 
