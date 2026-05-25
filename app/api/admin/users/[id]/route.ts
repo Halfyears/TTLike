@@ -1,6 +1,6 @@
 /**
  * GET   /api/admin/users/[id]  — full user detail for admin inspection
- * PATCH /api/admin/users/[id]  — update user role
+ * PATCH /api/admin/users/[id]  — update user role and/or accountStatus
  */
 
 import { NextResponse } from 'next/server'
@@ -114,7 +114,7 @@ export async function GET(
   })
 }
 
-// ── PATCH — update role ───────────────────────────────────────────────────────
+// ── PATCH — update role and/or accountStatus ─────────────────────────────────
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -124,11 +124,15 @@ export async function PATCH(
   }
 
   const { id } = await params
-  const body = await req.json() as { role?: unknown }
-  const { role } = body
+  const body = await req.json() as { role?: unknown; accountStatus?: unknown }
+  const { role, accountStatus } = body
 
-  if (typeof role !== 'string' || !['USER', 'ADMIN'].includes(role)) {
+  if (role !== undefined && (typeof role !== 'string' || !['USER', 'ADMIN'].includes(role))) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+  }
+  const VALID_STATUSES = ['PENDING', 'ACTIVE', 'INACTIVE', 'DELETED']
+  if (accountStatus !== undefined && (typeof accountStatus !== 'string' || !VALID_STATUSES.includes(accountStatus))) {
+    return NextResponse.json({ error: 'Invalid accountStatus' }, { status: 400 })
   }
 
   const service = createServiceClient()
@@ -138,13 +142,16 @@ export async function PATCH(
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
-  const { error } = await service.from('users').upsert({
+  const updateData: Record<string, unknown> = {
     id:    authUser.id,
     email: authUser.email ?? '',
-    role,
-  }, { onConflict: 'id' })
+  }
+  if (role !== undefined)          updateData.role = role
+  if (accountStatus !== undefined) updateData.account_status = accountStatus
+
+  const { error } = await service.from('users').upsert(updateData, { onConflict: 'id' })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ ok: true, id, role })
+  return NextResponse.json({ ok: true, id, role, accountStatus })
 }

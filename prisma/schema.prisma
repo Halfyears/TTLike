@@ -14,6 +14,7 @@ model User {
   name          String?
   avatarUrl     String?
   role          UserRole  @default(USER)
+  accountStatus String    @default("ACTIVE")  // PENDING | ACTIVE | INACTIVE | DELETED
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -194,6 +195,36 @@ model UserAnalytic {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_analytics")
+}
+
+model PaymentConfig {
+  id            String   @id @default(uuid())
+  provider      String   @unique  // 'stripe' | 'paypal'
+  mode          String   @default("sandbox")  // 'sandbox' | 'live'
+  secretKey     String?
+  publicKey     String?
+  webhookSecret String?
+  clientId      String?  // PayPal client ID
+  extraConfig   Json?
+  isEnabled     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("payment_configs")
+}
+
+model SpamRule {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  ruleType    String   // 'disposable_email' | 'email_pattern' | 'registration_rate' | 'manual_flag'
+  config      Json?
+  autoAction  String?  // 'flag' | 'set_pending' | 'set_inactive' | null
+  isEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("spam_rules")
 }
 
 model AffiliateLink {

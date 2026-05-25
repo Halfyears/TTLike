@@ -15,7 +15,9 @@ import {
   CreditCard, TrendingUp, Zap, Users, RefreshCw,
   CheckCircle, XCircle, AlertTriangle, Flame,
   DollarSign, BarChart2, ShieldCheck, ArrowUpDown,
+  Settings,
 } from 'lucide-react'
+import Link from 'next/link'
 import { AdminKpiCard } from '@/components/admin/AdminKpiCard'
 import type { FinanceData } from '@/lib/finance/types'
 import { fmtUSD, fmtUSDShort } from '@/lib/finance/metrics'
@@ -149,14 +151,22 @@ export default function FinancePage() {
           </h1>
           <p className="text-gray-400 text-sm">Revenue · Token FinOps · User LTV/COGS</p>
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/finance/config"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors border border-gray-700"
+          >
+            <Settings className="h-4 w-4" /> Gateway Config
+          </Link>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Error */}
@@ -362,14 +372,23 @@ export default function FinancePage() {
                         </td>
                       </tr>
                     ) : ranking.map((u, i) => (
-                      <tr key={u.user_id} className={`hover:bg-gray-700/30 transition-colors ${
-                        u.label === 'freeloader' ? 'bg-red-950/10' :
-                        u.label === 'at_risk'    ? 'bg-amber-950/10' :
-                        u.label === 'whale'      ? 'bg-emerald-950/10' : ''
-                      }`}>
+                      <tr
+                        key={u.user_id}
+                        onClick={() => window.location.href = `/admin/users/${u.user_id}`}
+                        className={`hover:bg-gray-700/40 transition-colors cursor-pointer ${
+                          u.label === 'freeloader' ? 'bg-red-950/10' :
+                          u.label === 'at_risk'    ? 'bg-amber-950/10' :
+                          u.label === 'whale'      ? 'bg-emerald-950/10' : ''
+                        }`}
+                      >
                         <td className="px-5 py-3 text-xs text-gray-600 tabular-nums">{i + 1}</td>
-                        <td className="px-4 py-3 max-w-[200px]">
-                          <p className="text-xs text-gray-300 truncate font-mono">{u.email}</p>
+                        <td className="px-4 py-3 max-w-[220px]">
+                          <p className="text-xs text-white font-medium truncate">
+                            {(u as unknown as { name?: string }).name ?? u.email}
+                          </p>
+                          {(u as unknown as { name?: string }).name && (
+                            <p className="text-[10px] text-gray-500 truncate font-mono mt-0.5">{u.email}</p>
+                          )}
                         </td>
                         <td className="px-4 py-3">{planBadge(u.plan)}</td>
                         <td className="px-4 py-3 text-right">

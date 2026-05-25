@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import {
   Shield, LayoutDashboard, Users, Video, BookOpen,
   Link2, Zap, Activity, Megaphone, BrainCircuit,
-  FileText, Clapperboard, DollarSign,
+  FileText, Clapperboard, DollarSign, Settings, ShieldAlert,
 } from 'lucide-react'
 import { useLanguage } from '@/lib/i18n'
 
@@ -20,8 +20,10 @@ function buildNav(t: ReturnType<typeof useLanguage>['t']): NavEntry[] {
     // ── Operations (high-frequency morning checks) ──────────────────────────
     { type: 'group', label: t.nav.groupOperations },
     { type: 'link',  href: '/admin',         icon: LayoutDashboard, label: t.nav.dashboard },
-    { type: 'link',  href: '/admin/users',   icon: Users,           label: t.nav.users },
-    { type: 'link',  href: '/admin/finance', icon: DollarSign,      label: t.nav.finance },
+    { type: 'link',  href: '/admin/users',         icon: Users,       label: t.nav.users },
+    { type: 'link',  href: '/admin/users/spam',   icon: ShieldAlert, label: 'Anti-Spam' },
+    { type: 'link',  href: '/admin/finance',       icon: DollarSign,  label: t.nav.finance },
+    { type: 'link',  href: '/admin/finance/config',icon: Settings,    label: 'Gateway Config' },
     // ── Content (AI engine + video library) ─────────────────────────────────
     { type: 'group', label: t.nav.groupContent },
     { type: 'link',  href: '/admin/videos',     icon: Video,        label: t.nav.videos },

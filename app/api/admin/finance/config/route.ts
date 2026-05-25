@@ -1,0 +1,122 @@
+/**
+ * GET  /api/admin/finance/config  — list payment gateway configs (keys masked)
+ * POST /api/admin/finance/config  — upsert a gateway config
+ */
+
+import { NextResponse }  from 'next/server'
+import { createClient }  from '@/lib/supabase/server'
+import { prisma }        from '@/lib/prisma'
+import { Prisma }        from '@prisma/client'
+
+export const dynamic = 'force-dynamic'
+
+// ── Auth guard ────────────────────────────────────────────────────────────────
+async function isAdmin(): Promise<boolean> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+    try {
+      const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
+      if (dbUser?.role === 'ADMIN') return true
+    } catch {}
+    return user.email === process.env.ADMIN_EMAIL
+  } catch { return false }
+}
+
+// ── Mask helper — show last 4 chars, rest as * ────────────────────────────────
+function maskKey(val: string | null | undefined): string | null {
+  if (!val) return null
+  if (val.length <= 4) return '****'
+  return '****' + val.slice(-4)
+}
+
+// ── GET ───────────────────────────────────────────────────────────────────────
+export async function GET() {
+  if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const rows = await prisma.paymentConfig.findMany({
+    orderBy: { provider: 'asc' },
+  })
+
+  // Return masked version — never send raw keys to client
+  const masked = rows.map(r => ({
+    id:              r.id,
+    provider:        r.provider,
+    mode:            r.mode,
+    isEnabled:       r.isEnabled,
+    hasSecretKey:    !!r.secretKey,
+    secretKeyMask:   maskKey(r.secretKey),
+    hasPublicKey:    !!r.publicKey,
+    publicKeyMask:   maskKey(r.publicKey),
+    hasWebhookSecret: !!r.webhookSecret,
+    webhookSecretMask: maskKey(r.webhookSecret),
+    hasClientId:     !!r.clientId,
+    clientIdMask:    maskKey(r.clientId),
+    extraConfig:     r.extraConfig,
+    updatedAt:       r.updatedAt,
+  }))
+
+  return NextResponse.json({ configs: masked })
+}
+
+// ── POST ──────────────────────────────────────────────────────────────────────
+export async function POST(req: Request) {
+  if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const body = await req.json() as {
+    provider:      string
+    mode?:         string
+    secretKey?:    string
+    publicKey?:    string
+    webhookSecret?: string
+    clientId?:     string
+    extraConfig?:  Record<string, unknown>
+    isEnabled?:    boolean
+  }
+
+  const { provider, mode, secretKey, publicKey, webhookSecret, clientId, extraConfig, isEnabled } = body
+  if (!provider) return NextResponse.json({ error: 'provider is required' }, { status: 400 })
+
+  // Sentinel "__unchanged__" means don't overwrite existing value
+  const SENTINEL = '__unchanged__'
+
+  // Fetch existing to preserve keys when sentinel sent
+  const existing = await prisma.paymentConfig.findUnique({ where: { provider } })
+
+  const updated = await prisma.paymentConfig.upsert({
+    where:  { provider },
+    create: {
+      provider,
+      mode:          mode ?? 'sandbox',
+      secretKey:     secretKey && secretKey !== SENTINEL ? secretKey : null,
+      publicKey:     publicKey && publicKey !== SENTINEL ? publicKey : null,
+      webhookSecret: webhookSecret && webhookSecret !== SENTINEL ? webhookSecret : null,
+      clientId:      clientId && clientId !== SENTINEL ? clientId : null,
+      extraConfig:   extraConfig ? extraConfig as Prisma.InputJsonValue : undefined,
+      isEnabled:     isEnabled ?? false,
+    },
+    update: {
+      ...(mode !== undefined && { mode }),
+      ...(secretKey !== undefined && secretKey !== SENTINEL && { secretKey }),
+      ...(publicKey !== undefined && publicKey !== SENTINEL && { publicKey }),
+      ...(webhookSecret !== undefined && webhookSecret !== SENTINEL && { webhookSecret }),
+      ...(clientId !== undefined && clientId !== SENTINEL && { clientId }),
+      ...(extraConfig !== undefined && { extraConfig: extraConfig as Prisma.InputJsonValue }),
+      ...(isEnabled !== undefined && { isEnabled }),
+      updatedAt: new Date(),
+      // Preserve existing keys if sentinel sent
+      ...(secretKey === SENTINEL && existing?.secretKey && { secretKey: existing.secretKey }),
+      ...(publicKey === SENTINEL && existing?.publicKey && { publicKey: existing.publicKey }),
+      ...(webhookSecret === SENTINEL && existing?.webhookSecret && { webhookSecret: existing.webhookSecret }),
+      ...(clientId === SENTINEL && existing?.clientId && { clientId: existing.clientId }),
+    },
+  })
+
+  return NextResponse.json({
+    ok:       true,
+    provider: updated.provider,
+    mode:     updated.mode,
+    isEnabled: updated.isEnabled,
+  })
+}

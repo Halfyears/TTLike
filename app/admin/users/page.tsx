@@ -5,7 +5,7 @@ import {
   RefreshCw, Users, CreditCard, Zap, ShieldCheck,
   ChevronDown, Search, CheckCircle, BarChart2,
   Brain, Clock, ChevronRight, RotateCcw, AlertTriangle,
-  MousePointerClick, TrendingUp, ArrowUpRight,
+  MousePointerClick, TrendingUp, ArrowUpRight, ShieldAlert,
 } from 'lucide-react'
 import Link           from 'next/link'
 import { Badge }      from '@/components/ui/Badge'
@@ -20,6 +20,7 @@ interface User {
   role:             string
   plan:             string
   sub_status:       string
+  account_status:   string
   period_end:       string | null
   stripe_id:        string | null
   scripts_used:     number
@@ -147,24 +148,34 @@ function SourceDistribution({ users }: { users: User[] }) {
         <span className="text-[10px] text-gray-500 ml-1">{users.length} total users</span>
       </div>
       <div className="space-y-2.5">
-        {dist.slice(0, 8).map(({ source, count, pct }, i) => (
-          <div key={source}>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-gray-300 truncate max-w-[180px]" title={source}>
-                {source === 'direct' ? '(direct / none)' : source}
-              </span>
-              <span className="text-xs text-gray-400 tabular-nums ml-2">
-                {count} <span className="text-gray-600">({pct}%)</span>
-              </span>
-            </div>
-            <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full ${COLORS[i % COLORS.length]}`}
-                style={{ width: `${pct}%`, transition: 'width 0.6s ease' }}
-              />
-            </div>
-          </div>
-        ))}
+        {dist.slice(0, 8).map(({ source, count, pct }, i) => {
+          const sourceParam = source === 'direct' ? '__direct__' : source
+          return (
+            <Link
+              key={source}
+              href={`/admin/users/sources?source=${encodeURIComponent(sourceParam)}`}
+              className="block group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-300 group-hover:text-pink-400 transition-colors truncate max-w-[180px]" title={source}>
+                  {source === 'direct' ? '(direct / none)' : source}
+                </span>
+                <div className="flex items-center gap-1.5 ml-2">
+                  <span className="text-xs text-gray-400 tabular-nums">
+                    {count} <span className="text-gray-600">({pct}%)</span>
+                  </span>
+                  <ChevronRight className="h-3 w-3 text-gray-600 group-hover:text-pink-400 transition-colors shrink-0" />
+                </div>
+              </div>
+              <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${COLORS[i % COLORS.length]}`}
+                  style={{ width: `${pct}%`, transition: 'width 0.6s ease' }}
+                />
+              </div>
+            </Link>
+          )
+        })}
         {dist.length > 8 && (
           <p className="text-[10px] text-gray-600 pt-1">+ {dist.length - 8} more sources</p>
         )}
@@ -604,6 +615,21 @@ export default function AdminUsersPage() {
     }
   }
 
+  // ── Account status change ──────────────────────────────────────────────────
+  async function changeAccountStatus(userId: string, newStatus: string) {
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountStatus: newStatus }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, account_status: newStatus } : u))
+    } catch (e) {
+      alert(`Failed to update status: ${e instanceof Error ? e.message : e}`)
+    }
+  }
+
   // ── KPIs ───────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => ({
     total:        users.length,
@@ -649,13 +675,21 @@ export default function AdminUsersPage() {
           <h1 className="text-2xl font-bold text-white mb-0.5">User Management</h1>
           <p className="text-gray-400 text-sm">{users.length} registered accounts · Behaviour & Trigger Insights</p>
         </div>
-        <button
-          onClick={fetchUsers}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/users/spam"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors border border-gray-700"
+          >
+            <ShieldAlert className="h-4 w-4 text-red-400" /> Anti-Spam
+          </Link>
+          <button
+            onClick={fetchUsers}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -746,7 +780,7 @@ export default function AdminUsersPage() {
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-gray-700">
-                  {['Status','Email / Name','Source','Role','Plan','Scripts','Last Active','Last Login','Joined','Actions'].map(h => (
+                  {['','Email / Name','Source','Account Status','Role','Plan','Scripts','Last Active','Joined','Actions'].map(h => (
                     <th key={h} className="px-4 py-3 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">
                       {h}
                     </th>
@@ -755,18 +789,24 @@ export default function AdminUsersPage() {
               </thead>
               <tbody className="divide-y divide-gray-700/60">
                 {visible.map(user => (
-                  <tr key={user.id} className="hover:bg-gray-700/30 transition-colors">
+                  <tr
+                    key={user.id}
+                    className="hover:bg-gray-700/30 transition-colors cursor-pointer"
+                    onClick={() => window.location.href = `/admin/users/${user.id}`}
+                  >
 
                     {/* Status dot */}
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
                       {statusDot(user.sub_status, user.confirmed)}
                     </td>
 
-                    {/* Email / Name */}
+                    {/* Email / Name — both displayed */}
                     <td className="px-4 py-3 max-w-[220px]">
-                      <p className="text-sm text-white font-medium truncate">{user.email}</p>
+                      <p className="text-sm text-white font-medium truncate">
+                        {user.name ?? user.email}
+                      </p>
                       {user.name && (
-                        <p className="text-xs text-gray-500 truncate mt-0.5">{user.name}</p>
+                        <p className="text-[10px] text-gray-500 truncate mt-0.5 font-mono">{user.email}</p>
                       )}
                       {!user.confirmed && (
                         <p className="text-[10px] text-yellow-400 mt-0.5">⚠ email unconfirmed</p>
@@ -776,12 +816,37 @@ export default function AdminUsersPage() {
                     {/* Referral Source */}
                     <td className="px-4 py-3 whitespace-nowrap">
                       {user.referral_source ? (
-                        <span className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-900/40 text-blue-300 max-w-[100px] truncate" title={user.referral_source}>
+                        <Link
+                          href={`/admin/users/sources?source=${encodeURIComponent(user.referral_source)}`}
+                          onClick={e => e.stopPropagation()}
+                          className="inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-900/40 text-blue-300 hover:bg-blue-900/60 max-w-[100px] truncate"
+                          title={user.referral_source}
+                        >
                           {user.referral_source}
-                        </span>
+                        </Link>
                       ) : (
                         <span className="text-xs text-gray-600">—</span>
                       )}
+                    </td>
+
+                    {/* Account Status */}
+                    <td className="px-4 py-3 whitespace-nowrap" onClick={e => e.stopPropagation()}>
+                      <select
+                        value={user.account_status ?? 'ACTIVE'}
+                        onChange={e => changeAccountStatus(user.id, e.target.value)}
+                        className={`appearance-none border rounded px-2 py-0.5 text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer pr-4 ${
+                          user.account_status === 'ACTIVE'   ? 'bg-emerald-900/40 border-emerald-700 text-emerald-300' :
+                          user.account_status === 'PENDING'  ? 'bg-yellow-900/40 border-yellow-700 text-yellow-300' :
+                          user.account_status === 'INACTIVE' ? 'bg-gray-700 border-gray-600 text-gray-300' :
+                          user.account_status === 'DELETED'  ? 'bg-red-900/40 border-red-700 text-red-300' :
+                                                               'bg-gray-700 border-gray-600 text-gray-300'
+                        }`}
+                      >
+                        <option value="PENDING">PENDING</option>
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                        <option value="DELETED">DELETED</option>
+                      </select>
                     </td>
 
                     {/* Role */}
@@ -818,18 +883,13 @@ export default function AdminUsersPage() {
                       {timeAgo(user.last_activity)}
                     </td>
 
-                    {/* Last Login */}
-                    <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
-                      {timeAgo(user.last_sign_in)}
-                    </td>
-
                     {/* Joined */}
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                       <LocalDate date={user.created_at} />
                     </td>
 
-                    {/* Actions */}
-                    <td className="px-4 py-3">
+                    {/* Actions — role change (stop propagation so row click doesn't fire) */}
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                       <div className="relative">
                         <select
                           value={user.role}
