@@ -159,18 +159,19 @@ function ShareCardButton({ result, originalText }: { result: TTLikeHookResponse;
       pattern: result.hook_classification.primary_pattern,
       hook:    originalText.slice(0, 120),
     })
-    // 40 chars per variant keeps total URL under 2 KB (matches route.tsx limit)
+    // 40 chars per variant keeps total URL under 2 KB
     result.variants.slice(0, 4).forEach((v, i) => p.set(`v${i + 1}`, v.text.slice(0, 40)))
-    return `/api/og/hook?${p.toString()}`
+    return `/hooks/share?${p.toString()}`
   }
 
   const handleShare = async () => {
-    const url = `${window.location.origin}${buildShareUrl()}`
-    // Open in new tab (shows the card image — user can save/screenshot)
-    window.open(url, '_blank')
-    // Also copy the URL
+    const shareUrl  = buildShareUrl()
+    const fullUrl   = `${window.location.origin}${shareUrl}`
+    // Open the share page in a new tab
+    window.open(fullUrl, '_blank')
+    // Also copy the link to clipboard
     try {
-      await navigator.clipboard.writeText(url)
+      await navigator.clipboard.writeText(fullUrl)
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
     } catch { /* ignore */ }
