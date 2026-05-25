@@ -16,10 +16,11 @@
  * Response: TTLikeHookResponse JSON
  */
 
-import { NextResponse }            from 'next/server'
-import type { TTLikeHookResponse } from '@/lib/types/hooks'
+import { NextResponse }                         from 'next/server'
+import type { TTLikeHookResponse, HookVariant } from '@/lib/types/hooks'
 
-export const maxDuration = 30   // seconds — Vercel Hobby safe
+// Worst-case waterfall: Groq(8s) + Gemini(18s) + GitHub(12s) = 38s < 60s
+export const maxDuration = 60   // seconds — Vercel Hobby max
 
 // ── Shared prompt ─────────────────────────────────────────────────────────────
 
@@ -89,13 +90,14 @@ function parseAndValidate(raw: string): TTLikeHookResponse {
     throw new Error(`Expected 4 variants, got ${parsed.variants?.length ?? 0}`)
   }
 
-  // Clamp Literal fields so TypeScript contract is always satisfied
-  parsed.variants = parsed.variants.slice(0, 4).map((v, i) => ({
-    ...v,
-    id:      i + 1,
-    pattern: VALID_PATTERNS.includes(v.pattern) ? v.pattern : VALID_PATTERNS[i],
-    emotion: VALID_EMOTIONS.includes(v.emotion) ? v.emotion : VALID_EMOTIONS[0],
-  })) as TTLikeHookResponse['variants']
+  // Clamp Literal fields — explicit per-field cast avoids spread type unsafety
+  parsed.variants = parsed.variants.slice(0, 4).map((v, i): HookVariant => ({
+    id:            i + 1,
+    pattern:       (VALID_PATTERNS.includes(v.pattern) ? v.pattern : VALID_PATTERNS[i]) as HookVariant['pattern'],
+    emotion:       (VALID_EMOTIONS.includes(v.emotion) ? v.emotion : VALID_EMOTIONS[0]) as HookVariant['emotion'],
+    text:          String(v.text ?? '').slice(0, 200),
+    visual_action: String(v.visual_action ?? '').slice(0, 400),
+  }))
 
   return parsed
 }
@@ -109,7 +111,7 @@ async function callGroq(hookText: string): Promise<TTLikeHookResponse> {
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method:  'POST',
     headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    signal:  AbortSignal.timeout(25_000),
+    signal:  AbortSignal.timeout(8_000),   // Groq LLaMA typically responds in <3s
     body: JSON.stringify({
       model:           'llama-3.3-70b-versatile',
       messages:        [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: buildHookPrompt(hookText) }],
@@ -140,7 +142,7 @@ async function callGemini(hookText: string): Promise<TTLikeHookResponse> {
   const res = await fetch(url, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
-    signal:  AbortSignal.timeout(25_000),
+    signal:  AbortSignal.timeout(18_000),  // Gemini 2.5 Flash can take 10-15s
     body: JSON.stringify({
       contents:         [{ parts: [{ text: buildHookPrompt(hookText) }] }],
       generationConfig: { responseMimeType: 'application/json', temperature: 0.7, maxOutputTokens: 1024 },
@@ -171,7 +173,7 @@ async function callGitHub(hookText: string): Promise<TTLikeHookResponse> {
   const res = await fetch('https://models.inference.ai.azure.com/chat/completions', {
     method:  'POST',
     headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-    signal:  AbortSignal.timeout(25_000),
+    signal:  AbortSignal.timeout(12_000),  // gpt-4o-mini typically 3-8s
     body: JSON.stringify({
       model:           'gpt-4o-mini',
       messages:        [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content: buildHookPrompt(hookText) }],
