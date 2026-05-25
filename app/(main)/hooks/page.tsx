@@ -27,12 +27,13 @@ function incStoredCount(): number {
 }
 function wasDismissedAt(threshold: number): boolean {
   try {
-    const val = localStorage.getItem(`${MODAL_DISMISSED_KEY}_${threshold}`)
+    // sessionStorage: resets each session, so returning from signup page doesn't re-show modal
+    const val = sessionStorage.getItem(`${MODAL_DISMISSED_KEY}_${threshold}`)
     return val === '1'
   } catch { return false }
 }
 function markDismissed(threshold: number) {
-  try { localStorage.setItem(`${MODAL_DISMISSED_KEY}_${threshold}`, '1') } catch { /* ignore */ }
+  try { sessionStorage.setItem(`${MODAL_DISMISSED_KEY}_${threshold}`, '1') } catch { /* ignore */ }
 }
 
 const HOOK_PATTERNS = [
@@ -70,17 +71,21 @@ function HookMachine() {
   const [showModal,   setShowModal]  = useState(false)
   const [modalCount,  setModalCount] = useState(0)
   const [isLoggedIn,  setIsLoggedIn] = useState(false)
+  // authChecked prevents false-positive modal fires before session resolves
+  const [authChecked, setAuthChecked] = useState(false)
 
   // Check auth status once on mount
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsLoggedIn(!!session)
-    }).catch(() => { /* ignore */ })
+      setAuthChecked(true)
+    }).catch(() => { setAuthChecked(true) })
   }, [])
 
   const maybeShowModal = useCallback((count: number) => {
-    if (isLoggedIn) return
+    // Don't show until auth check resolves — avoids false-positive for logged-in users
+    if (!authChecked || isLoggedIn) return
     const threshold =
       count >= HARD_THRESHOLD && !wasDismissedAt(HARD_THRESHOLD) ? HARD_THRESHOLD :
       count >= SOFT_THRESHOLD && !wasDismissedAt(SOFT_THRESHOLD) ? SOFT_THRESHOLD :
@@ -89,7 +94,7 @@ function HookMachine() {
       setModalCount(count)
       setShowModal(true)
     }
-  }, [isLoggedIn])
+  }, [authChecked, isLoggedIn])
 
   const analyse = async () => {
     if (!text.trim() || loading) return

@@ -31,7 +31,8 @@ export async function GET(req: NextRequest) {
   const variants = [
     searchParams.get('v1'), searchParams.get('v2'),
     searchParams.get('v3'), searchParams.get('v4'),
-  ].filter(Boolean).map(v => v!.slice(0, 80)) as string[]
+  // 40 chars each keeps total URL well under 2 KB (safe for CDN/proxy layers)
+  ].filter(Boolean).map(v => v!.slice(0, 40)) as string[]
 
   const accent = scoreColor(score)
 

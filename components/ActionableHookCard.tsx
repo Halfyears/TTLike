@@ -159,7 +159,8 @@ function ShareCardButton({ result, originalText }: { result: TTLikeHookResponse;
       pattern: result.hook_classification.primary_pattern,
       hook:    originalText.slice(0, 120),
     })
-    result.variants.slice(0, 4).forEach((v, i) => p.set(`v${i + 1}`, v.text.slice(0, 80)))
+    // 40 chars per variant keeps total URL under 2 KB (matches route.tsx limit)
+    result.variants.slice(0, 4).forEach((v, i) => p.set(`v${i + 1}`, v.text.slice(0, 40)))
     return `/api/og/hook?${p.toString()}`
   }
 
