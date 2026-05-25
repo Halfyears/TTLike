@@ -3,8 +3,8 @@
 -- 2026-05-24
 -- ============================================================
 
--- 1. Add accountStatus to users
-ALTER TABLE users ADD COLUMN IF NOT EXISTS "accountStatus" TEXT NOT NULL DEFAULT 'ACTIVE';
+-- 1. Add account_status to users (Prisma maps accountStatus → account_status)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS account_status TEXT NOT NULL DEFAULT 'ACTIVE';
 
 -- 2. Create payment_configs table
 CREATE TABLE IF NOT EXISTS payment_configs (

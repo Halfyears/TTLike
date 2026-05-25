@@ -14,7 +14,7 @@ model User {
   name          String?
   avatarUrl     String?
   role          UserRole  @default(USER)
-  accountStatus String    @default("ACTIVE")  // PENDING | ACTIVE | INACTIVE | DELETED
+  accountStatus String    @default("ACTIVE") @map("account_status")  // PENDING | ACTIVE | INACTIVE | DELETED
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
