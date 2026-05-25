@@ -5,8 +5,7 @@ import './globals.css'
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from '@/lib/constants'
 
 // ── Analytics IDs (set in .env.local) ────────────────────────────────────────
-const GA_ID     = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID   // e.g. G-XXXXXXXXXX
-const HOTJAR_ID = process.env.NEXT_PUBLIC_HOTJAR_SITE_ID      // e.g. 1234567
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID   // e.g. G-XXXXXXXXXX
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
 
@@ -48,19 +47,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         )}
 
-        {/* ── F3: Hotjar ─────────────────────────────────────────────────── */}
-        {HOTJAR_ID && (
-          <Script id="hotjar-init" strategy="afterInteractive">{`
-            (function(h,o,t,j,a,r){
-              h.hj=h.hj||function(){(h.hj.q=h.hj.q||[]).push(arguments)};
-              h._hjSettings={hjid:${HOTJAR_ID},hjsv:6};
-              a=o.getElementsByTagName('head')[0];
-              r=o.createElement('script');r.async=1;
-              r.src=t+h._hjSettings.hjid+j+h._hjSettings.hjsv;
-              a.appendChild(r);
-            })(window,document,'https://static.hotjar.com/c/hotjar-','.js?sv=');
-          `}</Script>
-        )}
+        {/* ── F3: ContentSquare UX Analytics ────────────────────────────── */}
+        <Script
+          src="https://t.contentsquare.net/uxa/8f8886ab19253.js"
+          strategy="afterInteractive"
+          async
+        />
       </body>
     </html>
   )
