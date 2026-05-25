@@ -1,4 +1,5 @@
 import 'server-only'
+import { runAIWaterfall } from '@/lib/ai/providers'
 
 /**
  * Slot-filling script schema.
@@ -126,33 +127,13 @@ Return a JSON array with exactly ${hookTypes.length} object(s):
 
 Return only valid JSON. No markdown.`
 
-  const apiKey = process.env.GEMINI_API_KEY
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
-
-  const response = await fetch(url, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    signal:  AbortSignal.timeout(50_000),   // 50 s hard cap (Vercel limit is 60 s)
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
-      generationConfig: { responseMimeType: 'application/json' },
-    }),
+  // Scripts can be long — give each provider generous time
+  // Worst case: Groq 12s + Gemini 35s + GitHub 15s = 62s (within Vercel 60s with cache)
+  const rawText = await runAIWaterfall(systemPrompt, userPrompt, {
+    groqTimeoutMs:   12_000,
+    geminiTimeoutMs: 35_000,
+    githubTimeoutMs: 15_000,
   })
-
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}))
-    throw new Error((errData as { error?: { message?: string } }).error?.message ?? `Gemini ${response.status}`)
-  }
-
-  const resData = await response.json()
-  const candidate = resData.candidates?.[0]
-  if (!candidate) {
-    const reason = resData.promptFeedback?.blockReason ?? 'unknown'
-    throw new Error(`Gemini returned no candidates (blockReason: ${reason})`)
-  }
-
-  const rawText: string = candidate.content?.parts?.[0]?.text?.trim() ?? ''
-  if (!rawText) throw new Error('Gemini returned empty content')
 
   let scripts: Script[]
   try {

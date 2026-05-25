@@ -40,10 +40,6 @@ export async function POST(request: Request) {
   }
   const { title, raw_script } = parsed.data
 
-  if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ error: 'AI service not configured' }, { status: 503 })
-  }
-
   // ── 1. Create drama row (PENDING) ─────────────────────────────────────────
   const { data: drama, error: dramaErr } = await supabase
     .from('dramas')
@@ -59,7 +55,7 @@ export async function POST(request: Request) {
   // ── 2. One-shot Gemini inference ──────────────────────────────────────────
   let result: InferenceResult
   try {
-    const raw = await callDramaDisassemble({ rawScript: raw_script, apiKey: process.env.GEMINI_API_KEY })
+    const raw = await callDramaDisassemble(raw_script)
     result = JSON.parse(raw) as InferenceResult
 
     if (!Array.isArray(result.storyboards) || result.storyboards.length === 0) {

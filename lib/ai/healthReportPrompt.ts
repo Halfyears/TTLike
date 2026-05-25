@@ -1,6 +1,7 @@
 import 'server-only'
 import type { StructuralHealthReport } from '@/lib/types/intelligence'
 import { compileVideoPayload, type VideoSignals } from '@/lib/ai/payloadCompiler'
+import { runAIWaterfall }                         from '@/lib/ai/providers'
 
 // ── V2.5 Structural Health Report System Prompt ───────────────────────────────
 // Forces specific, non-generic outputs by requiring exact timecodes,
@@ -63,9 +64,6 @@ Output this exact JSON structure:
 // ── Gemini call for structural health report ──────────────────────────────────
 
 export async function callHealthReport(signals: VideoSignals): Promise<StructuralHealthReport> {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
-
   const productLabel = signals.product_name ?? signals.title
   const nicheLabel   = signals.niche ?? 'E-Commerce'
 
@@ -78,29 +76,15 @@ export async function callHealthReport(signals: VideoSignals): Promise<Structura
 
   const userContent = compileVideoPayload(signals, productReminder)
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
-
-  const res = await fetch(url, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: `${HEALTH_REPORT_SYSTEM_PROMPT}\n\n---\nVIDEO FORENSICS DATA:\n${userContent}` }] }],
-      generationConfig: { responseMimeType: 'application/json' },
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as { error?: { message?: string } }).error?.message ?? `Gemini HTTP ${res.status}`)
-  }
-
-  const data = await res.json()
-  const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  if (!text) throw new Error('Gemini returned empty content')
+  const text = await runAIWaterfall(
+    HEALTH_REPORT_SYSTEM_PROMPT,
+    `---\nVIDEO FORENSICS DATA:\n${userContent}`,
+    { groqTimeoutMs: 10_000, geminiTimeoutMs: 20_000, githubTimeoutMs: 15_000 },
+  )
 
   try {
     return JSON.parse(text) as StructuralHealthReport
   } catch {
-    throw new Error(`Gemini returned invalid JSON: ${text.slice(0, 200)}`)
+    throw new Error(`AI returned invalid JSON: ${text.slice(0, 200)}`)
   }
 }

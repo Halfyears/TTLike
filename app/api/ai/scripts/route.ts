@@ -46,13 +46,6 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: 'AI service not configured. Please set GEMINI_API_KEY.' },
-        { status: 503 },
-      )
-    }
-
     const d = parsed.data
     // Normalise hookTypes
     const hookTypes: string[] = d.hookTypes?.length

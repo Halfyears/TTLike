@@ -3,6 +3,7 @@ import 'server-only'
 import type { ViralFormula, TimelineScene } from '@/lib/types/intelligence'
 import { compileVideoPayload }              from '@/lib/ai/payloadCompiler'
 import { createServiceClient }             from '@/lib/supabase/server'
+import { runAIWaterfall }                  from '@/lib/ai/providers'
 
 // ── Prompt hot-update: reads admin_config at call time ────────────────────────
 // If admin sets a non-empty override in /admin/videos (Prompt Manager panel),
@@ -99,45 +100,26 @@ type GeminiResult = {
 }
 
 export async function callVideoBreakdown(meta: VideoMeta): Promise<GeminiResult> {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
-
   const productLabel = meta.product_name ?? meta.title
   const nicheLabel   = meta.niche ?? 'E-Commerce'
 
-  // ── Compile dense payload via payloadCompiler (signal-window approach) ───────
   const productReminder = [
     `REMINDER: "your_version" in viral_formulas must reference "${productLabel}" (${nicheLabel}) by name.`,
     `DO NOT output generic [bracket] placeholders in "your_version".`,
   ].join('\n')
 
-  const userContent    = compileVideoPayload(meta, productReminder)
-  // Hot-update: use admin override if set, else fall back to hardcoded prompt
-  const systemPrompt   = await getActiveSystemPrompt()
+  const userContent  = compileVideoPayload(meta, productReminder)
+  const systemPrompt = await getActiveSystemPrompt()
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
-
-  const res = await fetch(url, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: `${systemPrompt}\n\n---\nVIDEO DATA:\n${userContent}` }] }],
-      generationConfig: { responseMimeType: 'application/json' },
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as { error?: { message?: string } }).error?.message ?? `Gemini HTTP ${res.status}`)
-  }
-
-  const data = await res.json()
-  const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  if (!text) throw new Error('Gemini returned empty content')
+  const text = await runAIWaterfall(
+    systemPrompt,
+    `---\nVIDEO DATA:\n${userContent}`,
+    { groqTimeoutMs: 10_000, geminiTimeoutMs: 20_000, githubTimeoutMs: 15_000 },
+  )
 
   try {
     return JSON.parse(text) as GeminiResult
   } catch {
-    throw new Error(`Gemini returned invalid JSON: ${text.slice(0, 200)}`)
+    throw new Error(`AI returned invalid JSON: ${text.slice(0, 200)}`)
   }
 }

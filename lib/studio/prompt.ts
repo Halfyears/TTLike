@@ -44,36 +44,14 @@ OUTPUT SCHEMA:
 }
 `.trim()
 
-// ── Gemini API call wrapper (single inference) ────────────────────────────────
+// ── Multi-provider waterfall call ─────────────────────────────────────────────
 
-export interface GeminiCallOptions {
-  rawScript: string
-  apiKey:    string
-}
+import { runAIWaterfall } from '@/lib/ai/providers'
 
-export async function callDramaDisassemble(opts: GeminiCallOptions): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${opts.apiKey}`
-
-  const res = await fetch(url, {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{
-        parts: [{ text: `${DRAMA_DISASSEMBLE_PROMPT}\n\n---\nSCRIPT:\n${opts.rawScript}` }],
-      }],
-      generationConfig: {
-        responseMimeType: 'application/json',   // enforces JSON-only output
-      },
-    }),
-  })
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as { error?: { message?: string } }).error?.message ?? `Gemini HTTP ${res.status}`)
-  }
-
-  const data = await res.json()
-  const text: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  if (!text) throw new Error('Gemini returned empty content')
-  return text.trim()
+export async function callDramaDisassemble(rawScript: string): Promise<string> {
+  return runAIWaterfall(
+    DRAMA_DISASSEMBLE_PROMPT,
+    `---\nSCRIPT:\n${rawScript}`,
+    { groqTimeoutMs: 12_000, geminiTimeoutMs: 25_000, githubTimeoutMs: 15_000 },
+  )
 }

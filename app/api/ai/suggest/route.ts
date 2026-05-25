@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { z } from 'zod'
+import { NextResponse }    from 'next/server'
+import { createClient }    from '@/lib/supabase/server'
+import { runAIWaterfall }  from '@/lib/ai/providers'
+import { z }               from 'zod'
 
 const NICHES = [
   'Beauty & Skincare', 'Fashion', 'Home & Garden', 'Tech & Gadgets',
@@ -8,10 +9,12 @@ const NICHES = [
   'Sports & Outdoors', 'Travel', 'DIY & Crafts', 'Books & Education',
 ]
 
+const SYSTEM = 'You are a TikTok dropshipping expert. Return raw JSON only — no markdown, no preamble.'
+
 const schema = z.object({
   productName: z.string().min(1).max(100),
-  rawNiche: z.string().max(100).optional().default(''),
-  keywords: z.string().max(300).optional().default(''),
+  rawNiche:    z.string().max(100).optional().default(''),
+  keywords:    z.string().max(300).optional().default(''),
 })
 
 export async function POST(request: Request) {
@@ -26,11 +29,7 @@ export async function POST(request: Request) {
 
     const { productName, rawNiche, keywords } = parsed.data
 
-    if (!process.env.GEMINI_API_KEY) {
-      return NextResponse.json({ error: 'AI service not configured' }, { status: 503 })
-    }
-
-    const prompt = `You are a TikTok dropshipping expert. Given a viral product, generate smart form suggestions.
+    const userPrompt = `Given a viral product, generate smart form suggestions.
 
 Product: ${productName}
 Current Category: ${rawNiche || 'unknown'}
@@ -46,25 +45,11 @@ Return a JSON object with exactly these fields:
 
 Return only valid JSON, no markdown.`
 
-    const apiKey = process.env.GEMINI_API_KEY
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: 'application/json' },
-      }),
+    const rawText   = await runAIWaterfall(SYSTEM, userPrompt, {
+      groqTimeoutMs:   8_000,
+      geminiTimeoutMs: 15_000,
+      githubTimeoutMs: 10_000,
     })
-
-    if (!response.ok) {
-      const err = await response.json()
-      throw new Error(err.error?.message || 'Gemini API error')
-    }
-
-    const resData = await response.json()
-    const rawText = resData.candidates[0].content.parts[0].text.trim()
     const suggestions = JSON.parse(rawText)
 
     return NextResponse.json(suggestions)

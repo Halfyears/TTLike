@@ -18,9 +18,6 @@ function healthHash(videoId: string): string {
 }
 
 export async function POST(req: Request) {
-  if (!process.env.GEMINI_API_KEY) {
-    return NextResponse.json({ error: 'AI service not configured' }, { status: 503 })
-  }
 
   let body: { video_id?: string }
   try {
