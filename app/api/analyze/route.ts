@@ -134,26 +134,31 @@ export async function POST(req: Request) {
     const { data: { user } } = await authClient.auth.getUser()
 
     if (user) {
-      // Auto-provision free-tier row if this is user's first analysis
-      await service.rpc('ensure_billing_tier', { uid: user.id })
+      // Admins bypass quota entirely
+      const isAdmin = user.email === process.env.ADMIN_EMAIL
 
-      const { data: tierRow } = await service
-        .from('user_billing_tiers')
-        .select('video_analysis_used, video_analysis_limit')
-        .eq('user_id', user.id)
-        .maybeSingle()
+      if (!isAdmin) {
+        // Auto-provision free-tier row if this is user's first analysis
+        await service.rpc('ensure_billing_tier', { uid: user.id })
 
-      if (tierRow && tierRow.video_analysis_used >= tierRow.video_analysis_limit) {
-        return NextResponse.json(
-          {
-            error:           'MONTHLY_ANALYSIS_LIMIT_EXCEEDED',
-            upgradeRequired: true,
-            used:            tierRow.video_analysis_used,
-            limit:           tierRow.video_analysis_limit,
-            hint:            'Upgrade to Creator ($29/mo) for 50 analyses per month.',
-          },
-          { status: 403 }
-        )
+        const { data: tierRow } = await service
+          .from('user_billing_tiers')
+          .select('video_analysis_used, video_analysis_limit')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        if (tierRow && tierRow.video_analysis_used >= tierRow.video_analysis_limit) {
+          return NextResponse.json(
+            {
+              error:           'MONTHLY_ANALYSIS_LIMIT_EXCEEDED',
+              upgradeRequired: true,
+              used:            tierRow.video_analysis_used,
+              limit:           tierRow.video_analysis_limit,
+              hint:            'Upgrade to Creator ($29/mo) for 50 analyses per month.',
+            },
+            { status: 403 }
+          )
+        }
       }
     }
   } catch (e) {

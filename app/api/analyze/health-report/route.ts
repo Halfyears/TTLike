@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       author:       String(meta.author       ?? ''),
     })
   } catch (e) {
-    console.error('[health-report] Gemini error:', e)
+    console.error('[health-report] AI error:', e)
     return NextResponse.json({ error: 'AI analysis failed — try again later' }, { status: 500 })
   }
 
