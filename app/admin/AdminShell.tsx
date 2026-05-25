@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
@@ -11,19 +12,20 @@ import { useLanguage } from '@/lib/i18n'
 
 // ── Nav structure ─────────────────────────────────────────────────────────────
 
-type NavGroup = { type: 'group'; label: string }
-type NavLink  = { type: 'link';  href: string; icon: React.ElementType; label: string }
-type NavEntry = NavGroup | NavLink
+type NavGroup   = { type: 'group';   label: string }
+type NavLink    = { type: 'link';    href: string; icon: React.ElementType; label: string }
+type NavSubLink = { type: 'sublink'; href: string; icon: React.ElementType; label: string }
+type NavEntry   = NavGroup | NavLink | NavSubLink
 
 function buildNav(t: ReturnType<typeof useLanguage>['t']): NavEntry[] {
   return [
     // ── Operations (high-frequency morning checks) ──────────────────────────
     { type: 'group', label: t.nav.groupOperations },
-    { type: 'link',  href: '/admin',         icon: LayoutDashboard, label: t.nav.dashboard },
-    { type: 'link',  href: '/admin/users',         icon: Users,       label: t.nav.users },
-    { type: 'link',  href: '/admin/users/spam',   icon: ShieldAlert, label: 'Anti-Spam' },
-    { type: 'link',  href: '/admin/finance',       icon: DollarSign,  label: t.nav.finance },
-    { type: 'link',  href: '/admin/finance/config',icon: Settings,    label: 'Gateway Config' },
+    { type: 'link',    href: '/admin',              icon: LayoutDashboard, label: t.nav.dashboard },
+    { type: 'link',    href: '/admin/users',         icon: Users,           label: t.nav.users },
+    { type: 'sublink', href: '/admin/users/spam',    icon: ShieldAlert,     label: 'Anti-Spam' },
+    { type: 'link',    href: '/admin/finance',       icon: DollarSign,      label: t.nav.finance },
+    { type: 'sublink', href: '/admin/finance/config',icon: Settings,        label: 'Gateway Config' },
     // ── Content (AI engine + video library) ─────────────────────────────────
     { type: 'group', label: t.nav.groupContent },
     { type: 'link',  href: '/admin/videos',     icon: Video,        label: t.nav.videos },
@@ -46,7 +48,7 @@ function buildNav(t: ReturnType<typeof useLanguage>['t']): NavEntry[] {
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const { t, toggleLang } = useLanguage()
   const pathname = usePathname()
-  const nav      = buildNav(t)
+  const nav      = useMemo(() => buildNav(t), [t])
 
   function isActive(href: string) {
     return href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)
@@ -77,12 +79,36 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                 </p>
               )
             }
+
+            // Sub-link: indented, smaller, inside parent module
+            if (entry.type === 'sublink') {
+              const active = isActive(entry.href)
+              const Icon   = entry.icon
+              return (
+                <Link
+                  key={entry.href}
+                  href={entry.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex items-center gap-2 pl-8 pr-3 py-1.5 rounded-lg text-xs font-medium transition-colors mb-0.5 ${
+                    active
+                      ? 'text-pink-300 bg-pink-600/10'
+                      : 'text-gray-500 hover:text-gray-300 hover:bg-gray-700/50'
+                  }`}
+                >
+                  <span className="w-px h-3 bg-gray-600 rounded-full shrink-0" />
+                  <Icon className="h-3 w-3 shrink-0" />
+                  <span className="truncate">{entry.label}</span>
+                </Link>
+              )
+            }
+
             const active = isActive(entry.href)
             const Icon   = entry.icon
             return (
               <Link
                 key={entry.href}
                 href={entry.href}
+                aria-current={active ? 'page' : undefined}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors mb-0.5 ${
                   active
                     ? 'bg-pink-600/20 text-pink-300 border border-pink-600/30'

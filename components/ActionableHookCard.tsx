@@ -1,24 +1,57 @@
 'use client'
 
 /**
- * ActionableHookCard — TTLike Hook Machine v1.0
- * Dark slate theme, animated scroll-stop score, bold rendering, copy-to-clipboard.
+ * ActionableHookCard v2.0
+ *
+ * Engineering rationales implemented:
+ * 1. TYPOGRAPHY — heavy text-base/text-lg SAY block for teleprompter readability; dimmed VISUAL SOP
+ * 2. OVERFLOW DEFENSE — brutal_feedback in max-h-20 overflow-y-auto container
+ * 3. INLINE HIGHLIGHT — **text** → amber glow via split-on-** (no full markdown parser)
+ * 4. MOBILE ACCESSIBILITY — copy button: `block md:opacity-0 md:group-hover:opacity-100`
+ * 5. MONETIZATION GATEWAY — sticky footer bar with onCloneClick CTA
+ *
+ * Props contract (matches lib/types/hooks.ts):
+ *   score        — scroll_stop_score 0-100
+ *   feedback     — brutal_feedback string
+ *   variants     — HookVariant[]  (exactly 4)
+ *   originalText — optional, used for /hooks/share link
+ *   primaryPattern — optional, used for share metadata
+ *   onCloneClick — optional CTA callback for monetization barrier
  */
 
-import { useEffect, useRef, useState } from 'react'
-import { Copy, Check, Zap, Brain, Eye, Share2 } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Copy, Check, Share2 } from 'lucide-react'
 import type { TTLikeHookResponse, HookVariant } from '@/lib/types/hooks'
 
-// ── Bold text renderer: **text** → <strong class="text-amber-400"> ─────────────
+// ── Re-export for consumers who import HookVariant from here ──────────────────
+export type { HookVariant }
 
-function BoldText({ text }: { text: string }) {
+// ── Props ─────────────────────────────────────────────────────────────────────
+
+export interface ActionableHookCardProps {
+  score:          number
+  feedback:       string
+  variants:       HookVariant[]
+  originalText?:  string   // for share URL; optional
+  primaryPattern?: string  // for share URL metadata; optional
+  onCloneClick?:  () => void
+}
+
+// ── Bold text parser (rationale #3) ──────────────────────────────────────────
+// Splits on ** pairs; odd-index parts are wrapped in amber glow spans.
+// No markdown library — zero bundle overhead.
+
+function BoldGlow({ text }: { text: string }) {
   const parts = text.split(/(\*\*[^*]+\*\*)/)
   return (
     <>
       {parts.map((part, i) => {
         if (part.startsWith('**') && part.endsWith('**')) {
           return (
-            <strong key={i} className="text-amber-400 font-semibold">
+            <strong
+              key={i}
+              className="text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1 py-0.5 rounded border border-amber-500/10 font-bold mx-0.5"
+            >
               {part.slice(2, -2)}
             </strong>
           )
@@ -29,149 +62,45 @@ function BoldText({ text }: { text: string }) {
   )
 }
 
-// ── Score counter animation ───────────────────────────────────────────────────
+// ── Score colour (rationale #1) ───────────────────────────────────────────────
 
-function ScoreCounter({ target }: { target: number }) {
-  const [count, setCount] = useState(0)
-  const frameRef = useRef<number | null>(null)
-
-  useEffect(() => {
-    const start    = performance.now()
-    const duration = 800
-
-    const tick = (now: number) => {
-      const elapsed  = now - start
-      const progress = Math.min(elapsed / duration, 1)
-      // ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setCount(Math.round(eased * target))
-      if (progress < 1) frameRef.current = requestAnimationFrame(tick)
-    }
-
-    frameRef.current = requestAnimationFrame(tick)
-    return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current) }
-  }, [target])
-
-  const color =
-    target >= 75 ? 'text-emerald-400' :
-    target >= 50 ? 'text-amber-400'   :
-                   'text-red-400'
-
-  return <span className={`text-5xl font-black tabular-nums ${color}`}>{count}</span>
+function scoreColorCls(score: number) {
+  if (score < 50) return 'text-red-600 dark:text-red-400 border-red-500/20 bg-red-500/5'
+  if (score < 70) return 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5'
+  return 'text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/5'
 }
 
-// ── CopyButton ────────────────────────────────────────────────────────────────
+// ── Share URL builder (carries forward /hooks/share integration) ──────────────
 
-function CopyButton({ text, label = 'Copy for CapCut' }: { text: string; label?: string }) {
+function buildShareUrl(
+  score:    number,
+  pattern:  string,
+  hook:     string,
+  variants: HookVariant[],
+): string {
+  const p = new URLSearchParams({
+    score:   String(score),
+    pattern,
+    hook:    hook.slice(0, 120),
+  })
+  variants.slice(0, 4).forEach((v, i) => p.set(`v${i + 1}`, v.text.slice(0, 40)))
+  return `/hooks/share?${p.toString()}`
+}
+
+// ── Share button ──────────────────────────────────────────────────────────────
+
+function ShareButton({
+  score, primaryPattern, originalText, variants,
+}: {
+  score: number; primaryPattern: string; originalText: string; variants: HookVariant[]
+}) {
   const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // fallback: select text — ignore failure
-    }
-  }
-
-  return (
-    <button
-      onClick={handleCopy}
-      className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md
-        bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white
-        transition-colors border border-slate-600 hover:border-slate-500"
-    >
-      {copied
-        ? <><Check className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400">Copied!</span></>
-        : <><Copy className="h-3 w-3" />{label}</>
-      }
-    </button>
-  )
-}
-
-// ── Pattern badge colour map ──────────────────────────────────────────────────
-
-const PATTERN_COLOURS: Record<string, string> = {
-  'Shock Reversal':       'bg-red-900/50    text-red-300    border-red-700',
-  'Negative Interruption':'bg-orange-900/50 text-orange-300 border-orange-700',
-  'Visual Peak':          'bg-violet-900/50 text-violet-300 border-violet-700',
-  'Curiosity Gap':        'bg-cyan-900/50   text-cyan-300   border-cyan-700',
-}
-
-const EMOTION_COLOURS: Record<string, string> = {
-  'Status Anxiety': 'bg-pink-900/40   text-pink-300',
-  'Time Scarcity':  'bg-red-900/40    text-red-300',
-  'Vanity':         'bg-purple-900/40 text-purple-300',
-  'Social Proof':   'bg-blue-900/40   text-blue-300',
-}
-
-// ── Variant Card ──────────────────────────────────────────────────────────────
-
-function VariantCard({ v }: { v: HookVariant }) {
-  const patternCls = PATTERN_COLOURS[v.pattern] ?? 'bg-slate-700 text-slate-300 border-slate-600'
-  const emotionCls = EMOTION_COLOURS[v.emotion] ?? 'bg-slate-700/40 text-slate-300'
-
-  return (
-    <div className="rounded-xl border border-slate-700 bg-slate-800/60 p-4 flex flex-col gap-3">
-      {/* Header badges */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${patternCls}`}>
-          {v.pattern}
-        </span>
-        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${emotionCls}`}>
-          {v.emotion}
-        </span>
-      </div>
-
-      {/* Hook text */}
-      <p className="text-sm font-medium text-white leading-snug">
-        &ldquo;<BoldText text={v.text} />&rdquo;
-      </p>
-
-      {/* Visual SOP */}
-      <div className="flex items-start gap-2 bg-slate-900/60 rounded-lg px-3 py-2">
-        <Eye className="h-3.5 w-3.5 mt-0.5 text-slate-500 shrink-0" />
-        <p className="text-[11px] text-slate-400 leading-snug">{v.visual_action}</p>
-      </div>
-
-      {/* Copy */}
-      <div className="flex justify-end">
-        <CopyButton text={v.text} />
-      </div>
-    </div>
-  )
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
-
-interface ActionableHookCardProps {
-  result:      TTLikeHookResponse
-  originalText: string
-}
-
-function ShareCardButton({ result, originalText }: { result: TTLikeHookResponse; originalText: string }) {
-  const [copied, setCopied] = useState(false)
-
-  function buildShareUrl() {
-    const p = new URLSearchParams({
-      score:   String(result.original_analysis.scroll_stop_score),
-      pattern: result.hook_classification.primary_pattern,
-      hook:    originalText.slice(0, 120),
-    })
-    // 40 chars per variant keeps total URL under 2 KB
-    result.variants.slice(0, 4).forEach((v, i) => p.set(`v${i + 1}`, v.text.slice(0, 40)))
-    return `/hooks/share?${p.toString()}`
-  }
 
   const handleShare = async () => {
-    const shareUrl  = buildShareUrl()
-    const fullUrl   = `${window.location.origin}${shareUrl}`
-    // Open the share page in a new tab
-    window.open(fullUrl, '_blank')
-    // Also copy the link to clipboard
+    const url = `${window.location.origin}${buildShareUrl(score, primaryPattern, originalText, variants)}`
+    window.open(url, '_blank')
     try {
-      await navigator.clipboard.writeText(fullUrl)
+      await navigator.clipboard.writeText(url)
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
     } catch { /* ignore */ }
@@ -180,93 +109,190 @@ function ShareCardButton({ result, originalText }: { result: TTLikeHookResponse;
   return (
     <button
       onClick={handleShare}
-      title="Generate share card (opens in new tab)"
-      className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-md
-        bg-indigo-900/50 hover:bg-indigo-800/60 text-indigo-300 hover:text-indigo-200
-        transition-colors border border-indigo-700/50 hover:border-indigo-600"
+      title="Share this result"
+      className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg
+        bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60
+        text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-900/30
+        transition-all"
     >
       {copied
-        ? <><Check className="h-3 w-3 text-emerald-400" /><span className="text-emerald-400">Link copied!</span></>
-        : <><Share2 className="h-3 w-3" />Share Card</>
+        ? <><Check className="h-3 w-3 text-emerald-500" /><span className="text-emerald-600 dark:text-emerald-400">Copied!</span></>
+        : <><Share2 className="h-3 w-3" />Share</>
       }
     </button>
   )
 }
 
-export default function ActionableHookCard({ result, originalText }: ActionableHookCardProps) {
-  const { original_analysis, hook_classification, variants } = result
-  const score = Math.min(100, Math.max(0, original_analysis.scroll_stop_score))
+// ── Variant card ──────────────────────────────────────────────────────────────
+
+function VariantCard({
+  variant,
+  copiedId,
+  onCopy,
+}: {
+  variant:  HookVariant
+  copiedId: number | null
+  onCopy:   (v: HookVariant) => void
+}) {
+  const isCopied = copiedId === variant.id
 
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-900 text-slate-100 overflow-hidden shadow-2xl">
+    <div className="group flex flex-col justify-between border border-slate-200 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-900/20 rounded-xl p-5 transition-all hover:shadow-md">
 
-      {/* ── Score header ────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between gap-6 px-6 py-5 border-b border-slate-800 bg-slate-900/80">
-        {/* Score */}
-        <div className="flex flex-col items-center min-w-[80px]">
-          <ScoreCounter target={score} />
-          <span className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
-            Scroll-Stop Score
-          </span>
-        </div>
+      {/* Emotion badge + Copy button row */}
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-[10px] font-black font-mono tracking-wider text-indigo-600 dark:text-indigo-400 uppercase bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/30">
+          [{variant.emotion}]
+        </span>
 
-        {/* Divider */}
-        <div className="w-px h-14 bg-slate-700" />
-
-        {/* Classification */}
-        <div className="flex-1 flex flex-col gap-1.5">
-          <div className="flex items-center gap-2">
-            <Brain className="h-3.5 w-3.5 text-indigo-400" />
-            <span className="text-xs font-semibold text-indigo-300">
-              {hook_classification.primary_pattern}
-            </span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {hook_classification.dominant_emotions.map(e => (
-              <span key={e}
-                className="text-[10px] bg-slate-800 border border-slate-700 text-slate-400 px-2 py-0.5 rounded-full">
-                {e}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        {/* Right side: badge + share */}
-        <div className="shrink-0 flex flex-col items-end gap-2">
-          <div className="flex items-center gap-1 bg-pink-950/50 border border-pink-800 text-pink-300 text-[10px] font-semibold px-2.5 py-1 rounded-full">
-            <Zap className="h-3 w-3" />
-            Hook Machine
-          </div>
-          <ShareCardButton result={result} originalText={originalText} />
-        </div>
+        {/* Rationale #4: always visible on mobile, fade in on desktop hover */}
+        <button
+          onClick={() => onCopy(variant)}
+          className={`text-xs font-bold font-mono px-2.5 py-1 rounded transition-all
+            opacity-100 md:opacity-0 md:group-hover:opacity-100
+            ${isCopied
+              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/30'
+              : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+            }`}
+          aria-label={isCopied ? 'Copied' : `Copy ${variant.pattern} variant`}
+        >
+          {isCopied ? 'Copied!' : 'Copy'}
+        </button>
       </div>
 
-      {/* ── Original text + feedback ─────────────────────────────────────────── */}
-      <div className="px-6 py-4 border-b border-slate-800 bg-slate-800/30">
-        <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-1.5">Your Hook</p>
-        <p className="text-sm text-slate-300 italic mb-3 leading-snug">&ldquo;{originalText}&rdquo;</p>
-        <div className="flex items-start gap-2 bg-slate-900/60 rounded-lg px-3 py-2.5">
-          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mt-0.5 shrink-0">
-            Verdict
-          </span>
-          <p className="text-xs text-amber-300 leading-relaxed">
-            <BoldText text={original_analysis.brutal_feedback} />
-          </p>
-        </div>
+      {/* Hook text — rationale #1: text-base/text-lg, high contrast */}
+      <p className="text-base font-medium text-slate-900 dark:text-slate-100 leading-relaxed mb-4 tracking-wide">
+        &ldquo;<BoldGlow text={variant.text} />&rdquo;
+      </p>
+
+      {/* Pattern badge */}
+      <div className="mb-2">
+        <span className="text-[9px] font-bold font-mono tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+          {variant.pattern}
+        </span>
       </div>
 
-      {/* ── 4 Variants ──────────────────────────────────────────────────────── */}
-      <div className="px-6 py-5">
-        <p className="text-[11px] text-slate-500 uppercase tracking-wider mb-4">
-          4 Anti-Duplication Variants
+      {/* Visual SOP — rationale #1: dimmed to reduce layout fatigue */}
+      <div className="pt-3 border-t border-slate-100 dark:border-slate-800/60 bg-slate-50/50 dark:bg-slate-950/20 -mx-5 -mb-5 p-4 rounded-b-xl">
+        <span className="block text-[9px] font-bold font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase mb-1">
+          🎬 VISUAL SOP
+        </span>
+        <p className="text-xs text-slate-400 dark:text-slate-500 italic leading-normal">
+          {variant.visual_action}
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {variants.map(v => (
-            <VariantCard key={v.id} v={v} />
-          ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+
+export default function ActionableHookCard({
+  score,
+  feedback,
+  variants,
+  originalText,
+  primaryPattern,
+  onCloneClick,
+}: ActionableHookCardProps) {
+  const [copiedId, setCopiedId] = useState<number | null>(null)
+  // useRef for timeout cleanup — prevents setState on unmounted component
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+    }
+  }, [])
+
+  const handleCopy = (variant: HookVariant) => {
+    const copyText = [
+      `HOOK (${variant.emotion}):`,
+      `"${variant.text.replace(/\*\*/g, '')}"`,
+      '',
+      'VISUAL SOP:',
+      variant.visual_action,
+    ].join('\n')
+
+    navigator.clipboard.writeText(copyText).catch(() => { /* ignore */ })
+    setCopiedId(variant.id)
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current)
+    copyTimerRef.current = setTimeout(() => setCopiedId(null), 1500)
+  }
+
+  const clampedScore = Math.min(100, Math.max(0, score))
+  const canShare = !!(originalText && primaryPattern)
+
+  return (
+    // pb-28 reserves space so the sticky bar never covers last variant
+    <div className="w-full max-w-3xl mx-auto p-4 md:p-6 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased font-sans pb-28">
+
+      {/* ── 1. Brutalist Header Dashboard ─────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl p-5 mb-6 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+
+        {/* Score cell */}
+        <div className={`flex flex-col justify-center p-3 rounded-lg border ${scoreColorCls(clampedScore)}`}>
+          <span className="text-[10px] font-bold font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase">
+            Viral Pressure
+          </span>
+          <span className="text-3xl font-black font-mono mt-0.5 tabular-nums">
+            {clampedScore}
+          </span>
+        </div>
+
+        {/* Brutal feedback — rationale #2: overflow-y-auto container */}
+        <div className="md:col-span-2 flex flex-col justify-center pl-0 md:pl-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-bold font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase">
+              Brutal Feedback
+            </span>
+            {/* Share button — only when originalText is provided */}
+            {canShare && (
+              <ShareButton
+                score={clampedScore}
+                primaryPattern={primaryPattern!}
+                originalText={originalText!}
+                variants={variants}
+              />
+            )}
+          </div>
+          <div className="text-xs md:text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-h-20 overflow-y-auto pr-1">
+            {feedback}
+          </div>
         </div>
       </div>
 
+      {/* ── 2. Actionable Variant Grid ────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {variants.map(variant => (
+          <VariantCard
+            key={variant.id}
+            variant={variant}
+            copiedId={copiedId}
+            onCopy={handleCopy}
+          />
+        ))}
+      </div>
+
+      {/* ── 3. Sticky Bottom Monetization Bar — rationale #5 ─────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-4 z-40 shadow-xl">
+        <div className="max-w-3xl mx-auto flex justify-between items-center px-2">
+          <div className="hidden sm:block">
+            <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              Ready to automate production?
+            </h4>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500">
+              Map this conversion curve into your custom niche instantly.
+            </p>
+          </div>
+          <button
+            onClick={() => onCloneClick?.()}
+            className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white font-bold text-xs px-6 py-2.5 rounded-lg shadow-md transition-all tracking-wide"
+          >
+            ✨ Adapt This Script to My Product (Pro)
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

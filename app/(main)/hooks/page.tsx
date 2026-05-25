@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Zap, Sparkles, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -64,6 +65,7 @@ const hookTypeColors: Record<string, string> = {
 // ── Hook Machine section ──────────────────────────────────────────────────────
 
 function HookMachine() {
+  const router = useRouter()
   const [text,        setText]       = useState('')
   const [loading,     setLoading]    = useState(false)
   const [result,      setResult]     = useState<TTLikeHookResponse | null>(null)
@@ -193,7 +195,14 @@ function HookMachine() {
       {/* Result */}
       {result && (
         <div className="mt-6">
-          <ActionableHookCard result={result} originalText={text.trim()} />
+          <ActionableHookCard
+            score={result.original_analysis.scroll_stop_score}
+            feedback={result.original_analysis.brutal_feedback}
+            variants={result.variants}
+            originalText={text.trim()}
+            primaryPattern={result.hook_classification.primary_pattern}
+            onCloneClick={() => router.push('/pricing')}
+          />
         </div>
       )}
     </div>
