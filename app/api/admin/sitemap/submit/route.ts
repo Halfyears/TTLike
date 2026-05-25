@@ -1,10 +1,13 @@
 /**
  * POST /api/admin/sitemap/submit
  *
- * Submits the sitemap to search engines:
- *   1. Bing Ping  — GET https://www.bing.com/ping?sitemap=<url>
- *   2. IndexNow   — GET https://api.indexnow.org/indexnow?url=<url>&key=<key>
- *                   (only if INDEXNOW_API_KEY env var is set)
+ * Submits the sitemap / key pages to search engines:
+ *   1. Bing Webmaster API  — POST https://ssl.bing.com/webmaster/api.svc/json/SubmitSitemap
+ *                            Requires: BING_WEBMASTER_API_KEY
+ *                            (replaces deprecated /ping?sitemap= which returns HTTP 410)
+ *   2. IndexNow (multi-engine POST) — https://api.indexnow.org/indexnow
+ *                            Requires: INDEXNOW_API_KEY
+ *                            Key hosted at: /api/indexnow-verify
  *
  * Auth: admin only.
  * Returns per-engine results so the UI can surface partial failures.
@@ -46,24 +49,50 @@ export async function POST() {
   const sitemapUrl = `${SITE_URL}/sitemap.xml`
   const results: EngineResult[] = []
 
-  // ── 1. Bing Ping ────────────────────────────────────────────────────────────
-  try {
-    const bingUrl = `https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`
-    const res = await fetch(bingUrl, { method: 'GET', signal: AbortSignal.timeout(10_000) })
-    results.push({ engine: 'Bing', ok: res.ok, status: res.status })
-  } catch (err) {
-    results.push({ engine: 'Bing', ok: false, reason: String(err) })
+  // ── 1. Bing Webmaster API (replaces deprecated /ping?sitemap= → HTTP 410) ───
+  const bingKey = process.env.BING_WEBMASTER_API_KEY
+  if (!bingKey) {
+    results.push({ engine: 'Bing', ok: false, skipped: true, reason: 'BING_WEBMASTER_API_KEY not set' })
+  } else {
+    try {
+      const res = await fetch(
+        `https://ssl.bing.com/webmaster/api.svc/json/SubmitSitemap?apikey=${encodeURIComponent(bingKey)}`,
+        {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body:    JSON.stringify({ siteUrl: SITE_URL, feedUrl: sitemapUrl }),
+          signal:  AbortSignal.timeout(10_000),
+        }
+      )
+      results.push({ engine: 'Bing', ok: res.ok, status: res.status })
+    } catch (err) {
+      results.push({ engine: 'Bing', ok: false, reason: String(err) })
+    }
   }
 
-  // ── 2. IndexNow ─────────────────────────────────────────────────────────────
+  // ── 2. IndexNow — POST key pages (spec: individual URLs, not sitemap XML) ────
   const indexNowKey = process.env.INDEXNOW_API_KEY
   if (!indexNowKey) {
     results.push({ engine: 'IndexNow', ok: false, skipped: true, reason: 'INDEXNOW_API_KEY not set' })
   } else {
     try {
-      const indexNowUrl =
-        `https://api.indexnow.org/indexnow?url=${encodeURIComponent(sitemapUrl)}&key=${encodeURIComponent(indexNowKey)}`
-      const res = await fetch(indexNowUrl, { method: 'GET', signal: AbortSignal.timeout(10_000) })
+      const host    = new URL(SITE_URL).hostname
+      const keyLocation = `${SITE_URL}/api/indexnow-verify`
+      // Submit primary pages (IndexNow does not accept sitemap XML as a URL)
+      const urlList = [
+        SITE_URL,
+        `${SITE_URL}/hooks`,
+        `${SITE_URL}/pricing`,
+        `${SITE_URL}/blog`,
+        `${SITE_URL}/trending`,
+      ]
+      const res = await fetch('https://api.indexnow.org/indexnow', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body:    JSON.stringify({ host, key: indexNowKey, keyLocation, urlList }),
+        signal:  AbortSignal.timeout(10_000),
+      })
+      // IndexNow returns 200 or 202 on success
       results.push({ engine: 'IndexNow', ok: res.ok || res.status === 202, status: res.status })
     } catch (err) {
       results.push({ engine: 'IndexNow', ok: false, reason: String(err) })

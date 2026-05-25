@@ -81,7 +81,7 @@ export function SitemapSubmitPanel() {
         <div>
           <h3 className="text-sm font-semibold text-white">🗺️ Sitemap 自动提交</h3>
           <p className="text-xs text-gray-400 mt-0.5">
-            提交至 Bing Ping + IndexNow，加速新页面收录
+            提交至 Bing Webmaster API + IndexNow，加速新页面收录
           </p>
         </div>
         <button
