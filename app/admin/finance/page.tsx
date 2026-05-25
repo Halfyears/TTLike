@@ -549,13 +549,18 @@ export default function FinancePage() {
                       >
                         <td className="px-5 py-3 text-xs text-gray-600 tabular-nums">{i + 1}</td>
                         <td className="px-4 py-3 max-w-[220px]">
-                          {u.name
-                            ? <>
-                                <p className="text-xs text-white font-medium truncate">{u.name}</p>
+                          {(() => {
+                            const displayName = u.name?.trim() || u.email.split('@')[0]
+                            const isReal      = !!u.name?.trim()
+                            return (
+                              <>
+                                <p className={`text-xs font-medium truncate ${isReal ? 'text-white' : 'text-gray-400'}`}>
+                                  {displayName}
+                                </p>
                                 <p className="text-[10px] text-gray-500 truncate font-mono mt-0.5">{u.email}</p>
                               </>
-                            : <p className="text-xs text-gray-300 italic truncate">{u.email}</p>
-                          }
+                            )
+                          })()}
                         </td>
                         <td className="px-4 py-3">{planBadge(u.plan)}</td>
                         <td className="px-4 py-3 text-right">

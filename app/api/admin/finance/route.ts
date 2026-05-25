@@ -166,9 +166,23 @@ export async function GET() {
     .from('users')
     .select('id, email, name, plan')
 
+  // Enrich names from auth.users user_metadata (OAuth sign-ins store full_name there;
+  // email-only registrations typically leave users.name NULL)
+  const authNameMap = new Map<string, string>()
+  try {
+    const supabaseAdmin = await createClient()
+    const { data: authData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
+    for (const au of (authData?.users ?? [])) {
+      const metaName = (au.user_metadata?.full_name ?? au.user_metadata?.name ?? '') as string
+      if (metaName) authNameMap.set(au.id, metaName)
+    }
+  } catch { /* non-fatal — auth admin API may not be available in all environments */ }
+
   const planByUser = new Map<string, { email: string; name: string | null; plan: string }>()
   for (const u of (userPlanRows ?? []) as Array<{ id: string; email: string; name: string | null; plan: string }>) {
-    planByUser.set(u.id, { email: u.email, name: u.name ?? null, plan: u.plan })
+    // Prefer users.name → auth user_metadata.full_name → null
+    const resolvedName = (u.name as string | null)?.trim() || authNameMap.get(u.id) || null
+    planByUser.set(u.id, { email: u.email, name: resolvedName, plan: u.plan })
   }
 
   // Build ranking (only users who have generated at least once)
