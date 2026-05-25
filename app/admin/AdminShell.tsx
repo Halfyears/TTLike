@@ -12,10 +12,9 @@ import { useLanguage } from '@/lib/i18n'
 
 // ── Nav structure ─────────────────────────────────────────────────────────────
 
-type NavGroup   = { type: 'group';   label: string }
-type NavLink    = { type: 'link';    href: string; icon: React.ElementType; label: string }
-type NavSubLink = { type: 'sublink'; href: string; icon: React.ElementType; label: string }
-type NavEntry   = NavGroup | NavLink | NavSubLink
+type NavGroup = { type: 'group'; label: string }
+type NavLink  = { type: 'link';  href: string; icon: React.ElementType; label: string }
+type NavEntry = NavGroup | NavLink
 
 function buildNav(t: ReturnType<typeof useLanguage>['t']): NavEntry[] {
   return [
@@ -75,28 +74,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
                   className="mt-4 mb-1 first:mt-0 px-3 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                   {entry.label}
                 </p>
-              )
-            }
-
-            // Sub-link: indented, smaller, inside parent module
-            if (entry.type === 'sublink') {
-              const active = isActive(entry.href)
-              const Icon   = entry.icon
-              return (
-                <Link
-                  key={entry.href}
-                  href={entry.href}
-                  aria-current={active ? 'page' : undefined}
-                  className={`flex items-center gap-2 pl-8 pr-3 py-1.5 rounded-lg text-xs font-medium transition-colors mb-0.5 ${
-                    active
-                      ? 'text-pink-300 bg-pink-600/10'
-                      : 'text-gray-500 hover:text-gray-300 hover:bg-gray-700/50'
-                  }`}
-                >
-                  <span className="w-px h-3 bg-gray-600 rounded-full shrink-0" />
-                  <Icon className="h-3 w-3 shrink-0" />
-                  <span className="truncate">{entry.label}</span>
-                </Link>
               )
             }
 
