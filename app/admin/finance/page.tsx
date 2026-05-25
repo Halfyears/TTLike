@@ -15,7 +15,7 @@ import {
   CreditCard, TrendingUp, Zap, Users, RefreshCw,
   CheckCircle, XCircle, AlertTriangle, Flame,
   DollarSign, BarChart2, ShieldCheck, ArrowUpDown,
-  Settings,
+  Settings, X, ExternalLink,
 } from 'lucide-react'
 import Link from 'next/link'
 import { AdminKpiCard } from '@/components/admin/AdminKpiCard'
@@ -104,12 +104,178 @@ function MiniBarChart({ data }: {
   )
 }
 
+// ── Drawer types ──────────────────────────────────────────────────────────────
+
+type DrawerType = 'creator' | 'scale' | 'free' | 'finops' | null
+
+interface SubUser {
+  id: string; email: string; name: string | null; plan: string; account_status: string
+}
+interface FinOpsUser {
+  user_id: string; email: string; name: string | null; plan: string; gens: number; cost_usd: number; cache_hits: number
+}
+
+// ── Detail drawer ─────────────────────────────────────────────────────────────
+
+function DetailDrawer({
+  type, onClose,
+}: { type: DrawerType; onClose: () => void }) {
+  const [loading, setLoading] = useState(true)
+  const [subUsers,    setSubUsers]    = useState<SubUser[]>([])
+  const [finopsUsers, setFinopsUsers] = useState<FinOpsUser[]>([])
+  const [total, setTotal] = useState(0)
+  const [err, setErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!type) return
+    setLoading(true)
+    setErr(null)
+
+    const url =
+      type === 'finops'
+        ? '/api/admin/finance/details?type=finops'
+        : `/api/admin/finance/details?type=subscription&plan=${
+            type === 'creator' ? 'PRO' : type === 'scale' ? 'ENTERPRISE' : 'FREE'
+          }`
+
+    fetch(url)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) throw new Error(d.error)
+        if (type === 'finops') {
+          setFinopsUsers(d.generators ?? [])
+          setTotal(d.total ?? 0)
+        } else {
+          setSubUsers(d.users ?? [])
+          setTotal(d.total ?? 0)
+        }
+      })
+      .catch(e => setErr(e.message))
+      .finally(() => setLoading(false))
+  }, [type])
+
+  const titles: Record<NonNullable<DrawerType>, string> = {
+    creator: 'Creator (PRO) Subscribers',
+    scale:   'Scale (Enterprise) Subscribers',
+    free:    'Free Plan Users',
+    finops:  'Top Generators (All Time)',
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="relative w-full max-w-lg bg-gray-900 border-l border-gray-700 shadow-2xl flex flex-col overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-700 shrink-0">
+          <div>
+            <h2 className="text-sm font-bold text-white">{type ? titles[type as NonNullable<DrawerType>] : ''}</h2>
+            {!loading && (
+              <p className="text-xs text-gray-500 mt-0.5">{total.toLocaleString()} {type === 'finops' ? 'users total' : 'users'}</p>
+            )}
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="p-10 text-center text-gray-500 text-sm">Loading…</div>
+          ) : err ? (
+            <div className="m-4 px-4 py-3 rounded-xl bg-red-900/40 border border-red-700 text-red-300 text-sm">{err}</div>
+          ) : type === 'finops' ? (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  <th className="text-left px-5 py-3">#</th>
+                  <th className="text-left px-4 py-3">User</th>
+                  <th className="text-left px-4 py-3">Plan</th>
+                  <th className="text-right px-4 py-3">Gens</th>
+                  <th className="text-right px-4 py-3">Cost</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700/50">
+                {finopsUsers.map((u, i) => (
+                  <tr key={u.user_id}
+                    onClick={() => window.location.href = `/admin/users/${u.user_id}`}
+                    className="hover:bg-gray-700/30 transition-colors cursor-pointer"
+                  >
+                    <td className="px-5 py-2.5 text-xs text-gray-600 tabular-nums">{i + 1}</td>
+                    <td className="px-4 py-2.5 max-w-[180px]">
+                      {u.name
+                        ? <><p className="text-xs text-white truncate">{u.name}</p>
+                            <p className="text-[10px] text-gray-500 truncate font-mono">{u.email}</p></>
+                        : <p className="text-xs text-gray-300 truncate font-mono">{u.email}</p>
+                      }
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        u.plan === 'PRO' ? 'bg-pink-900/40 text-pink-300 border border-pink-700' :
+                        u.plan === 'ENTERPRISE' ? 'bg-violet-900/40 text-violet-300 border border-violet-700' :
+                        'bg-gray-700 text-gray-400 border border-gray-600'
+                      }`}>{u.plan === 'ENTERPRISE' ? 'Scale' : u.plan === 'PRO' ? 'Creator' : 'Free'}</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-xs font-bold tabular-nums text-amber-400">{u.gens}</td>
+                    <td className="px-4 py-2.5 text-right text-xs tabular-nums text-red-400">{fmtUSD(u.cost_usd, 4)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                  <th className="text-left px-5 py-3">User</th>
+                  <th className="text-center px-4 py-3">Status</th>
+                  <th className="px-4 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700/50">
+                {subUsers.length === 0 ? (
+                  <tr><td colSpan={3} className="px-5 py-10 text-center text-gray-500 text-sm">No users on this plan.</td></tr>
+                ) : subUsers.map(u => (
+                  <tr key={u.id}
+                    onClick={() => window.location.href = `/admin/users/${u.id}`}
+                    className="hover:bg-gray-700/30 transition-colors cursor-pointer"
+                  >
+                    <td className="px-5 py-2.5 max-w-[220px]">
+                      {u.name
+                        ? <><p className="text-xs text-white truncate">{u.name}</p>
+                            <p className="text-[10px] text-gray-500 truncate font-mono">{u.email}</p></>
+                        : <p className="text-xs text-gray-300 italic truncate">{u.email}</p>
+                      }
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
+                      <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        u.account_status === 'ACTIVE' ? 'bg-emerald-900/40 text-emerald-300' : 'bg-gray-700 text-gray-400'
+                      }`}>{u.account_status}</span>
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <ExternalLink className="h-3.5 w-3.5 text-gray-600" />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function FinancePage() {
-  const [data,    setData]    = useState<FinanceData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState<string | null>(null)
-  const [sortAsc, setSortAsc] = useState(false)
+  const [data,      setData]      = useState<FinanceData | null>(null)
+  const [loading,   setLoading]   = useState(true)
+  const [error,     setError]     = useState<string | null>(null)
+  const [sortAsc,   setSortAsc]   = useState(false)
+  const [drawer,    setDrawer]    = useState<DrawerType>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -251,10 +417,10 @@ export default function FinancePage() {
 
             {/* KPI row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <AdminKpiCard icon={Users}      label="Total Paid"       value={d.subscriptions.total_paid}                  sub="active subscribers"     color="blue" />
-              <AdminKpiCard icon={CreditCard} label="Creator (Pro)"    value={d.subscriptions.plan_creator}                sub={`$29/mo · $${d.subscriptions.plan_creator * 29}/mo`}  color="pink" />
-              <AdminKpiCard icon={ShieldCheck} label="Scale (Ent.)"   value={d.subscriptions.plan_scale}                  sub={`$99/mo · $${d.subscriptions.plan_scale * 99}/mo`}    color="violet" />
-              <AdminKpiCard icon={TrendingUp} label="Est. Net MRR"     value={fmtUSDShort(d.subscriptions.net_mrr)}        sub={`after $${d.subscriptions.affiliate_spend.toFixed(0)} aff. spend`} color="emerald" />
+              <AdminKpiCard icon={Users}       label="Total Paid"    value={d.subscriptions.total_paid}           sub="click for breakdown"    color="blue"    onClick={() => setDrawer('creator')} />
+              <AdminKpiCard icon={CreditCard}  label="Creator (Pro)" value={d.subscriptions.plan_creator}         sub={`$29/mo · $${d.subscriptions.plan_creator * 29}/mo`} color="pink"   onClick={() => setDrawer('creator')} />
+              <AdminKpiCard icon={ShieldCheck} label="Scale (Ent.)"  value={d.subscriptions.plan_scale}           sub={`$99/mo · $${d.subscriptions.plan_scale * 99}/mo`}  color="violet" onClick={() => setDrawer('scale')} />
+              <AdminKpiCard icon={TrendingUp}  label="Est. Net MRR"  value={fmtUSDShort(d.subscriptions.net_mrr)} sub={`after $${d.subscriptions.affiliate_spend.toFixed(0)} aff. spend`} color="emerald" onClick={() => setDrawer('free')} />
             </div>
 
             {/* Revenue breakdown card */}
@@ -311,10 +477,10 @@ export default function FinancePage() {
             </p>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-              <AdminKpiCard icon={Zap}      label="Total AI Cost"    value={fmtUSD(d.token_finops.total_cost_usd)}  sub="all time (est.)"         color="amber" />
-              <AdminKpiCard icon={BarChart2} label="Generations"     value={d.token_finops.total_generations}       sub="COMPLETE events"          color="pink" />
-              <AdminKpiCard icon={TrendingUp} label="Cost per Gen."  value={fmtUSD(d.token_finops.total_generations > 0 ? d.token_finops.total_cost_usd / d.token_finops.total_generations : 0, 5)} sub="avg. Gemini 2.5 Flash" color="gray" />
-              <AdminKpiCard icon={DollarSign} label="COGS Ratio"     value={d.subscriptions.est_mrr > 0 ? `${((d.token_finops.total_cost_usd / 30 / (d.subscriptions.est_mrr / 30)) * 100).toFixed(1)}%` : '—'} sub="30-day cost / monthly MRR" color="red" />
+              <AdminKpiCard icon={Zap}        label="Total AI Cost"   value={fmtUSD(d.token_finops.total_cost_usd)}  sub="click for top generators" color="amber"  onClick={() => setDrawer('finops')} />
+              <AdminKpiCard icon={BarChart2}  label="Generations"     value={d.token_finops.total_generations}       sub="click for top generators"  color="pink"   onClick={() => setDrawer('finops')} />
+              <AdminKpiCard icon={TrendingUp} label="Cost per Gen."   value={fmtUSD(d.token_finops.total_generations > 0 ? d.token_finops.total_cost_usd / d.token_finops.total_generations : 0, 5)} sub="avg. Gemini 2.5 Flash" color="gray" />
+              <AdminKpiCard icon={DollarSign} label="COGS Ratio"      value={d.subscriptions.est_mrr > 0 ? `${((d.token_finops.total_cost_usd / 30 / (d.subscriptions.est_mrr / 30)) * 100).toFixed(1)}%` : '—'} sub="30-day cost / monthly MRR" color="red" />
             </div>
 
             <div className="bg-gray-800 border border-gray-700 rounded-xl p-5">
@@ -383,12 +549,13 @@ export default function FinancePage() {
                       >
                         <td className="px-5 py-3 text-xs text-gray-600 tabular-nums">{i + 1}</td>
                         <td className="px-4 py-3 max-w-[220px]">
-                          <p className="text-xs text-white font-medium truncate">
-                            {u.name ?? u.email}
-                          </p>
-                          {u.name && (
-                            <p className="text-[10px] text-gray-500 truncate font-mono mt-0.5">{u.email}</p>
-                          )}
+                          {u.name
+                            ? <>
+                                <p className="text-xs text-white font-medium truncate">{u.name}</p>
+                                <p className="text-[10px] text-gray-500 truncate font-mono mt-0.5">{u.email}</p>
+                              </>
+                            : <p className="text-xs text-gray-300 italic truncate">{u.email}</p>
+                          }
                         </td>
                         <td className="px-4 py-3">{planBadge(u.plan)}</td>
                         <td className="px-4 py-3 text-right">
@@ -431,6 +598,9 @@ export default function FinancePage() {
           </section>
         </>
       )}
+
+      {/* Detail drawer */}
+      {drawer && <DetailDrawer type={drawer} onClose={() => setDrawer(null)} />}
     </div>
   )
 }

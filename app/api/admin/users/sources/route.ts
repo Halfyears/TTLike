@@ -32,8 +32,8 @@ export async function GET(req: Request) {
 
   let query = service
     .from('users')
-    .select('id, email, name, role, referral_source, account_status, created_at')
-    .order('created_at', { ascending: false })
+    .select('id, email, name, role, referral_source, account_status')
+    .order('email', { ascending: true })
     .limit(500)
 
   if (source === '__direct__') {
@@ -61,7 +61,6 @@ export async function GET(req: Request) {
     role:             u.role,
     referral_source:  u.referral_source,
     account_status:   u.account_status ?? 'ACTIVE',
-    created_at:       u.created_at,
     plan:             subMap.get(u.id as string)?.plan ?? 'FREE',
     sub_status:       subMap.get(u.id as string)?.status ?? '',
   }))

@@ -164,11 +164,11 @@ export async function GET() {
   // Join with user plan data
   const { data: userPlanRows } = await service
     .from('users')
-    .select('id, email, plan')
+    .select('id, email, name, plan')
 
-  const planByUser = new Map<string, { email: string; plan: string }>()
-  for (const u of (userPlanRows ?? []) as Array<{ id: string; email: string; plan: string }>) {
-    planByUser.set(u.id, { email: u.email, plan: u.plan })
+  const planByUser = new Map<string, { email: string; name: string | null; plan: string }>()
+  for (const u of (userPlanRows ?? []) as Array<{ id: string; email: string; name: string | null; plan: string }>) {
+    planByUser.set(u.id, { email: u.email, name: u.name ?? null, plan: u.plan })
   }
 
   // Build ranking (only users who have generated at least once)
@@ -188,8 +188,8 @@ export async function GET() {
 
     ranking.push({
       user_id:    uid,
-      email:      userInfo?.email ?? uid.slice(0, 8) + '…',
-      name:       (userInfo as { name?: string | null } | undefined)?.name ?? null,
+      email:      userInfo?.email ?? '(unknown)',
+      name:       userInfo?.name ?? null,
       plan,
       plan_value: planValue,
       generations: stats.gens,

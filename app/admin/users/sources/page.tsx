@@ -13,8 +13,6 @@ import {
   ArrowLeft, Users, RefreshCw, ExternalLink,
   AlertTriangle, ChevronRight,
 } from 'lucide-react'
-import { timeAgo }    from '@/lib/dateUtils'
-import { LocalDate }  from '@/components/ui/LocalDate'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface SourceUser {
@@ -26,7 +24,6 @@ interface SourceUser {
   sub_status:      string
   referral_source: string | null
   account_status:  string
-  created_at:      string
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -133,7 +130,6 @@ export default function UserSourcesPage() {
                   <th className="px-4 py-3">Plan</th>
                   <th className="px-4 py-3">Account Status</th>
                   <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Joined</th>
                   <th className="px-4 py-3"></th>
                 </tr>
               </thead>
@@ -171,11 +167,6 @@ export default function UserSourcesPage() {
                       <span className={`text-xs font-semibold ${u.role === 'ADMIN' ? 'text-red-400' : 'text-gray-400'}`}>
                         {u.role}
                       </span>
-                    </td>
-
-                    {/* Joined */}
-                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                      <LocalDate date={u.created_at} />
                     </td>
 
                     {/* Arrow */}

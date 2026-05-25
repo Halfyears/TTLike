@@ -42,6 +42,7 @@ interface AdminKpiCardProps {
   trend?:  { value: number; label?: string }   // +N = green, -N = red
   color?:  CardColor
   href?:   string
+  onClick?: () => void
   className?: string
 }
 
@@ -75,12 +76,23 @@ function CardBody({
   )
 }
 
-export function AdminKpiCard({ href, className, ...props }: AdminKpiCardProps) {
+export function AdminKpiCard({ href, onClick, className, ...props }: AdminKpiCardProps) {
   if (href) {
     return (
       <Link href={href} className={`block hover:scale-[1.02] transition-transform ${className ?? ''}`}>
         <CardBody {...props} />
       </Link>
+    )
+  }
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`w-full text-left hover:scale-[1.02] hover:ring-1 hover:ring-indigo-500/50 transition-all rounded-xl ${className ?? ''}`}
+      >
+        <CardBody {...props} />
+      </button>
     )
   }
   return (
