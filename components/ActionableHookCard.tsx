@@ -62,12 +62,39 @@ function BoldGlow({ text }: { text: string }) {
   )
 }
 
-// ── Score colour (rationale #1) ───────────────────────────────────────────────
+// ── Score colour ──────────────────────────────────────────────────────────────
 
 function scoreColorCls(score: number) {
   if (score < 50) return 'text-red-600 dark:text-red-400 border-red-500/20 bg-red-500/5'
   if (score < 70) return 'text-amber-600 dark:text-amber-400 border-amber-500/20 bg-amber-500/5'
   return 'text-emerald-600 dark:text-emerald-400 border-emerald-500/20 bg-emerald-500/5'
+}
+
+// ── Animated score counter (RAF ease-out cubic) ───────────────────────────────
+// Restores the "reveal" feel from V1 — media buyers feel the score land.
+
+function ScoreCounter({ target }: { target: number }) {
+  const [count, setCount]   = useState(0)
+  const frameRef            = useRef<number | null>(null)
+
+  useEffect(() => {
+    const start    = performance.now()
+    const duration = 800 // ms
+
+    const tick = (now: number) => {
+      const elapsed  = now - start
+      const progress = Math.min(elapsed / duration, 1)
+      // ease-out cubic: decelerates into the final value
+      const eased    = 1 - Math.pow(1 - progress, 3)
+      setCount(Math.round(eased * target))
+      if (progress < 1) frameRef.current = requestAnimationFrame(tick)
+    }
+
+    frameRef.current = requestAnimationFrame(tick)
+    return () => { if (frameRef.current) cancelAnimationFrame(frameRef.current) }
+  }, [target])
+
+  return <span className="text-3xl font-black font-mono mt-0.5 tabular-nums">{count}</span>
 }
 
 // ── Share URL builder (carries forward /hooks/share integration) ──────────────
@@ -224,20 +251,18 @@ export default function ActionableHookCard({
   const canShare = !!(originalText && primaryPattern)
 
   return (
-    // pb-28 reserves space so the sticky bar never covers last variant
-    <div className="w-full max-w-3xl mx-auto p-4 md:p-6 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased font-sans pb-28">
+    // pb-28 only when sticky bar is present — avoids dead space on pages without CTA
+    <div className={`w-full max-w-3xl mx-auto p-4 md:p-6 bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased font-sans ${onCloneClick ? 'pb-28' : 'pb-4'}`}>
 
       {/* ── 1. Brutalist Header Dashboard ─────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl p-5 mb-6 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
 
-        {/* Score cell */}
+        {/* Score cell — animated RAF counter */}
         <div className={`flex flex-col justify-center p-3 rounded-lg border ${scoreColorCls(clampedScore)}`}>
           <span className="text-[10px] font-bold font-mono tracking-widest text-slate-400 dark:text-slate-500 uppercase">
             Viral Pressure
           </span>
-          <span className="text-3xl font-black font-mono mt-0.5 tabular-nums">
-            {clampedScore}
-          </span>
+          <ScoreCounter target={clampedScore} />
         </div>
 
         {/* Brutal feedback — rationale #2: overflow-y-auto container */}
@@ -274,7 +299,8 @@ export default function ActionableHookCard({
         ))}
       </div>
 
-      {/* ── 3. Sticky Bottom Monetization Bar — rationale #5 ─────────────── */}
+      {/* ── 3. Sticky Bottom Monetization Bar — only when CTA provided ──── */}
+      {onCloneClick && (
       <div className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 p-4 z-40 shadow-xl">
         <div className="max-w-3xl mx-auto flex justify-between items-center px-2">
           <div className="hidden sm:block">
@@ -286,13 +312,14 @@ export default function ActionableHookCard({
             </p>
           </div>
           <button
-            onClick={() => onCloneClick?.()}
+            onClick={() => onCloneClick()}
             className="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 text-white font-bold text-xs px-6 py-2.5 rounded-lg shadow-md transition-all tracking-wide"
           >
             ✨ Adapt This Script to My Product (Pro)
           </button>
         </div>
       </div>
+      )}
     </div>
   )
 }
