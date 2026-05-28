@@ -5,7 +5,7 @@ import {
   RefreshCw, Users, CreditCard, Zap, ShieldCheck,
   ChevronDown, Search, CheckCircle, BarChart2,
   Brain, Clock, ChevronRight, RotateCcw, AlertTriangle,
-  MousePointerClick, TrendingUp, ArrowUpRight, ShieldAlert,
+  MousePointerClick, TrendingUp, ArrowUpRight, ShieldAlert, Check,
 } from 'lucide-react'
 import Link           from 'next/link'
 import { Badge }      from '@/components/ui/Badge'
@@ -577,14 +577,20 @@ function KpiCard({ icon: Icon, label, value, color }: {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function AdminUsersPage() {
-  const [users,        setUsers]        = useState<User[]>([])
-  const [loading,      setLoading]      = useState(true)
-  const [error,        setError]        = useState<string | null>(null)
-  const [search,       setSearch]       = useState('')
-  const [planFilter,   setPlanFilter]   = useState('')
-  const [roleFilter,   setRoleFilter]   = useState('')
-  const [sourceFilter, setSourceFilter] = useState('')
-  const [changingRole, setChangingRole] = useState<string | null>(null)
+  const [users,           setUsers]           = useState<User[]>([])
+  const [loading,         setLoading]         = useState(true)
+  const [error,           setError]           = useState<string | null>(null)
+  const [search,          setSearch]          = useState('')
+  const [planFilter,      setPlanFilter]      = useState('')
+  const [roleFilter,      setRoleFilter]      = useState('')
+  const [sourceFilter,    setSourceFilter]    = useState('')
+  const [acctStatusFilter, setAcctStatusFilter] = useState('')   // '' = valid users (hide DELETED)
+
+  // Pending changes per user — committed only when Confirm is clicked
+  const [pendingChanges, setPendingChanges] = useState<
+    Record<string, { role?: string; accountStatus?: string; plan?: string }>
+  >({})
+  const [saving, setSaving] = useState<Record<string, boolean>>({})
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchUsers = useCallback(async () => {
@@ -595,6 +601,7 @@ export default function AdminUsersPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to load users')
       setUsers(data.users as User[])
+      setPendingChanges({})  // clear any unsaved edits on refresh
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
@@ -604,56 +611,42 @@ export default function AdminUsersPage() {
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
 
-  // ── Role change ────────────────────────────────────────────────────────────
-  async function changeRole(userId: string, newRole: string) {
-    setChangingRole(userId)
-    try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u))
-    } catch (e) {
-      alert(`Failed to update role: ${e instanceof Error ? e.message : e}`)
-    } finally {
-      setChangingRole(null)
-    }
+  // ── Mark a field as pending (does NOT call API) ────────────────────────────
+  function markPending(userId: string, field: 'role' | 'accountStatus' | 'plan', value: string) {
+    setPendingChanges(prev => ({
+      ...prev,
+      [userId]: { ...(prev[userId] ?? {}), [field]: value },
+    }))
   }
 
-  // ── Account status change ──────────────────────────────────────────────────
-  async function changeAccountStatus(userId: string, newStatus: string) {
+  // ── Confirm — send all pending changes for one user ────────────────────────
+  async function confirmChanges(userId: string) {
+    const changes = pendingChanges[userId]
+    if (!changes || Object.keys(changes).length === 0) return
+    setSaving(prev => ({ ...prev, [userId]: true }))
     try {
       const res = await fetch(`/api/admin/users/${userId}`, {
-        method: 'PATCH',
+        method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accountStatus: newStatus }),
+        body:    JSON.stringify(changes),
       })
       if (!res.ok) throw new Error((await res.json()).error)
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, account_status: newStatus } : u))
+      // Apply committed values to users list
+      setUsers(prev => prev.map(u => {
+        if (u.id !== userId) return u
+        return {
+          ...u,
+          ...(changes.role          !== undefined ? { role:           changes.role }          : {}),
+          ...(changes.plan          !== undefined ? { plan:           changes.plan }          : {}),
+          ...(changes.accountStatus !== undefined ? { account_status: changes.accountStatus } : {}),
+        }
+      }))
+      // Clear pending for this user
+      setPendingChanges(prev => { const { [userId]: _, ...rest } = prev; return rest })
     } catch (e) {
-      alert(`Failed to update status: ${e instanceof Error ? e.message : e}`)
-    }
-  }
-
-  // ── Plan change (admin override) ──────────────────────────────────────────
-  const [changingPlan, setChangingPlan] = useState<string | null>(null)
-
-  async function changePlan(userId: string, newPlan: string) {
-    setChangingPlan(userId)
-    try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: newPlan }),
-      })
-      if (!res.ok) throw new Error((await res.json()).error)
-      setUsers(prev => prev.map(u => u.id === userId ? { ...u, plan: newPlan } : u))
-    } catch (e) {
-      alert(`Failed to update plan: ${e instanceof Error ? e.message : e}`)
+      alert(`Failed to save: ${e instanceof Error ? e.message : e}`)
     } finally {
-      setChangingPlan(null)
+      setSaving(prev => ({ ...prev, [userId]: false }))
     }
   }
 
@@ -675,6 +668,12 @@ export default function AdminUsersPage() {
   // ── Filtered list ──────────────────────────────────────────────────────────
   const visible = useMemo(() => {
     let list = users
+    // Default: hide DELETED accounts; acctStatusFilter='' means "valid users only"
+    if (acctStatusFilter === '') {
+      list = list.filter(u => u.account_status !== 'DELETED')
+    } else if (acctStatusFilter !== 'ALL') {
+      list = list.filter(u => u.account_status === acctStatusFilter)
+    }
     if (search) {
       const q = search.toLowerCase()
       list = list.filter(u =>
@@ -690,7 +689,7 @@ export default function AdminUsersPage() {
         : u.referral_source === sourceFilter
     )
     return list
-  }, [users, search, planFilter, roleFilter, sourceFilter])
+  }, [users, search, planFilter, roleFilter, sourceFilter, acctStatusFilter])
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -761,6 +760,18 @@ export default function AdminUsersPage() {
             className="w-full pl-9 pr-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
         </div>
+        <select
+          value={acctStatusFilter}
+          onChange={e => setAcctStatusFilter(e.target.value)}
+          className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
+        >
+          <option value="">Valid users</option>
+          <option value="ALL">All (incl. Deleted)</option>
+          <option value="ACTIVE">Active only</option>
+          <option value="PENDING">Pending only</option>
+          <option value="INACTIVE">Inactive only</option>
+          <option value="DELETED">Deleted only</option>
+        </select>
         <select
           value={planFilter}
           onChange={e => setPlanFilter(e.target.value)}
@@ -856,44 +867,64 @@ export default function AdminUsersPage() {
                       )}
                     </td>
 
-                    {/* Account Status */}
+                    {/* Account Status — pending-aware dropdown */}
                     <td className="px-4 py-3 whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                      <select
-                        value={user.account_status ?? 'ACTIVE'}
-                        onChange={e => changeAccountStatus(user.id, e.target.value)}
-                        className={`appearance-none border rounded px-2 py-0.5 text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer pr-4 ${
-                          user.account_status === 'ACTIVE'   ? 'bg-emerald-900/40 border-emerald-700 text-emerald-300' :
-                          user.account_status === 'PENDING'  ? 'bg-yellow-900/40 border-yellow-700 text-yellow-300' :
-                          user.account_status === 'INACTIVE' ? 'bg-gray-700 border-gray-600 text-gray-300' :
-                          user.account_status === 'DELETED'  ? 'bg-red-900/40 border-red-700 text-red-300' :
-                                                               'bg-gray-700 border-gray-600 text-gray-300'
-                        }`}
-                      >
-                        <option value="PENDING">PENDING</option>
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="INACTIVE">INACTIVE</option>
-                        <option value="DELETED">DELETED</option>
-                      </select>
+                      {(() => {
+                        const acctVal = pendingChanges[user.id]?.accountStatus ?? user.account_status ?? 'ACTIVE'
+                        const isDirty = pendingChanges[user.id]?.accountStatus !== undefined
+                        return (
+                          <select
+                            value={acctVal}
+                            onChange={e => markPending(user.id, 'accountStatus', e.target.value)}
+                            className={`appearance-none border rounded px-2 py-0.5 text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer pr-4 ${
+                              isDirty ? 'ring-1 ring-amber-500 ' : ''
+                            }${
+                              acctVal === 'ACTIVE'   ? 'bg-emerald-900/40 border-emerald-700 text-emerald-300' :
+                              acctVal === 'PENDING'  ? 'bg-yellow-900/40 border-yellow-700 text-yellow-300' :
+                              acctVal === 'INACTIVE' ? 'bg-gray-700 border-gray-600 text-gray-300' :
+                              acctVal === 'DELETED'  ? 'bg-red-900/40 border-red-700 text-red-300' :
+                                                       'bg-gray-700 border-gray-600 text-gray-300'
+                            }`}
+                          >
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="PENDING">PENDING</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                            <option value="DELETED">DELETED</option>
+                          </select>
+                        )
+                      })()}
                     </td>
 
-                    {/* Role */}
+                    {/* Role — show pending value if changed */}
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <Badge variant={user.role === 'ADMIN' ? 'danger' : 'default'}>
-                        {user.role === 'ADMIN' && <ShieldCheck className="h-2.5 w-2.5 mr-1 inline" />}
-                        {user.role}
-                      </Badge>
+                      {(() => {
+                        const roleVal = pendingChanges[user.id]?.role ?? user.role
+                        return (
+                          <Badge variant={roleVal === 'ADMIN' ? 'danger' : 'default'}>
+                            {roleVal === 'ADMIN' && <ShieldCheck className="h-2.5 w-2.5 mr-1 inline" />}
+                            {roleVal}
+                          </Badge>
+                        )
+                      })()}
                     </td>
 
-                    {/* Plan */}
+                    {/* Plan — show pending value if changed */}
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${planColor(user.plan)}`}>
-                        {planLabel(user.plan)}
-                      </span>
-                      {user.period_end && (
-                        <p className="text-[10px] text-gray-500 mt-0.5">
-                          ends <LocalDate date={user.period_end} />
-                        </p>
-                      )}
+                      {(() => {
+                        const planVal = pendingChanges[user.id]?.plan ?? user.plan
+                        return (
+                          <>
+                            <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${planColor(planVal)}`}>
+                              {planLabel(planVal)}
+                            </span>
+                            {user.period_end && (
+                              <p className="text-[10px] text-gray-500 mt-0.5">
+                                ends <LocalDate date={user.period_end} />
+                              </p>
+                            )}
+                          </>
+                        )
+                      })()}
                     </td>
 
                     {/* Scripts */}
@@ -915,14 +946,14 @@ export default function AdminUsersPage() {
                       <LocalDate date={user.created_at} />
                     </td>
 
-                    {/* Actions — role + plan change (stop propagation so row click doesn't fire) */}
-                    <td className="px-4 py-3 space-y-1.5" onClick={e => e.stopPropagation()}>
+                    {/* Actions — pending-aware selectors + confirm button */}
+                    <td className="px-4 py-3 space-y-1.5 min-w-[130px]" onClick={e => e.stopPropagation()}>
                       {/* Role selector */}
                       <div className="relative">
                         <select
-                          value={user.role}
-                          disabled={changingRole === user.id}
-                          onChange={e => changeRole(user.id, e.target.value)}
+                          value={pendingChanges[user.id]?.role ?? user.role}
+                          disabled={saving[user.id]}
+                          onChange={e => markPending(user.id, 'role', e.target.value)}
                           className="appearance-none bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer pr-5 disabled:opacity-50 w-full"
                         >
                           <option value="USER">USER</option>
@@ -932,22 +963,55 @@ export default function AdminUsersPage() {
                       </div>
                       {/* Plan selector (admin override) */}
                       <div className="relative">
-                        <select
-                          value={user.plan}
-                          disabled={changingPlan === user.id}
-                          onChange={e => changePlan(user.id, e.target.value)}
-                          className={`appearance-none border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer pr-5 disabled:opacity-50 w-full ${
-                            user.plan === 'ENTERPRISE' ? 'bg-violet-900/30 border-violet-700 text-violet-300' :
-                            user.plan === 'PRO'        ? 'bg-pink-900/30 border-pink-700 text-pink-300' :
-                                                        'bg-gray-700 border-gray-600 text-gray-400'
-                          }`}
-                        >
-                          <option value="FREE">Free</option>
-                          <option value="PRO">Creator (Pro)</option>
-                          <option value="ENTERPRISE">Scale (Ent.)</option>
-                        </select>
-                        <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400 pointer-events-none" />
+                        {(() => {
+                          const planVal = pendingChanges[user.id]?.plan ?? user.plan
+                          return (
+                            <>
+                              <select
+                                value={planVal}
+                                disabled={saving[user.id]}
+                                onChange={e => markPending(user.id, 'plan', e.target.value)}
+                                className={`appearance-none border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer pr-5 disabled:opacity-50 w-full ${
+                                  planVal === 'ENTERPRISE' ? 'bg-violet-900/30 border-violet-700 text-violet-300' :
+                                  planVal === 'PRO'        ? 'bg-pink-900/30 border-pink-700 text-pink-300' :
+                                                            'bg-gray-700 border-gray-600 text-gray-400'
+                                }`}
+                              >
+                                <option value="FREE">Free</option>
+                                <option value="PRO">Creator (Pro)</option>
+                                <option value="ENTERPRISE">Scale (Ent.)</option>
+                              </select>
+                              <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400 pointer-events-none" />
+                            </>
+                          )
+                        })()}
                       </div>
+                      {/* Confirm button — always visible; highlighted when there are unsaved changes */}
+                      {(() => {
+                        const hasPending = !!(pendingChanges[user.id] && Object.keys(pendingChanges[user.id]).length > 0)
+                        const isSaving   = saving[user.id] ?? false
+                        return (
+                          <button
+                            onClick={() => confirmChanges(user.id)}
+                            disabled={isSaving || !hasPending}
+                            title={hasPending ? 'Save changes' : 'No unsaved changes'}
+                            className={`flex items-center justify-center gap-1 w-full rounded px-2 py-1 text-xs font-semibold transition-all ${
+                              isSaving
+                                ? 'bg-gray-700 border border-gray-600 text-gray-400 cursor-wait'
+                                : hasPending
+                                  ? 'bg-emerald-600 hover:bg-emerald-500 border border-emerald-500 text-white shadow-md shadow-emerald-900/50 animate-pulse'
+                                  : 'bg-gray-700/50 border border-gray-700 text-gray-600 cursor-default'
+                            }`}
+                          >
+                            {isSaving ? (
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Check className="h-3 w-3" />
+                            )}
+                            {isSaving ? 'Saving…' : 'Confirm'}
+                          </button>
+                        )
+                      })()}
                     </td>
                   </tr>
                 ))}
