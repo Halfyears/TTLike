@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Activity, CheckCircle, XCircle, RefreshCw, Play, Database, Clock, Image, AlertTriangle, ToggleLeft, ToggleRight, Shield } from 'lucide-react'
+import { Activity, CheckCircle, XCircle, RefreshCw, Play, Database, Clock, Image, AlertTriangle, ToggleLeft, ToggleRight, Shield, Settings2, Cpu, Ban } from 'lucide-react'
 import { fmtDateTime } from '@/lib/dateUtils'
 
 interface ScraperLog {
@@ -55,6 +55,13 @@ export default function ScraperPage() {
   const [fallbackUpdated,  setFallbackUpdated]  = useState<string | null>(null)
   const [fallbackMsg,      setFallbackMsg]      = useState<{ ok: boolean; text: string } | null>(null)
 
+  // ── Scraper app config state ───────────────────────────────────────────────
+  const [scraperApp,          setScraperApp]          = useState('github_actions')
+  const [autoScrapeEnabled,   setAutoScrapeEnabled]   = useState(true)
+  const [manualScrapeEnabled, setManualScrapeEnabled] = useState(true)
+  const [configLoading,       setConfigLoading]       = useState(false)
+  const [configMsg,           setConfigMsg]           = useState<{ ok: boolean; text: string } | null>(null)
+
   const supabase = createClient()
 
   const fetchData = useCallback(async () => {
@@ -92,12 +99,26 @@ export default function ScraperPage() {
     } catch { /* ignore */ }
   }, [])
 
+  // ── Fetch scraper app config ───────────────────────────────────────────────
+  const fetchConfig = useCallback(async () => {
+    try {
+      const res  = await fetch('/api/admin/scraper/config')
+      const data = await res.json()
+      if (res.ok) {
+        setScraperApp(data.scraper_app ?? 'github_actions')
+        setAutoScrapeEnabled(data.auto_scrape_enabled !== false)
+        setManualScrapeEnabled(data.manual_scrape_enabled !== false)
+      }
+    } catch { /* ignore */ }
+  }, [])
+
   useEffect(() => {
     fetchData()
     fetchFallback()
+    fetchConfig()
     const id = setInterval(fetchData, 5 * 60 * 1000)
     return () => clearInterval(id)
-  }, [fetchData, fetchFallback])
+  }, [fetchData, fetchFallback, fetchConfig])
 
   // ── Toggle fallback ────────────────────────────────────────────────────────
   async function handleToggleFallback() {
@@ -126,7 +147,39 @@ export default function ScraperPage() {
     }
   }
 
+  // ── Update scraper app config ──────────────────────────────────────────────
+  async function handleConfigUpdate(patch: {
+    scraper_app?: string
+    auto_scrape_enabled?: boolean
+    manual_scrape_enabled?: boolean
+  }) {
+    setConfigLoading(true)
+    setConfigMsg(null)
+    try {
+      const res  = await fetch('/api/admin/scraper/config', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(patch),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setScraperApp(data.scraper_app)
+        setAutoScrapeEnabled(data.auto_scrape_enabled)
+        setManualScrapeEnabled(data.manual_scrape_enabled)
+        setConfigMsg({ ok: true, text: 'Configuration saved.' })
+      } else {
+        setConfigMsg({ ok: false, text: data.error ?? 'Save failed' })
+      }
+    } finally {
+      setConfigLoading(false)
+    }
+  }
+
   async function handleTrigger() {
+    if (!manualScrapeEnabled) {
+      setTriggerMsg({ ok: false, text: 'Manual scraping is disabled. Enable it in Scraper Configuration above.' })
+      return
+    }
     setTriggering(true)
     setTriggerMsg(null)
     try {
@@ -256,6 +309,122 @@ export default function ScraperPage() {
         )
       })()}
 
+      {/* ── Scraper Configuration ──────────────────────────────────────────── */}
+      <div className="mb-8 bg-gray-800 border border-gray-700 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Settings2 className="h-4 w-4 text-pink-400" />
+          <h2 className="text-white font-semibold">Scraper Configuration</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+          {/* Scraper App selector */}
+          <div>
+            <label className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2 block">
+              Scraper App
+            </label>
+            <select
+              value={scraperApp}
+              disabled={configLoading}
+              onChange={e => handleConfigUpdate({ scraper_app: e.target.value })}
+              className="w-full bg-gray-700 border border-gray-600 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:opacity-50"
+            >
+              <option value="github_actions">GitHub Actions (Workflow)</option>
+              <option value="apify_direct">Apify Direct</option>
+              <option value="brightdata">Bright Data</option>
+              <option value="custom">Custom Script</option>
+            </select>
+            <p className="text-[10px] text-gray-500 mt-1.5">
+              {scraperApp === 'github_actions' && 'Dispatches .github/workflows/fetch_tiktok.yml on demand or schedule.'}
+              {scraperApp === 'apify_direct'   && 'Calls Apify Actor API directly — bypasses GitHub Actions.'}
+              {scraperApp === 'brightdata'     && 'Routes through Bright Data residential proxies.'}
+              {scraperApp === 'custom'         && 'Uses a custom scraper endpoint.'}
+            </p>
+          </div>
+
+          {/* Auto-scrape toggle */}
+          <div className="flex flex-col">
+            <label className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2 block">
+              Auto Scrape (Scheduled)
+            </label>
+            <div className="flex-1 flex items-center justify-between bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2.5">
+              <div>
+                <p className={`text-sm font-semibold ${autoScrapeEnabled ? 'text-emerald-400' : 'text-gray-400'}`}>
+                  {autoScrapeEnabled ? 'Enabled' : 'Disabled'}
+                </p>
+                <p className="text-[10px] text-gray-500 mt-0.5">
+                  {autoScrapeEnabled
+                    ? 'Scheduled scraping is active'
+                    : 'No automatic scraping'}
+                </p>
+              </div>
+              <button
+                onClick={() => handleConfigUpdate({ auto_scrape_enabled: !autoScrapeEnabled })}
+                disabled={configLoading}
+                className="shrink-0 disabled:opacity-50"
+              >
+                {autoScrapeEnabled
+                  ? <ToggleRight className="h-7 w-7 text-emerald-400" />
+                  : <ToggleLeft  className="h-7 w-7 text-gray-500" />
+                }
+              </button>
+            </div>
+          </div>
+
+          {/* Manual-scrape toggle */}
+          <div className="flex flex-col">
+            <label className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2 block">
+              On-Demand Scrape (Manual)
+            </label>
+            <div className="flex-1 flex items-center justify-between bg-gray-700/50 border border-gray-600 rounded-lg px-3 py-2.5">
+              <div>
+                <p className={`text-sm font-semibold ${manualScrapeEnabled ? 'text-emerald-400' : 'text-gray-400'}`}>
+                  {manualScrapeEnabled ? 'Enabled' : 'Disabled'}
+                </p>
+                <p className="text-[10px] text-gray-500 mt-0.5">
+                  {manualScrapeEnabled
+                    ? 'Manual trigger button active'
+                    : 'Manual trigger is locked'}
+                </p>
+              </div>
+              <button
+                onClick={() => handleConfigUpdate({ manual_scrape_enabled: !manualScrapeEnabled })}
+                disabled={configLoading}
+                className="shrink-0 disabled:opacity-50"
+              >
+                {manualScrapeEnabled
+                  ? <ToggleRight className="h-7 w-7 text-emerald-400" />
+                  : <ToggleLeft  className="h-7 w-7 text-gray-500" />
+                }
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        {!manualScrapeEnabled && (
+          <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-900/30 border border-amber-700/50 text-amber-300 text-xs">
+            <Ban className="h-3.5 w-3.5 shrink-0" />
+            Manual trigger is currently disabled. Enable it above to allow on-demand scraping.
+          </div>
+        )}
+        {!autoScrapeEnabled && (
+          <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-700/50 border border-gray-600 text-gray-400 text-xs">
+            <Cpu className="h-3.5 w-3.5 shrink-0" />
+            Scheduled scraping is off. GitHub Actions cron will still run but can check this flag before proceeding.
+          </div>
+        )}
+        {configMsg && (
+          <div className={`mt-3 px-3 py-2 rounded-lg text-xs ${
+            configMsg.ok
+              ? 'bg-emerald-900/40 border border-emerald-700 text-emerald-300'
+              : 'bg-red-900/40 border border-red-700 text-red-300'
+          }`}>
+            {configMsg.text}
+          </div>
+        )}
+      </div>
+
       {/* Fallback Switch */}
       <div className={`mb-8 rounded-xl border p-5 ${fallbackEnabled ? 'bg-amber-950/20 border-amber-700' : 'bg-gray-800 border-gray-700'}`}>
         <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -311,17 +480,26 @@ export default function ScraperPage() {
       </div>
 
       {/* Manual trigger */}
-      <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 mb-8">
-        <h2 className="text-white font-semibold mb-3">Manual Trigger</h2>
+      <div className={`border rounded-xl p-5 mb-8 ${manualScrapeEnabled ? 'bg-gray-800 border-gray-700' : 'bg-gray-800/50 border-gray-700/50'}`}>
+        <h2 className="text-white font-semibold mb-3 flex items-center gap-2">
+          Manual Trigger
+          {!manualScrapeEnabled && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-700 text-gray-400 uppercase tracking-wide">
+              Disabled
+            </span>
+          )}
+        </h2>
         <p className="text-gray-400 text-sm mb-4">
           Dispatches a GitHub Actions workflow run immediately. Requires{' '}
           <code className="text-pink-400 bg-gray-900 px-1 rounded text-xs">GH_TOKEN</code>{' '}
-          in your environment.
+          in your environment. Control availability via <strong className="text-gray-300">On-Demand Scrape</strong> toggle above.
         </p>
         <button
           onClick={handleTrigger}
-          disabled={triggering}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-pink-500 text-white text-sm font-semibold hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          disabled={triggering || !manualScrapeEnabled}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+            manualScrapeEnabled ? 'bg-pink-500 hover:bg-pink-600' : 'bg-gray-600'
+          }`}
         >
           <Play className="h-4 w-4" />
           {triggering ? 'Triggering…' : 'Run Scraper Now'}

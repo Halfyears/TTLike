@@ -22,6 +22,12 @@ interface ScriptRow {
   source_video_id: string | null
 }
 
+interface UserInfo {
+  id: string
+  email: string
+  name: string | null
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 // fmtDate removed — use <LocalDate> in JSX for browser-local timezone
@@ -70,6 +76,15 @@ export default async function AdminScriptsPage() {
   }
 
   const scripts = (rows ?? []) as unknown as ScriptRow[]
+
+  // ── Fetch user info for all user_ids in results ─────────────────────────────
+  const uniqueUserIds = [...new Set(scripts.map(s => s.user_id))]
+  const { data: userRows } = uniqueUserIds.length > 0
+    ? await service.from('users').select('id, email, name').in('id', uniqueUserIds)
+    : { data: [] }
+  const userMap = new Map<string, UserInfo>(
+    (userRows ?? []).map((u: UserInfo) => [u.id, u])
+  )
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const total        = scripts.length
@@ -168,20 +183,32 @@ export default async function AdminScriptsPage() {
                   </td>
                 </tr>
               ) : scripts.map(s => {
-                const hooks   = (s.hook_type ?? '').split('+').filter(Boolean)
-                const isDeleted = s.deleted_at !== null
+                const hooks      = (s.hook_type ?? '').split('+').filter(Boolean)
+                const isDeleted  = s.deleted_at !== null
                 const productLabel = s.product_name
                   ? s.product_name.replace(/#[\w一-龥＀-￯]+\s*/g, '').trim() || s.product_name
                   : '—'
+                const userInfo   = userMap.get(s.user_id)
+                const userName   = userInfo?.name?.trim() || null
+                const userEmail  = userInfo?.email || null
 
                 return (
                   <tr key={s.id} className={`hover:bg-gray-700/30 transition-colors ${isDeleted ? 'opacity-40' : ''}`}>
 
-                    {/* User */}
-                    <td className="px-5 py-3">
-                      <span className="text-xs font-mono text-gray-400">{shortId(s.user_id)}</span>
+                    {/* User — shows name + email, falls back to truncated ID */}
+                    <td className="px-5 py-3 max-w-[160px]">
+                      {userName ? (
+                        <>
+                          <p className="text-xs text-white font-medium truncate">{userName}</p>
+                          <p className="text-[10px] text-gray-500 font-mono truncate">{userEmail}</p>
+                        </>
+                      ) : userEmail ? (
+                        <p className="text-xs text-gray-300 font-mono truncate">{userEmail}</p>
+                      ) : (
+                        <span className="text-xs font-mono text-gray-500">{shortId(s.user_id)}</span>
+                      )}
                       {isDeleted && (
-                        <span className="ml-1.5 text-[10px] text-red-400 font-semibold">[deleted]</span>
+                        <span className="text-[10px] text-red-400 font-semibold block mt-0.5">[deleted]</span>
                       )}
                     </td>
 

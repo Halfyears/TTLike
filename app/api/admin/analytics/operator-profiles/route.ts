@@ -81,7 +81,7 @@ export async function GET() {
     updated_at: string
   }) => {
     const info  = infoByUser.get(p.user_id)
-    const email = info?.email ?? emailByAuthId.get(p.user_id) ?? `[uid:${p.user_id.slice(0, 8)}…]`
+    const email = info?.email ?? emailByAuthId.get(p.user_id) ?? '(unknown user)'
     return {
       user_id:            p.user_id,
       email,
