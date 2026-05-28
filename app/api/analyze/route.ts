@@ -134,8 +134,16 @@ export async function POST(req: Request) {
     const { data: { user } } = await authClient.auth.getUser()
 
     if (user) {
-      // Admins bypass quota entirely
-      const isAdmin = user.email === process.env.ADMIN_EMAIL
+      // Admins bypass quota entirely.
+      // Check both ADMIN_EMAIL env var AND the users.role DB column so the bypass
+      // survives misconfigured env vars.
+      const isAdminEmail = user.email === process.env.ADMIN_EMAIL
+      const { data: profile } = isAdminEmail ? { data: null } : await service
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
+      const isAdmin = isAdminEmail || (profile as { role?: string } | null)?.role === 'ADMIN'
 
       if (!isAdmin) {
         // Auto-provision free-tier row if this is user's first analysis
