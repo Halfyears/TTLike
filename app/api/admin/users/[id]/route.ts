@@ -158,30 +158,49 @@ export async function PATCH(
   const { error } = await service.from('users').upsert(updateData, { onConflict: 'id' })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // If plan changed, also update user_subscriptions and billing tier
+  // If plan changed, also update user_subscriptions and billing tier.
+  // These are non-fatal: users.plan is already saved above; if the subscription
+  // sync fails we log it but still return success so the admin sees the plan change.
+  let planSyncWarning: string | null = null
   if (plan !== undefined) {
-    const periodEnd = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+    try {
+      const periodEnd = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+      const now       = new Date().toISOString()
 
-    // Fetch existing subscription to preserve stripe_customer_id (do NOT overwrite paying user's Stripe link)
-    const { data: existingSub } = await service
-      .from('user_subscriptions')
-      .select('stripe_customer_id')
-      .eq('user_id', id)
-      .maybeSingle()
+      // Fetch existing subscription to preserve stripe_customer_id (do NOT overwrite paying user's Stripe link)
+      const { data: existingSub } = await service
+        .from('user_subscriptions')
+        .select('stripe_customer_id')
+        .eq('user_id', id)
+        .maybeSingle()
 
-    // Upsert subscription row (admin override — preserve any existing Stripe customer ID)
-    await service.from('user_subscriptions').upsert({
-      user_id:             id,
-      plan:                plan as string,
-      status:              plan === 'FREE' ? 'CANCELED' : 'ACTIVE',
-      current_period_end:  plan === 'FREE' ? null : periodEnd,
-      stripe_customer_id:  (existingSub as { stripe_customer_id?: string | null } | null)?.stripe_customer_id ?? null,
-    }, { onConflict: 'user_id' })
+      // Upsert subscription row (admin override — preserve any existing Stripe customer ID)
+      const { error: subErr } = await service.from('user_subscriptions').upsert({
+        user_id:             id,
+        plan:                plan as string,
+        status:              plan === 'FREE' ? 'CANCELED' : 'ACTIVE',
+        current_period_end:  plan === 'FREE' ? null : periodEnd,
+        stripe_customer_id:  (existingSub as { stripe_customer_id?: string | null } | null)?.stripe_customer_id ?? null,
+        updated_at:          now,   // snake_case — matches existing table column convention
+      }, { onConflict: 'user_id' })
 
-    // Update billing tier quota limits via RPC
-    const tierName = plan === 'ENTERPRISE' ? 'scale' : plan === 'PRO' ? 'creator' : 'free'
-    await service.rpc('set_user_tier', { uid: id, new_tier: tierName })
+      if (subErr) {
+        console.warn('[admin/users PATCH] subscription upsert non-fatal:', subErr.message)
+        planSyncWarning = `users.plan updated; subscription sync failed: ${subErr.message}`
+      } else {
+        // Update billing tier quota limits via RPC
+        const tierName = plan === 'ENTERPRISE' ? 'scale' : plan === 'PRO' ? 'creator' : 'free'
+        const { error: rpcErr } = await service.rpc('set_user_tier', { uid: id, new_tier: tierName })
+        if (rpcErr) {
+          console.warn('[admin/users PATCH] set_user_tier non-fatal:', rpcErr.message)
+          planSyncWarning = `plan + subscription updated; tier quota sync failed: ${rpcErr.message}`
+        }
+      }
+    } catch (e) {
+      console.warn('[admin/users PATCH] plan sync non-fatal:', e)
+      planSyncWarning = `users.plan updated; subscription/tier sync threw: ${String(e)}`
+    }
   }
 
-  return NextResponse.json({ ok: true, id, role, accountStatus, plan })
+  return NextResponse.json({ ok: true, id, role, accountStatus, plan, ...(planSyncWarning ? { warning: planSyncWarning } : {}) })
 }
