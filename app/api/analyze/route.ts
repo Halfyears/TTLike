@@ -332,7 +332,7 @@ export async function POST(req: Request) {
       comments:     filteredComments.length ? filteredComments : undefined,
     })
   } catch (e) {
-    console.error('[analyze] Gemini error:', e)
+    console.error('[analyze] AI error:', e)
     return NextResponse.json({ error: 'AI analysis failed — try again later' }, { status: 500 })
   }
 
@@ -350,6 +350,7 @@ export async function POST(req: Request) {
     },
     viral_formulas:  geminiResult.viral_formulas,
     visual_timeline: geminiResult.visual_timeline,
+    ai_provider:     geminiResult.ai_provider,
     // Include source metadata for oEmbed-sourced breakdowns so the /viral page
     // can render without a tiktok_videos join.
     ...(isOembed && oembedSourceUrl ? {

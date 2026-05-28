@@ -62,9 +62,10 @@ export async function POST(request: Request) {
     const cacheKey = [...hookTypes].sort().join('+')
 
     let scripts
-    let fromCache = false
+    let fromCache  = false
+    let aiProvider = 'cache'
 
-    /** One automatic retry on transient Gemini failures (timeout / empty candidates) */
+    /** One automatic retry on transient AI failures (timeout / empty candidates) */
     async function generateWithRetry() {
       try {
         return await generateScripts({ ...d, hookTypes, niches })
@@ -74,7 +75,7 @@ export async function POST(request: Request) {
         const isTransient = msg.includes('AbortError') || msg.includes('no candidates')
           || msg.includes('unparseable') || msg.includes('fetch') || msg.includes('504') || msg.includes('503')
         if (!isTransient) throw err
-        console.warn('[scripts] transient Gemini error, retrying once:', msg)
+        console.warn('[scripts] transient AI error, retrying once:', msg)
         await new Promise(r => setTimeout(r, 1_500))
         return await generateScripts({ ...d, hookTypes, niches })
       }
@@ -86,14 +87,18 @@ export async function POST(request: Request) {
 
       if (cached && cached.hitCount < REGEN_THRESHOLD) {
         incrementCacheHit(supabase, cached.cacheId)
-        scripts = applyPersonalization(cached.scripts, d.brandName, d.offer, d.ctaType)
+        scripts   = applyPersonalization(cached.scripts, d.brandName, d.offer, d.ctaType)
         fromCache = true
       } else {
-        scripts = await generateWithRetry()
+        const result = await generateWithRetry()
+        scripts    = result.scripts
+        aiProvider = result.provider
         saveCachedScripts(supabase, d.sourceVideoId, cacheKey, scripts)
       }
     } else {
-      scripts = await generateWithRetry()
+      const result = await generateWithRetry()
+      scripts    = result.scripts
+      aiProvider = result.provider
     }
 
     // ── Save to user history ──────────────────────────────────────────────────
@@ -128,6 +133,7 @@ export async function POST(request: Request) {
         script_count:    scripts.length,
         from_cache:      fromCache,
         tokens_consumed: fromCache ? 0 : scripts.length,
+        ai_provider:     aiProvider,
       },
     }).catch(err => console.error('[ES-DCS] Ledger dispatch error (non-fatal):', err))
 

@@ -57,10 +57,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Video not found' }, { status: 404 })
   }
 
-  // ── 3. Generate health report via Gemini ────────────────────────────────────
-  let report
+  // ── 3. Generate health report via AI waterfall ──────────────────────────────
+  let healthResult: Awaited<ReturnType<typeof callHealthReport>>
   try {
-    report = await callHealthReport({
+    healthResult = await callHealthReport({
       title:        String(meta.title        ?? ''),
       product_name: meta.product_name,
       niche:        meta.niche,
@@ -74,10 +74,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'AI analysis failed — try again later' }, { status: 500 })
   }
 
+  const { report, ai_provider } = healthResult
+
   // ── 4. Persist to DB ────────────────────────────────────────────────────────
   const { data: insertedRow, error: insertError } = await service
     .from('video_breakdowns')
-    .insert({ url_hash: cacheKey, video_id: meta.id, payload: { health_report: report } })
+    .insert({ url_hash: cacheKey, video_id: meta.id, payload: { health_report: report, ai_provider } })
     .select('id')
     .maybeSingle()
 
@@ -94,5 +96,5 @@ export async function POST(req: Request) {
     console.log('[health-report] report saved OK — db_id:', insertedRow?.id)
   }
 
-  return NextResponse.json({ report, fromCache: false })
+  return NextResponse.json({ report, ai_provider, fromCache: false })
 }

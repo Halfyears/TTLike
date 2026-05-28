@@ -52,14 +52,16 @@ export async function POST(request: Request) {
   }
   const dramaId = drama.id as number
 
-  // ── 2. One-shot Gemini inference ──────────────────────────────────────────
+  // ── 2. One-shot AI waterfall inference ───────────────────────────────────────
   let result: InferenceResult
+  let aiProvider = 'unknown'
   try {
-    const raw = await callDramaDisassemble(raw_script)
+    const { text: raw, provider } = await callDramaDisassemble(raw_script)
+    aiProvider = provider
     result = JSON.parse(raw) as InferenceResult
 
     if (!Array.isArray(result.storyboards) || result.storyboards.length === 0) {
-      throw new Error('Gemini returned no storyboards')
+      throw new Error('AI returned no storyboards')
     }
     if (!Array.isArray(result.characters)) result.characters = []
 
@@ -146,6 +148,7 @@ export async function POST(request: Request) {
       scene_count:     sceneCount,
       character_count: result.characters.length,
       tokens_consumed: 1,
+      ai_provider:     aiProvider,
     },
   }).catch(e => console.error('[Studio] Kernel COMPLETE dispatch error:', e))
 

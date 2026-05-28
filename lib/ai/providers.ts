@@ -23,6 +23,12 @@ export interface WaterfallOptions {
   githubTimeoutMs?: number
 }
 
+/** Returned by runAIWaterfall — raw JSON text plus the provider that succeeded. */
+export interface WaterfallResult {
+  text:     string
+  provider: 'groq' | 'gemini' | 'github'
+}
+
 // ── Provider: Groq (llama-3.3-70b-versatile) ─────────────────────────────────
 
 async function tryGroq(system: string, user: string, ms: number): Promise<string> {
@@ -121,7 +127,7 @@ const PROVIDERS = [
 
 /**
  * Run the AI waterfall: Groq → Gemini → GitHub.
- * Returns the raw JSON text from the first successful provider.
+ * Returns the raw JSON text and the provider name that succeeded.
  * Throws an aggregated error only if all three fail.
  *
  * @param system  System prompt (role/persona)
@@ -132,7 +138,7 @@ export async function runAIWaterfall(
   system:  string,
   user:    string,
   options: WaterfallOptions = {},
-): Promise<string> {
+): Promise<WaterfallResult> {
   const {
     groqTimeoutMs   = 10_000,
     geminiTimeoutMs = 20_000,
@@ -144,9 +150,9 @@ export async function runAIWaterfall(
 
   for (const { name, fn } of PROVIDERS) {
     try {
-      const result = await fn(system, user, timeouts[name])
+      const text = await fn(system, user, timeouts[name])
       console.log(`[ai-waterfall] ✓ provider=${name}`)
-      return result
+      return { text, provider: name }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
       console.warn(`[ai-waterfall] ✗ provider=${name}: ${msg}`)

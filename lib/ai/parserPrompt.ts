@@ -99,7 +99,9 @@ type GeminiResult = {
   visual_timeline: TimelineScene[]
 }
 
-export async function callVideoBreakdown(meta: VideoMeta): Promise<GeminiResult> {
+export type VideoBreakdownResult = GeminiResult & { ai_provider: string }
+
+export async function callVideoBreakdown(meta: VideoMeta): Promise<VideoBreakdownResult> {
   const productLabel = meta.product_name ?? meta.title
   const nicheLabel   = meta.niche ?? 'E-Commerce'
 
@@ -111,14 +113,15 @@ export async function callVideoBreakdown(meta: VideoMeta): Promise<GeminiResult>
   const userContent  = compileVideoPayload(meta, productReminder)
   const systemPrompt = await getActiveSystemPrompt()
 
-  const text = await runAIWaterfall(
+  const { text, provider } = await runAIWaterfall(
     systemPrompt,
     `---\nVIDEO DATA:\n${userContent}`,
     { groqTimeoutMs: 10_000, geminiTimeoutMs: 20_000, githubTimeoutMs: 15_000 },
   )
 
   try {
-    return JSON.parse(text) as GeminiResult
+    const parsed = JSON.parse(text) as GeminiResult
+    return { ...parsed, ai_provider: provider }
   } catch {
     throw new Error(`AI returned invalid JSON: ${text.slice(0, 200)}`)
   }

@@ -24,6 +24,8 @@ type Script = {
   slots?:     ScriptSlots
 }
 
+export type GenerateScriptsResult = { scripts: Script[]; provider: string }
+
 export async function generateScripts(params: {
   hookTypes: string[]          // one script generated per hook type, max 5
   niches: string[]             // target niche(s)
@@ -35,7 +37,7 @@ export async function generateScripts(params: {
   brandName?: string
   offer?: string
   ctaType?: string
-}): Promise<Script[]> {
+}): Promise<GenerateScriptsResult> {
   const { hookTypes, productName, keywords, brandName, offer, ctaType } = params
   const niche = params.niches?.length ? params.niches.join(', ') : (params.niche ?? 'General')
 
@@ -129,7 +131,7 @@ Return only valid JSON. No markdown.`
 
   // Scripts can be long — give each provider generous time
   // Worst case: Groq 12s + Gemini 35s + GitHub 15s = 62s (within Vercel 60s with cache)
-  const rawText = await runAIWaterfall(systemPrompt, userPrompt, {
+  const { text: rawText, provider } = await runAIWaterfall(systemPrompt, userPrompt, {
     groqTimeoutMs:   12_000,
     geminiTimeoutMs: 35_000,
     githubTimeoutMs: 15_000,
@@ -144,14 +146,16 @@ Return only valid JSON. No markdown.`
   }
 
   // ── Slot substitution: replace [SLOT:key] markers in fullScript ──────────────
-  return scripts.map(script => {
+  const resolved = scripts.map(script => {
     if (!script.slots || !script.fullScript) return script
 
     const slots = script.slots
-    const resolved = script.fullScript.replace(
+    const substituted = script.fullScript.replace(
       /\[SLOT:(\w+)\]/g,
       (_, key) => (slots as Record<string, string>)[key] ?? `[${key}]`,
     )
-    return { ...script, fullScript: resolved }
+    return { ...script, fullScript: substituted }
   })
+
+  return { scripts: resolved, provider }
 }

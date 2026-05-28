@@ -209,15 +209,27 @@ export default async function BreakdownsAdminPage() {
                       <span className="text-xs text-gray-300 line-clamp-2 max-w-[160px]">{strategy}</span>
                     </td>
 
-                    {/* Engine version */}
+                    {/* Engine version + AI provider */}
                     <td className="px-4 py-3">
-                      <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                        rowType === 'v25'    ? 'bg-pink-900/40 text-pink-300' :
-                        rowType === 'health' ? 'bg-red-900/40 text-red-300' :
-                                              'bg-gray-700 text-gray-400'
-                      }`}>
-                        {rowType === 'v25' ? 'V2.5' : rowType === 'health' ? '🔬 Health' : 'Legacy'}
-                      </span>
+                      <div className="flex flex-col gap-1">
+                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          rowType === 'v25'    ? 'bg-pink-900/40 text-pink-300' :
+                          rowType === 'health' ? 'bg-red-900/40 text-red-300' :
+                                                'bg-gray-700 text-gray-400'
+                        }`}>
+                          {rowType === 'v25' ? 'V2.5' : rowType === 'health' ? '🔬 Health' : 'Legacy'}
+                        </span>
+                        {b.payload?.ai_provider && (
+                          <span className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                            b.payload.ai_provider === 'groq'   ? 'bg-green-900/40 text-green-400' :
+                            b.payload.ai_provider === 'gemini' ? 'bg-blue-900/40 text-blue-400' :
+                            b.payload.ai_provider === 'github' ? 'bg-purple-900/40 text-purple-400' :
+                                                                  'bg-gray-700 text-gray-400'
+                          }`}>
+                            {b.payload.ai_provider}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     {/* Views */}

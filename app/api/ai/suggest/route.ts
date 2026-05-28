@@ -45,7 +45,7 @@ Return a JSON object with exactly these fields:
 
 Return only valid JSON, no markdown.`
 
-    const rawText   = await runAIWaterfall(SYSTEM, userPrompt, {
+    const { text: rawText } = await runAIWaterfall(SYSTEM, userPrompt, {
       groqTimeoutMs:   8_000,
       geminiTimeoutMs: 15_000,
       githubTimeoutMs: 10_000,

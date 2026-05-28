@@ -61,6 +61,8 @@ export interface VideoBreakdownPayload {
   viral_formulas:  ViralFormula[]   // Exactly 3 high-impact formulas
   visual_timeline: TimelineScene[]  // Full 4-scene timeline breakdown
   health_report?:  StructuralHealthReport  // generated on-demand, cached separately
+  /** Which AI provider generated this breakdown (groq | gemini | github). Admin-visible only. */
+  ai_provider?:    string
 
   /**
    * Present only for oEmbed-sourced breakdowns (video not in tiktok_videos).

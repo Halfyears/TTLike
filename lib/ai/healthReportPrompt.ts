@@ -63,7 +63,9 @@ Output this exact JSON structure:
 
 // ── Gemini call for structural health report ──────────────────────────────────
 
-export async function callHealthReport(signals: VideoSignals): Promise<StructuralHealthReport> {
+export type HealthReportResult = { report: StructuralHealthReport; ai_provider: string }
+
+export async function callHealthReport(signals: VideoSignals): Promise<HealthReportResult> {
   const productLabel = signals.product_name ?? signals.title
   const nicheLabel   = signals.niche ?? 'E-Commerce'
 
@@ -76,14 +78,15 @@ export async function callHealthReport(signals: VideoSignals): Promise<Structura
 
   const userContent = compileVideoPayload(signals, productReminder)
 
-  const text = await runAIWaterfall(
+  const { text, provider } = await runAIWaterfall(
     HEALTH_REPORT_SYSTEM_PROMPT,
     `---\nVIDEO FORENSICS DATA:\n${userContent}`,
     { groqTimeoutMs: 10_000, geminiTimeoutMs: 20_000, githubTimeoutMs: 15_000 },
   )
 
   try {
-    return JSON.parse(text) as StructuralHealthReport
+    const report = JSON.parse(text) as StructuralHealthReport
+    return { report, ai_provider: provider }
   } catch {
     throw new Error(`AI returned invalid JSON: ${text.slice(0, 200)}`)
   }

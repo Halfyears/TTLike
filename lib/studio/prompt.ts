@@ -46,9 +46,9 @@ OUTPUT SCHEMA:
 
 // ── Multi-provider waterfall call ─────────────────────────────────────────────
 
-import { runAIWaterfall } from '@/lib/ai/providers'
+import { runAIWaterfall, type WaterfallResult } from '@/lib/ai/providers'
 
-export async function callDramaDisassemble(rawScript: string): Promise<string> {
+export async function callDramaDisassemble(rawScript: string): Promise<WaterfallResult> {
   return runAIWaterfall(
     DRAMA_DISASSEMBLE_PROMPT,
     `---\nSCRIPT:\n${rawScript}`,
