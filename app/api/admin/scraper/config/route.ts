@@ -79,7 +79,14 @@ export async function POST(req: NextRequest) {
   const now     = new Date().toISOString()
   const upserts: Array<{ key: string; value: string; updated_at: string }> = []
 
+  const ALLOWED_APPS = ['github_actions', 'apify_direct', 'brightdata', 'custom'] as const
   if (body.scraper_app !== undefined) {
+    if (!ALLOWED_APPS.includes(body.scraper_app as typeof ALLOWED_APPS[number])) {
+      return NextResponse.json(
+        { error: `Invalid scraper_app. Must be one of: ${ALLOWED_APPS.join(', ')}` },
+        { status: 400 },
+      )
+    }
     upserts.push({ key: KEYS.scraperApp, value: String(body.scraper_app), updated_at: now })
   }
   if (body.auto_scrape_enabled !== undefined) {

@@ -42,7 +42,11 @@ export async function POST(req: Request) {
     .maybeSingle()
 
   if (cached?.payload?.health_report) {
-    return NextResponse.json({ report: cached.payload.health_report, fromCache: true })
+    return NextResponse.json({
+      report:      cached.payload.health_report,
+      ai_provider: (cached.payload as { ai_provider?: string }).ai_provider ?? null,
+      fromCache:   true,
+    })
   }
 
   // ── 2. Fetch video metadata ─────────────────────────────────────────────────

@@ -10,8 +10,9 @@ import 'server-only'
  * compatible with every prompt in the codebase.
  *
  * Usage:
- *   const rawJson = await runAIWaterfall(systemPrompt, userPrompt)
- *   const parsed  = JSON.parse(rawJson) as MyType
+ *   const { text, provider } = await runAIWaterfall(systemPrompt, userPrompt)
+ *   const parsed = JSON.parse(text) as MyType
+ *   // provider is 'groq' | 'gemini' | 'github'
  */
 
 export interface WaterfallOptions {
