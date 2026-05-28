@@ -147,8 +147,9 @@ export async function PATCH(
   }
 
   const updateData: Record<string, unknown> = {
-    id:    authUser.id,
-    email: authUser.email ?? '',
+    id:        authUser.id,
+    email:     authUser.email ?? '',
+    updatedAt: new Date().toISOString(),   // required NOT NULL — Prisma @updatedAt, no DB default
   }
   if (role          !== undefined) updateData.role           = role
   if (accountStatus !== undefined) updateData.account_status = accountStatus
