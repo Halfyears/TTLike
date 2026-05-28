@@ -51,6 +51,13 @@ function planColor(plan: string) {
   return 'bg-gray-700 text-gray-300 border border-gray-600'
 }
 
+/** Translate DB enum → human-readable plan name */
+function planLabel(plan: string) {
+  if (plan === 'PRO')        return 'Creator'
+  if (plan === 'ENTERPRISE') return 'Scale'
+  return 'Free'
+}
+
 function statusDot(status: string, confirmed: boolean) {
   if (!confirmed)            return <span className="h-2 w-2 rounded-full bg-yellow-400 inline-block" title="Email not confirmed" />
   if (status === 'ACTIVE')   return <span className="h-2 w-2 rounded-full bg-emerald-400 inline-block" title="Active" />
@@ -314,7 +321,7 @@ function OperatorProfilesPanel() {
                       </td>
                       <td className="px-4 py-2.5">
                         <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold ${planColor(p.plan)}`}>
-                          {p.plan}
+                          {planLabel(p.plan)}
                         </span>
                       </td>
                       <td className="px-4 py-2.5 text-right">
@@ -760,9 +767,9 @@ export default function AdminUsersPage() {
           className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-pink-500"
         >
           <option value="">All plans</option>
-          <option value="FREE">FREE</option>
-          <option value="PRO">PRO</option>
-          <option value="ENTERPRISE">ENTERPRISE</option>
+          <option value="FREE">Free</option>
+          <option value="PRO">Creator (Pro)</option>
+          <option value="ENTERPRISE">Scale (Ent.)</option>
         </select>
         <select
           value={roleFilter}
@@ -880,7 +887,7 @@ export default function AdminUsersPage() {
                     {/* Plan */}
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${planColor(user.plan)}`}>
-                        {user.plan}
+                        {planLabel(user.plan)}
                       </span>
                       {user.period_end && (
                         <p className="text-[10px] text-gray-500 mt-0.5">
@@ -935,9 +942,9 @@ export default function AdminUsersPage() {
                                                         'bg-gray-700 border-gray-600 text-gray-400'
                           }`}
                         >
-                          <option value="FREE">FREE</option>
-                          <option value="PRO">PRO</option>
-                          <option value="ENTERPRISE">ENTERPRISE</option>
+                          <option value="FREE">Free</option>
+                          <option value="PRO">Creator (Pro)</option>
+                          <option value="ENTERPRISE">Scale (Ent.)</option>
                         </select>
                         <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400 pointer-events-none" />
                       </div>

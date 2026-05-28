@@ -213,7 +213,7 @@ export default async function AdminDashboardPage() {
             {([
               { label: 'Database',       status: d.videos > 0 ? 'Connected' : 'Check SUPABASE keys', ok: d.videos > 0 },
               { label: 'GitHub Actions', status: 'Runs every 6 hours',   ok: true },
-              { label: 'Stripe',         status: 'Disabled (Beta Phase)', ok: true },
+              { label: 'Stripe',         status: 'Configured', ok: true },
             ] as const).map(({ label, status, ok }) => (
               <div key={label} className="flex items-center justify-between">
                 <span className="text-sm text-gray-300">{label}</span>
