@@ -3,7 +3,7 @@ import { PAYMENT_ENABLED } from '@/lib/constants'
 
 export async function POST(request: Request) {
   if (!PAYMENT_ENABLED) {
-    return NextResponse.json({ message: 'Payments disabled during beta phase' }, { status: 200 })
+    return NextResponse.json({ message: 'Payments not enabled' }, { status: 200 })
   }
 
   // Full Stripe webhook handling (activated when PAYMENT_ENABLED = true)

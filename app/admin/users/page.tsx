@@ -630,6 +630,26 @@ export default function AdminUsersPage() {
     }
   }
 
+  // ── Plan change (admin override) ──────────────────────────────────────────
+  const [changingPlan, setChangingPlan] = useState<string | null>(null)
+
+  async function changePlan(userId: string, newPlan: string) {
+    setChangingPlan(userId)
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: newPlan }),
+      })
+      if (!res.ok) throw new Error((await res.json()).error)
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, plan: newPlan } : u))
+    } catch (e) {
+      alert(`Failed to update plan: ${e instanceof Error ? e.message : e}`)
+    } finally {
+      setChangingPlan(null)
+    }
+  }
+
   // ── KPIs ───────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => ({
     total:        users.length,
@@ -888,17 +908,36 @@ export default function AdminUsersPage() {
                       <LocalDate date={user.created_at} />
                     </td>
 
-                    {/* Actions — role change (stop propagation so row click doesn't fire) */}
-                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                    {/* Actions — role + plan change (stop propagation so row click doesn't fire) */}
+                    <td className="px-4 py-3 space-y-1.5" onClick={e => e.stopPropagation()}>
+                      {/* Role selector */}
                       <div className="relative">
                         <select
                           value={user.role}
                           disabled={changingRole === user.id}
                           onChange={e => changeRole(user.id, e.target.value)}
-                          className="appearance-none bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer pr-5 disabled:opacity-50"
+                          className="appearance-none bg-gray-700 border border-gray-600 rounded px-2 py-1 text-xs text-white focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer pr-5 disabled:opacity-50 w-full"
                         >
                           <option value="USER">USER</option>
                           <option value="ADMIN">ADMIN</option>
+                        </select>
+                        <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400 pointer-events-none" />
+                      </div>
+                      {/* Plan selector (admin override) */}
+                      <div className="relative">
+                        <select
+                          value={user.plan}
+                          disabled={changingPlan === user.id}
+                          onChange={e => changePlan(user.id, e.target.value)}
+                          className={`appearance-none border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer pr-5 disabled:opacity-50 w-full ${
+                            user.plan === 'ENTERPRISE' ? 'bg-violet-900/30 border-violet-700 text-violet-300' :
+                            user.plan === 'PRO'        ? 'bg-pink-900/30 border-pink-700 text-pink-300' :
+                                                        'bg-gray-700 border-gray-600 text-gray-400'
+                          }`}
+                        >
+                          <option value="FREE">FREE</option>
+                          <option value="PRO">PRO</option>
+                          <option value="ENTERPRISE">ENTERPRISE</option>
                         </select>
                         <ChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400 pointer-events-none" />
                       </div>

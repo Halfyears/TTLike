@@ -65,7 +65,7 @@ export default async function HomePage() {
 
           <div className="inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 text-pink-400 text-sm px-4 py-1.5 rounded-full mb-6 sm:mb-8">
             <span className="h-2 w-2 rounded-full bg-pink-400 animate-pulse" />
-            Beta · 100% Free · No Credit Card
+            AI-Powered · Free to Start · No Credit Card
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-5 sm:mb-6">
@@ -93,7 +93,7 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-10 sm:mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 text-sm text-gray-400 max-w-lg sm:max-w-none mx-auto">
-            {[['10K+', 'Products Tracked'], ['94%', 'Viral Accuracy'], ['5 sec', 'Script Generation'], ['100%', 'Free in Beta']].map(([val, label]) => (
+            {[['10K+', 'Products Tracked'], ['94%', 'Viral Accuracy'], ['5 sec', 'Script Generation'], ['3 Plans', 'Free · Creator · Scale']].map(([val, label]) => (
               <div key={label} className="text-center">
                 <div className="text-xl sm:text-2xl font-bold text-white">{val}</div>
                 <div className="text-xs sm:text-sm">{label}</div>
@@ -211,8 +211,8 @@ export default async function HomePage() {
       <section className="py-12 sm:py-16 bg-gradient-to-r from-pink-500 to-violet-600 text-white">
         <div className="mx-auto max-w-3xl px-4 text-center">
           <Users className="h-10 w-10 mx-auto mb-4 opacity-80" />
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3">Join 1,000+ TikTok Sellers in Beta</h2>
-          <p className="text-pink-100 mb-8 text-sm sm:text-base">Free during beta. No credit card. Cancel anytime.</p>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3">Join 1,000+ TikTok Sellers Today</h2>
+          <p className="text-pink-100 mb-8 text-sm sm:text-base">Start free. Upgrade to Creator or Scale anytime.</p>
           <Link href="/auth/signup">
             <Button size="lg" variant="secondary" className="w-full sm:w-auto bg-white text-pink-600 hover:bg-pink-50">
               Get Started Free <ArrowRight className="ml-2 h-5 w-5" />

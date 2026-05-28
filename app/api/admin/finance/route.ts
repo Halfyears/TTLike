@@ -166,22 +166,26 @@ export async function GET() {
     .from('users')
     .select('id, email, name, plan')
 
-  // Enrich names from auth.users user_metadata (OAuth sign-ins store full_name there;
-  // email-only registrations typically leave users.name NULL)
-  const authNameMap = new Map<string, string>()
+  // Build auth user map (email + display name) — fallback when users table row is missing
+  const authUserMap = new Map<string, { email: string; name: string | null }>()
   try {
-    const supabaseAdmin = await createClient()
-    const { data: authData } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
-    for (const au of (authData?.users ?? [])) {
-      const metaName = (au.user_metadata?.full_name ?? au.user_metadata?.name ?? '') as string
-      if (metaName) authNameMap.set(au.id, metaName)
+    let page = 1
+    for (;;) {
+      const { data, error } = await service.auth.admin.listUsers({ page, perPage: 1000 })
+      if (error || !data) break
+      for (const au of data.users) {
+        const metaName = ((au.user_metadata?.full_name ?? au.user_metadata?.name ?? '') as string).trim()
+        authUserMap.set(au.id, { email: au.email ?? '', name: metaName || null })
+      }
+      if (data.users.length < 1000) break
+      page++
     }
-  } catch { /* non-fatal — auth admin API may not be available in all environments */ }
+  } catch { /* non-fatal */ }
 
   const planByUser = new Map<string, { email: string; name: string | null; plan: string }>()
   for (const u of (userPlanRows ?? []) as Array<{ id: string; email: string; name: string | null; plan: string }>) {
-    // Prefer users.name → auth user_metadata.full_name → null
-    const resolvedName = (u.name as string | null)?.trim() || authNameMap.get(u.id) || null
+    // Prefer users.name → auth user_metadata name → null
+    const resolvedName = (u.name as string | null)?.trim() || authUserMap.get(u.id)?.name || null
     planByUser.set(u.id, { email: u.email, name: resolvedName, plan: u.plan })
   }
 
@@ -200,10 +204,11 @@ export async function GET() {
     else if (netUsd < 0)                                             label = 'at_risk'
     else                                                             label = 'healthy'
 
+    const authFallback = authUserMap.get(uid)
     ranking.push({
       user_id:    uid,
-      email:      userInfo?.email ?? '(unknown)',
-      name:       userInfo?.name ?? null,
+      email:      userInfo?.email ?? authFallback?.email ?? '(unknown)',
+      name:       userInfo?.name ?? authFallback?.name ?? null,
       plan,
       plan_value: planValue,
       generations: stats.gens,

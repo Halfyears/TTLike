@@ -45,7 +45,7 @@ export async function GET() {
   // ── 2. App-level roles / names ─────────────────────────────────────────────
   const { data: appRows } = await service
     .from('users')
-    .select('id, email, name, role, referral_source')
+    .select('id, email, name, role, referral_source, account_status, plan')
 
   const appByEmail = new Map<string, Record<string, unknown>>()
   const appById    = new Map<string, Record<string, unknown>>()
@@ -105,6 +105,7 @@ export async function GET() {
       confirmed:        !!u.email_confirmed_at,
       created_at:       u.created_at,
       referral_source:  (app.referral_source as string | null) ?? null,
+      account_status:   (app.account_status  as string | null) ?? 'ACTIVE',
     }
   })
 

@@ -366,7 +366,7 @@ export default function FinancePage() {
                       {d.stripe.account_name ?? 'Stripe Account'}
                     </p>
                     <p className="text-xs text-gray-500">
-                      {d.stripe.enabled ? 'Integration active' : 'Payments disabled (beta mode)'}
+                      {d.stripe.enabled ? 'Integration active' : 'Payments not configured'}
                     </p>
                   </div>
                 </div>

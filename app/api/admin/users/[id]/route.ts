@@ -124,8 +124,8 @@ export async function PATCH(
   }
 
   const { id } = await params
-  const body = await req.json() as { role?: unknown; accountStatus?: unknown }
-  const { role, accountStatus } = body
+  const body = await req.json() as { role?: unknown; accountStatus?: unknown; plan?: unknown }
+  const { role, accountStatus, plan } = body
 
   if (role !== undefined && (typeof role !== 'string' || !['USER', 'ADMIN'].includes(role))) {
     return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
@@ -133,6 +133,10 @@ export async function PATCH(
   const VALID_STATUSES = ['PENDING', 'ACTIVE', 'INACTIVE', 'DELETED']
   if (accountStatus !== undefined && (typeof accountStatus !== 'string' || !VALID_STATUSES.includes(accountStatus))) {
     return NextResponse.json({ error: 'Invalid accountStatus' }, { status: 400 })
+  }
+  const VALID_PLANS = ['FREE', 'PRO', 'ENTERPRISE']
+  if (plan !== undefined && (typeof plan !== 'string' || !VALID_PLANS.includes(plan))) {
+    return NextResponse.json({ error: 'Invalid plan. Must be FREE, PRO, or ENTERPRISE' }, { status: 400 })
   }
 
   const service = createServiceClient()
@@ -146,12 +150,30 @@ export async function PATCH(
     id:    authUser.id,
     email: authUser.email ?? '',
   }
-  if (role !== undefined)          updateData.role = role
+  if (role          !== undefined) updateData.role           = role
   if (accountStatus !== undefined) updateData.account_status = accountStatus
+  if (plan          !== undefined) updateData.plan           = plan
 
   const { error } = await service.from('users').upsert(updateData, { onConflict: 'id' })
-
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ ok: true, id, role, accountStatus })
+  // If plan changed, also update user_subscriptions and billing tier
+  if (plan !== undefined) {
+    const periodEnd = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+
+    // Upsert subscription row (admin override — no Stripe customer)
+    await service.from('user_subscriptions').upsert({
+      user_id:             id,
+      plan:                plan as string,
+      status:              plan === 'FREE' ? 'CANCELED' : 'ACTIVE',
+      current_period_end:  plan === 'FREE' ? null : periodEnd,
+      stripe_customer_id:  null,
+    }, { onConflict: 'user_id' })
+
+    // Update billing tier quota limits via RPC
+    const tierName = plan === 'ENTERPRISE' ? 'scale' : plan === 'PRO' ? 'creator' : 'free'
+    await service.rpc('set_user_tier', { uid: id, new_tier: tierName })
+  }
+
+  return NextResponse.json({ ok: true, id, role, accountStatus, plan })
 }

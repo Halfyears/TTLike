@@ -8,7 +8,7 @@ export const stripe = (PAYMENT_ENABLED && process.env.STRIPE_SECRET_KEY)
 
 export async function createCheckoutSession(userId: string, plan: string, email: string) {
   if (!PAYMENT_ENABLED || !stripe) {
-    throw new Error('Payments are disabled during beta phase')
+    throw new Error('Payment processing is not configured')
   }
 
   const priceIds: Record<string, string> = {
@@ -29,7 +29,7 @@ export async function createCheckoutSession(userId: string, plan: string, email:
 
 export async function createCustomerPortalSession(stripeCustomerId: string) {
   if (!PAYMENT_ENABLED || !stripe) {
-    throw new Error('Payments are disabled during beta phase')
+    throw new Error('Payment processing is not configured')
   }
 
   return stripe.billingPortal.sessions.create({

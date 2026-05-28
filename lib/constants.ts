@@ -1,4 +1,3 @@
-export const IS_BETA_PHASE = false
 export const PAYMENT_ENABLED = true
 
 export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ttlike.com'
