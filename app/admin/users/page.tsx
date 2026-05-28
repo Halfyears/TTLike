@@ -601,7 +601,10 @@ export default function AdminUsersPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Failed to load users')
       setUsers(data.users as User[])
-      setPendingChanges({})  // clear any unsaved edits on refresh
+      // Preserve any pending edits the admin is mid-way through;
+      // only drop pending for users whose server data changed under them.
+      // Simplest safe approach: keep all pending changes on refresh
+      // (admin will see Confirm button still glowing if they made changes).
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {

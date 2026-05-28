@@ -198,7 +198,7 @@ export async function PATCH(
       }
     } catch (e) {
       console.warn('[admin/users PATCH] plan sync non-fatal:', e)
-      planSyncWarning = `users.plan updated; subscription/tier sync threw: ${String(e)}`
+      planSyncWarning = `users.plan updated; subscription/tier sync threw: ${e instanceof Error ? e.message : JSON.stringify(e)}`
     }
   }
 
