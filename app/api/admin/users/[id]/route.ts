@@ -161,13 +161,20 @@ export async function PATCH(
   if (plan !== undefined) {
     const periodEnd = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
 
-    // Upsert subscription row (admin override — no Stripe customer)
+    // Fetch existing subscription to preserve stripe_customer_id (do NOT overwrite paying user's Stripe link)
+    const { data: existingSub } = await service
+      .from('user_subscriptions')
+      .select('stripe_customer_id')
+      .eq('user_id', id)
+      .maybeSingle()
+
+    // Upsert subscription row (admin override — preserve any existing Stripe customer ID)
     await service.from('user_subscriptions').upsert({
       user_id:             id,
       plan:                plan as string,
       status:              plan === 'FREE' ? 'CANCELED' : 'ACTIVE',
       current_period_end:  plan === 'FREE' ? null : periodEnd,
-      stripe_customer_id:  null,
+      stripe_customer_id:  (existingSub as { stripe_customer_id?: string | null } | null)?.stripe_customer_id ?? null,
     }, { onConflict: 'user_id' })
 
     // Update billing tier quota limits via RPC
