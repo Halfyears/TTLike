@@ -146,6 +146,8 @@ export async function PATCH(
     return NextResponse.json({ error: 'User not found' }, { status: 404 })
   }
 
+  // NOTE: User model has no `plan` column — plan lives in user_subscriptions.
+  // Do NOT include plan in this upsert; it is synced below.
   const updateData: Record<string, unknown> = {
     id:        authUser.id,
     email:     authUser.email ?? '',
@@ -153,14 +155,12 @@ export async function PATCH(
   }
   if (role          !== undefined) updateData.role           = role
   if (accountStatus !== undefined) updateData.account_status = accountStatus
-  if (plan          !== undefined) updateData.plan           = plan
 
   const { error } = await service.from('users').upsert(updateData, { onConflict: 'id' })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  // If plan changed, also update user_subscriptions and billing tier.
-  // These are non-fatal: users.plan is already saved above; if the subscription
-  // sync fails we log it but still return success so the admin sees the plan change.
+  // If plan changed, sync user_subscriptions and billing tier quota.
+  // This is non-fatal: role/accountStatus are already saved above.
   let planSyncWarning: string | null = null
   if (plan !== undefined) {
     try {

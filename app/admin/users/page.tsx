@@ -46,9 +46,9 @@ interface OperatorProfile {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function planColor(plan: string) {
-  if (plan === 'ENTERPRISE') return 'bg-violet-900/40 text-violet-300 border border-violet-700'
-  if (plan === 'PRO')        return 'bg-pink-900/40 text-pink-300 border border-pink-700'
-  return 'bg-gray-700 text-gray-300 border border-gray-600'
+  if (plan === 'ENTERPRISE') return 'bg-violet-600/70 text-violet-100 border border-violet-400'
+  if (plan === 'PRO')        return 'bg-pink-600/70 text-pink-100 border border-pink-400'
+  return 'bg-gray-600 text-gray-100 border border-gray-400'
 }
 
 /** Translate DB enum → human-readable plan name */
@@ -882,11 +882,11 @@ export default function AdminUsersPage() {
                             className={`appearance-none border rounded px-2 py-0.5 text-[10px] font-bold focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer pr-4 ${
                               isDirty ? 'ring-1 ring-amber-500 ' : ''
                             }${
-                              acctVal === 'ACTIVE'   ? 'bg-emerald-900/40 border-emerald-700 text-emerald-300' :
-                              acctVal === 'PENDING'  ? 'bg-yellow-900/40 border-yellow-700 text-yellow-300' :
-                              acctVal === 'INACTIVE' ? 'bg-gray-700 border-gray-600 text-gray-300' :
-                              acctVal === 'DELETED'  ? 'bg-red-900/40 border-red-700 text-red-300' :
-                                                       'bg-gray-700 border-gray-600 text-gray-300'
+                              acctVal === 'ACTIVE'   ? 'bg-emerald-600/70 border-emerald-400 text-emerald-100' :
+                              acctVal === 'PENDING'  ? 'bg-amber-600/70 border-amber-400 text-amber-100' :
+                              acctVal === 'INACTIVE' ? 'bg-gray-600 border-gray-400 text-gray-100' :
+                              acctVal === 'DELETED'  ? 'bg-red-700/80 border-red-400 text-red-100' :
+                                                       'bg-gray-600 border-gray-400 text-gray-100'
                             }`}
                           >
                             <option value="ACTIVE">ACTIVE</option>
@@ -975,9 +975,9 @@ export default function AdminUsersPage() {
                                 disabled={saving[user.id]}
                                 onChange={e => markPending(user.id, 'plan', e.target.value)}
                                 className={`appearance-none border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-pink-500 cursor-pointer pr-5 disabled:opacity-50 w-full ${
-                                  planVal === 'ENTERPRISE' ? 'bg-violet-900/30 border-violet-700 text-violet-300' :
-                                  planVal === 'PRO'        ? 'bg-pink-900/30 border-pink-700 text-pink-300' :
-                                                            'bg-gray-700 border-gray-600 text-gray-400'
+                                  planVal === 'ENTERPRISE' ? 'bg-violet-600/70 border-violet-400 text-violet-100' :
+                                  planVal === 'PRO'        ? 'bg-pink-600/70 border-pink-400 text-pink-100' :
+                                                            'bg-gray-600 border-gray-400 text-gray-100'
                                 }`}
                               >
                                 <option value="FREE">Free</option>
