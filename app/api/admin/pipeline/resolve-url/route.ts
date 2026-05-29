@@ -214,6 +214,45 @@ async function fetchFromRapidAPI(
   return { error: `RapidAPI fetch failed (${lastStatus || 'timeout'})${hint}: ${lastErr}` }
 }
 
+// ── TikTok oEmbed fallback (no API key needed) ────────────────────────────────
+
+async function fetchFromOEmbed(
+  tiktokId: string,
+  tiktokUrl: string,
+): Promise<{ data: FetchedVideo } | { error: string }> {
+  try {
+    const res = await fetch(
+      `https://www.tiktok.com/oembed?url=${encodeURIComponent(tiktokUrl)}`,
+      { signal: AbortSignal.timeout(10_000) },
+    )
+    if (!res.ok) return { error: `oEmbed HTTP ${res.status}` }
+
+    const body = await res.json() as Record<string, unknown>
+    const title      = String(body['title']       ?? '').slice(0, 500)
+    const authorName = String(body['author_name'] ?? 'unknown')
+    const coverUrl   = String(body['thumbnail_url'] ?? '') || null
+
+    return {
+      data: {
+        tiktok_id:    tiktokId,
+        title:        title || `TikTok video ${tiktokId}`,
+        author:       authorName,
+        views:        0,
+        likes:        0,
+        shares:       0,
+        comments:     0,
+        viral_score:  0,
+        niche:        detectNiche(title),
+        product_name: extractProductName(title),
+        cover_url:    coverUrl,
+        video_url:    tiktokUrl,
+      },
+    }
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -256,10 +295,20 @@ export async function POST(req: NextRequest) {
 
   // ── 2. Not in DB → fetch from RapidAPI and insert ─────────────────────────
   if (!videoRow) {
-    const result = await fetchFromRapidAPI(tiktokId, rawUrl)
+    // Try RapidAPI first, fall back to TikTok oEmbed (no key needed)
+    let result  = await fetchFromRapidAPI(tiktokId, rawUrl)
+    let usedOEmbed = false
+    if ('error' in result) {
+      console.log('[resolve-url] RapidAPI failed, trying oEmbed fallback:', result.error)
+      result     = await fetchFromOEmbed(tiktokId, rawUrl)
+      usedOEmbed = true
+    }
 
     if ('error' in result) {
-      return NextResponse.json({ ok: false, error: result.error }, { status: 404 })
+      return NextResponse.json({
+        ok:    false,
+        error: `Could not fetch video metadata. Video may be private or deleted. (${result.error})`,
+      }, { status: 404 })
     }
 
     const { data: inserted, error: insertErr } = await service
@@ -306,5 +355,6 @@ export async function POST(req: NextRequest) {
     niche:        videoRow!.niche,
     has_timeline: hasTimeline,
     scraped,
+    oembed:       scraped && usedOEmbed,
   })
 }

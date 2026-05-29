@@ -21,6 +21,7 @@ interface ResolvedVideo {
   niche:        string | null
   has_timeline: boolean
   scraped?:     boolean
+  oembed?:      boolean
 }
 
 export function ViralPipelineLauncher() {
@@ -154,9 +155,14 @@ export function ViralPipelineLauncher() {
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                     <span className="text-xs font-semibold text-emerald-300">Video resolved</span>
-                    {resolved.scraped && (
+                    {resolved.scraped && !resolved.oembed && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-900/50 text-blue-300 font-semibold">
                         Auto-scraped ✓
+                      </span>
+                    )}
+                    {resolved.oembed && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-900/50 text-amber-300 font-semibold" title="Stats unavailable via RapidAPI — basic metadata only">
+                        oEmbed (no stats)
                       </span>
                     )}
                     {resolved.has_timeline && (
