@@ -14,6 +14,8 @@ import {
   ChevronDown, ChevronUp, ExternalLink, X, Plus,
 } from 'lucide-react'
 
+type AsyncStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
+
 interface PipelineResult {
   ok:            boolean
   pipeline_ms?:  number
@@ -24,6 +26,11 @@ interface PipelineResult {
   providers?:    Record<string, string>
   stage?:        string
   error?:        string
+  // async fields
+  async?:        boolean
+  job_id?:       string
+  breakdown_id?: string
+  viral_status?: AsyncStatus
 }
 
 interface VideoContext {
@@ -49,6 +56,7 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
   const [result,      setResult]      = useState<PipelineResult | null>(null)
   const [showDetail,  setShowDetail]  = useState(false)
   const [ctxLoading,  setCtxLoading]  = useState(true)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Form state
   const [category,        setCategory]        = useState(niche ?? '')
@@ -106,9 +114,47 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
     }
   }
 
+  // ── Polling helper ───────────────────────────────────────────────────────────
+  function startPolling(breakdown_id: string) {
+    if (pollRef.current) clearInterval(pollRef.current)
+
+    pollRef.current = setInterval(async () => {
+      try {
+        const res  = await fetch(`/api/admin/viral-analysis-async/status?breakdown_id=${breakdown_id}`)
+        const json = await res.json()
+        const status: AsyncStatus = json.viral_status ?? 'PROCESSING'
+
+        if (status === 'COMPLETED') {
+          clearInterval(pollRef.current!)
+          pollRef.current = null
+          setLoading(false)
+          setResult({
+            ok:           true,
+            async:        true,
+            breakdown_id,
+            viral_status: 'COMPLETED',
+            ...(json.summary ?? {}),
+          })
+        } else if (status === 'FAILED') {
+          clearInterval(pollRef.current!)
+          pollRef.current = null
+          setLoading(false)
+          setResult({ ok: false, async: true, error: json.viral_error ?? 'Pipeline failed' })
+        } else {
+          // Still running — update status label
+          setResult(prev => prev ? { ...prev, viral_status: status } : prev)
+        }
+      } catch {
+        // Network hiccup — keep polling
+      }
+    }, 3000)
+  }
+
+  // Cleanup on unmount
+  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+
   // ── Pipeline runner ──────────────────────────────────────────────────────────
   async function runPipeline() {
-    // Commit any pending input
     const finalTags = painInput.trim()
       ? [...painTags, painInput.trim()].slice(0, 5)
       : painTags
@@ -121,14 +167,10 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
     setLoading(true)
     setResult(null)
 
-    const controller = new AbortController()
-    const timeoutId  = setTimeout(() => controller.abort(), 90_000)
-
     try {
-      const res = await fetch('/api/admin/viral-analysis', {
+      const res = await fetch('/api/admin/viral-analysis-async', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        signal:  controller.signal,
         body: JSON.stringify({
           video_id:       videoId,
           product_schema: {
@@ -140,18 +182,26 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
           },
         }),
       })
-      clearTimeout(timeoutId)
-      const contentType = res.headers.get('content-type') ?? ''
-      if (!contentType.includes('application/json')) {
-        throw new Error(`Server error ${res.status}: unexpected response format`)
+      const json = await res.json()
+
+      if (!json.ok) {
+        setLoading(false)
+        setResult({ ok: false, error: json.error ?? 'Failed to queue job' })
+        return
       }
-      const json: PipelineResult = await res.json()
-      setResult(json)
+
+      // Job queued — start polling
+      setResult({
+        ok:           true,
+        async:        true,
+        job_id:       json.job_id,
+        breakdown_id: json.breakdown_id,
+        viral_status: 'QUEUED',
+      })
+      startPolling(json.breakdown_id)
     } catch (e) {
-      clearTimeout(timeoutId)
-      setResult({ ok: false, error: e instanceof Error ? e.message : 'Network error' })
-    } finally {
       setLoading(false)
+      setResult({ ok: false, error: e instanceof Error ? e.message : 'Network error' })
     }
   }
 
@@ -266,11 +316,15 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
           disabled={loading || ctxLoading}
           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          {loading
-            ? <><Loader2 className="h-4 w-4 animate-spin" /> Running pipeline… (30–90s)</>
-            : ctxLoading
-              ? <><Loader2 className="h-4 w-4 animate-spin" /> Loading video context…</>
-              : <><Zap className="h-4 w-4" /> Run Viral Pipeline</>
+          {loading && result?.viral_status === 'QUEUED'
+            ? <><Loader2 className="h-4 w-4 animate-spin" /> Job queued — waiting to start…</>
+            : loading && result?.viral_status === 'PROCESSING'
+              ? <><Loader2 className="h-4 w-4 animate-spin" /> Running pipeline in background…</>
+              : loading
+                ? <><Loader2 className="h-4 w-4 animate-spin" /> Dispatching…</>
+                : ctxLoading
+                  ? <><Loader2 className="h-4 w-4 animate-spin" /> Loading video context…</>
+                  : <><Zap className="h-4 w-4" /> Run Viral Pipeline</>
           }
         </button>
 
@@ -286,13 +340,25 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-emerald-400 shrink-0" />
                   <span className="text-xs font-bold text-emerald-300">
-                    Pipeline complete in {((result.pipeline_ms ?? 0) / 1000).toFixed(1)}s
+                    {result.viral_status === 'COMPLETED' && result.pipeline_ms
+                      ? `Pipeline complete in ${((result.pipeline_ms) / 1000).toFixed(1)}s`
+                      : result.async
+                        ? `Job queued — Trigger.dev processing…`
+                        : `Pipeline complete in ${((result.pipeline_ms ?? 0) / 1000).toFixed(1)}s`
+                    }
                   </span>
                 </div>
+                {result.job_id && result.viral_status !== 'COMPLETED' && (
+                  <p className="text-[10px] text-gray-500 font-mono">Job: {result.job_id}</p>
+                )}
 
                 <div className="text-xs space-y-1 text-gray-300">
-                  <div><span className="text-gray-500">Structure:</span> {result.structure_id}</div>
-                  <div><span className="text-gray-500">Top match:</span> {result.top_structure}</div>
+                  {result.structure_id && (
+                    <div><span className="text-gray-500">Structure:</span> {result.structure_id}</div>
+                  )}
+                  {result.top_structure && (
+                    <div><span className="text-gray-500">Top match:</span> {result.top_structure}</div>
+                  )}
                   <div className="mt-2 p-2 bg-gray-700/50 rounded border border-gray-600">
                     <span className="text-gray-500 text-[10px] uppercase tracking-wide">Hook line</span>
                     <p className="text-white font-medium mt-0.5 text-sm">"{result.hook_line}"</p>
@@ -342,8 +408,7 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
               <div className="flex items-start gap-2">
                 <AlertTriangle className="h-4 w-4 text-red-400 shrink-0 mt-0.5" />
                 <div className="text-xs text-red-300">
-                  <span className="font-bold">Stage: {result.stage}</span>
-                  <br />
+                  {result.stage && <><span className="font-bold">Stage: {result.stage}</span><br /></>}
                   {result.error}
                 </div>
               </div>

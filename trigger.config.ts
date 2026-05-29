@@ -12,7 +12,7 @@
 import { defineConfig } from '@trigger.dev/sdk/v3'
 
 export default defineConfig({
-  project:     process.env.TRIGGER_PROJECT_ID ?? 'proj_YOUR_PROJECT_ID',
+  project:     process.env.TRIGGER_PROJECT_ID ?? 'proj_iihkdtvacggbfsoebwhs',
   dirs:        ['./trigger'],
   maxDuration: 600, // 10 minutes (task-level override via maxDuration in task() takes precedence)
   retries: {
