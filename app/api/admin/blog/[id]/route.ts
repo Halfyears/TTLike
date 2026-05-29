@@ -1,0 +1,102 @@
+/**
+ * GET    /api/admin/blog/[id] — fetch single post
+ * PUT    /api/admin/blog/[id] — update post fields
+ * DELETE /api/admin/blog/[id] — soft-delete (→ ARCHIVED)
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { prisma } from '@/lib/prisma'
+
+async function isAdmin(): Promise<boolean> {
+  try {
+    const sb = await createClient()
+    const { data: { user } } = await sb.auth.getUser()
+    if (!user) return false
+    try {
+      const u = await prisma.user.findUnique({ where: { email: user.email! } })
+      if (u?.role === 'ADMIN') return true
+    } catch {}
+    return user.email === process.env.ADMIN_EMAIL
+  } catch { return false }
+}
+
+type RouteCtx = { params: Promise<{ id: string }> }
+
+export async function GET(_req: NextRequest, { params }: RouteCtx) {
+  if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { id } = await params
+  try {
+    const post = await prisma.blogPost.findUnique({ where: { id } })
+    if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return NextResponse.json({ post })
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 500 })
+  }
+}
+
+export async function PUT(req: NextRequest, { params }: RouteCtx) {
+  if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { id } = await params
+
+  let body: {
+    title?: string; slug?: string; content?: string; excerpt?: string
+    category?: string; tags?: string[]; status?: string
+    seoTitle?: string; seoDesc?: string; authorName?: string; coverImage?: string
+  }
+  try { body = await req.json() } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const data: Record<string, any> = {}
+  if (body.title      !== undefined) data.title      = body.title
+  if (body.slug       !== undefined) data.slug        = body.slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
+  if (body.content    !== undefined) data.content    = body.content
+  if (body.excerpt    !== undefined) data.excerpt    = body.excerpt
+  if (body.category   !== undefined) data.category   = body.category
+  if (body.tags       !== undefined) data.tags       = body.tags
+  if (body.seoTitle   !== undefined) data.seoTitle   = body.seoTitle
+  if (body.seoDesc    !== undefined) data.seoDesc    = body.seoDesc
+  if (body.authorName !== undefined) data.authorName = body.authorName
+  if (body.coverImage !== undefined) data.coverImage = body.coverImage
+  if (body.status     !== undefined) {
+    data.status = body.status
+    // Set publishedAt when transitioning to PUBLISHED
+    if (body.status === 'PUBLISHED') {
+      const existing = await prisma.blogPost.findUnique({ where: { id }, select: { publishedAt: true } })
+      if (!existing?.publishedAt) data.publishedAt = new Date()
+    }
+  }
+
+  try {
+    const post = await prisma.blogPost.update({ where: { id }, data })
+    return NextResponse.json({ post })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (msg.includes('Record to update not found')) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+    }
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}
+
+export async function DELETE(_req: NextRequest, { params }: RouteCtx) {
+  if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { id } = await params
+
+  try {
+    // Soft-delete: set status to ARCHIVED
+    await prisma.blogPost.update({
+      where: { id },
+      data:  { status: 'ARCHIVED' },
+    })
+    return NextResponse.json({ ok: true, message: 'Post archived' })
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (msg.includes('Record to update not found')) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+    }
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
+}

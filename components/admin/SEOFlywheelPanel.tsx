@@ -1,14 +1,14 @@
 'use client'
 
 /**
- * SEOFlywheelPanel — Admin component for the n8n SEO Content Flywheel.
+ * SEOFlywheelPanel — Video Breakdown → Blog Generator
  *
- * Displays recent video_breakdowns and lets admins publish them to Ghost
- * via n8n. Status badge updates optimistically on click.
+ * Lists video_breakdowns and lets admins generate AI blog posts from them.
+ * Uses the AI waterfall (Groq → Gemini → GitHub) server-side.
  */
 
 import { useState } from 'react'
-import { Zap, Send, CheckCircle, Loader2, AlertTriangle, ExternalLink } from 'lucide-react'
+import { Zap, Send, CheckCircle, Loader2, AlertTriangle, ExternalLink, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import { LocalDate } from '@/components/ui/LocalDate'
 
@@ -65,10 +65,11 @@ function fmtNum(n: number | null | undefined): string {
 export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: BreakdownForFlywheel[] }) {
   const [rows, setRows] = useState(initial)
   const [loading, setLoading] = useState<Record<string, boolean>>({})
+  const [deleting, setDeleting] = useState<Record<string, boolean>>({})
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
 
   async function publish(breakdownId: string) {
     setLoading(p => ({ ...p, [breakdownId]: true }))
-    // Optimistic update
     setRows(prev => prev.map(r =>
       r.id === breakdownId ? { ...r, blog_status: 'PROCESSING' } : r
     ))
@@ -80,7 +81,6 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
       })
       const json = await res.json()
       if (!res.ok) {
-        // Roll back on error
         setRows(prev => prev.map(r =>
           r.id === breakdownId ? { ...r, blog_status: 'FAILED' } : r
         ))
@@ -93,6 +93,24 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
       console.error('[SEOFlywheelPanel] fetch error:', e)
     } finally {
       setLoading(p => ({ ...p, [breakdownId]: false }))
+    }
+  }
+
+  async function deleteBreakdown(breakdownId: string) {
+    setDeleting(p => ({ ...p, [breakdownId]: true }))
+    setConfirmDelete(null)
+    try {
+      const res = await fetch(`/api/admin/blog/breakdowns/${breakdownId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setRows(prev => prev.filter(r => r.id !== breakdownId))
+      } else {
+        const json = await res.json()
+        alert(`Delete failed: ${json.error ?? 'Unknown error'}`)
+      }
+    } catch (e) {
+      alert(`Delete failed: ${e instanceof Error ? e.message : String(e)}`)
+    } finally {
+      setDeleting(p => ({ ...p, [breakdownId]: false }))
     }
   }
 
@@ -109,9 +127,9 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
       <div className="px-5 py-3.5 border-b border-gray-700 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-pink-400" />
-          <h2 className="text-sm font-semibold text-white">SEO Content Flywheel</h2>
+          <h2 className="text-sm font-semibold text-white">Video Breakdown → Blog Generator</h2>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-900/40 text-pink-300 uppercase tracking-wide">
-            n8n → Ghost → Social
+            AI Powered
           </span>
         </div>
         <span className="text-xs text-gray-500">{rows.length} breakdowns</span>
@@ -126,7 +144,7 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
               <th className="text-left px-4 py-3">Top Formula</th>
               <th className="text-right px-4 py-3">Views</th>
               <th className="text-center px-4 py-3">Blog Status</th>
-              <th className="text-center px-4 py-3">Action</th>
+              <th className="text-center px-4 py-3">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-700/50">
@@ -138,7 +156,9 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
               const topFormula = row.payload?.viral_formulas?.[0]?.title ?? '—'
               const status = row.blog_status ?? 'NOT_SENT'
               const isActive = loading[row.id]
+              const isDel    = deleting[row.id]
               const canPublish = status === 'NOT_SENT' || status === 'FAILED'
+              const isConfirming = confirmDelete === row.id
 
               return (
                 <tr key={row.id} className="hover:bg-gray-700/30 transition-colors">
@@ -155,9 +175,7 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
                       )}
                       <div>
                         <p className="text-gray-200 font-medium text-xs line-clamp-2 max-w-[180px] leading-snug">{name}</p>
-                        {row.ghost_post_id && (
-                          <span className="text-[10px] text-emerald-400">ghost: {row.ghost_post_id.slice(0, 8)}…</span>
-                        )}
+                        <p className="text-[10px] text-gray-500 mt-0.5">{row.id.slice(0, 8)}…</p>
                       </div>
                     </div>
                   </td>
@@ -189,7 +207,7 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
                     )}
                   </td>
 
-                  {/* Action */}
+                  {/* Actions */}
                   <td className="px-4 py-3 text-center">
                     <div className="flex items-center justify-center gap-2">
                       {canPublish ? (
@@ -199,19 +217,47 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
                           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-pink-600 hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-all"
                         >
                           {isActive
-                            ? <><Loader2 className="h-3 w-3 animate-spin" /> Sending…</>
-                            : <><Send className="h-3 w-3" /> Publish</>
+                            ? <><Loader2 className="h-3 w-3 animate-spin" /> Generating…</>
+                            : <><Send className="h-3 w-3" /> Generate Blog</>
                           }
                         </button>
                       ) : (
                         <span className="text-xs text-gray-600 italic">
-                          {status === 'PROCESSING' ? 'n8n running…' : '—'}
+                          {status === 'PROCESSING' ? 'Processing…' : '—'}
                         </span>
                       )}
+
                       {video?.id && (
                         <Link href={`/products/${video.id}`} target="_blank" className="text-gray-500 hover:text-gray-300">
                           <ExternalLink className="h-3.5 w-3.5" />
                         </Link>
+                      )}
+
+                      {/* Delete — two-step confirm */}
+                      {!isConfirming ? (
+                        <button
+                          onClick={() => setConfirmDelete(row.id)}
+                          disabled={isDel}
+                          className="text-gray-600 hover:text-red-400 transition-colors disabled:opacity-40"
+                          title="Delete breakdown"
+                        >
+                          {isDel ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => deleteBreakdown(row.id)}
+                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-red-600 hover:bg-red-700 text-white"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => setConfirmDelete(null)}
+                            className="text-[10px] text-gray-400 hover:text-gray-200"
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       )}
                     </div>
                   </td>
