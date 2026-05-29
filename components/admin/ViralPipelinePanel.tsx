@@ -37,7 +37,7 @@ interface Props {
 const PERSUASION_STYLES = ['ROI_PROOF', 'PAIN_INTERCEPT', 'CURIOSITY_LOOP', 'STATUS_ANXIETY'] as const
 
 export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
-  const [open,       setOpen]       = useState(false)
+  const [open,       setOpen]       = useState(true)   // default open when embedded in Launcher
   const [loading,    setLoading]    = useState(false)
   const [result,     setResult]     = useState<PipelineResult | null>(null)
   const [showDetail, setShowDetail] = useState(false)
