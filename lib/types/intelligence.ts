@@ -49,6 +49,63 @@ export interface StructuralHealthReport {
   }
 }
 
+// ── Viral Pipeline result (stored under payload.viral_pipeline) ──────────────
+export interface ViralPipeline {
+  generation_id:     string
+  generated_at:      string
+  generator_version: string
+  input?: {
+    product_schema:  Record<string, unknown>
+    video_metadata?: Record<string, unknown>
+  }
+  reasoning?: {
+    spike_result?:     {
+      spikes:  { t: number; type: string; strength: number; label: string }[]
+      summary: string
+    }
+    structure_match?:  {
+      structure_id:     string
+      pattern_sequence: string[]
+      similarity_score: number
+      description:      string
+      reasoning:        string
+    }
+    router?: {
+      top_structure:       string
+      candidates:          { structure_id: string; probability: number; fit_reason: string }[]
+      product_fit_summary: string
+    }
+    language_profile?: {
+      sentence_energy:  number
+      compression:      number
+      emotion_variance: number
+      tone:             string
+      vocabulary_level: string
+      cta_style:        string
+    }
+    emotion_curve?: {
+      structure_id: string
+      beats:        { beat: string; emotions: string[]; duration_hint: string }[]
+      overall_arc:  string
+    }
+  }
+  final_script?: {
+    video_id:       string
+    structure_id:   string
+    lines:          { sequence: number; time_range: string; say: string; do: string; emotion: string; beat: string }[]
+    total_duration: string
+    hook_line:      string
+  }
+  learning?: {
+    user_feedback:       null | Record<string, unknown>
+    engagement_metrics:  null | Record<string, unknown>
+    was_published:       boolean
+    published_video_url: null | string
+  }
+  ai_providers?: Record<string, string>
+  pipeline_ms?:  number
+}
+
 // ── Core breakdown payload (stored in video_breakdowns.payload) ───────────────
 export interface VideoBreakdownPayload {
   url_hash:        string
@@ -74,6 +131,9 @@ export interface VideoBreakdownPayload {
     video_url:     string   // original TikTok URL
     thumbnail_url: string | null
   }
+
+  /** Viral Pipeline result — populated by /api/admin/viral-analysis */
+  viral_pipeline?: ViralPipeline
 }
 
 // ── TTLike Commerce Payload v1 ────────────────────────────────────────────────

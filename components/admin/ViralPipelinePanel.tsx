@@ -213,13 +213,22 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
                     </div>
                   )}
 
-                  <a
-                    href={`/products/${videoId}`}
-                    target="_blank"
-                    className="inline-flex items-center gap-1 text-[11px] text-violet-400 hover:text-violet-300"
-                  >
-                    <ExternalLink className="h-3 w-3" /> View product page
-                  </a>
+                  <div className="flex items-center gap-3 flex-wrap pt-1">
+                    <a
+                      href={`/admin/pipeline-results/${videoId}`}
+                      target="_blank"
+                      className="inline-flex items-center gap-1 text-[11px] text-violet-400 hover:text-violet-300 font-semibold"
+                    >
+                      <ExternalLink className="h-3 w-3" /> View Full Pipeline
+                    </a>
+                    <a
+                      href={`/products/${videoId}`}
+                      target="_blank"
+                      className="inline-flex items-center gap-1 text-[11px] text-gray-500 hover:text-gray-300"
+                    >
+                      <ExternalLink className="h-3 w-3" /> Product page
+                    </a>
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-start gap-2">

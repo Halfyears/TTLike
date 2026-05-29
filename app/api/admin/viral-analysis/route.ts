@@ -100,14 +100,40 @@ export async function POST(req: NextRequest) {
   const mergedPayload = {
     ...(existing?.payload ?? {}),
     viral_pipeline: {
-      structure_id:     viralObject.structure_match?.structure_id,
-      top_structure:    viralObject.router?.top_structure,
-      language_profile: viralObject.language_profile,
-      emotion_curve:    viralObject.emotion_curve,
-      final_script:     viralObject.final_script,
-      ai_providers:     viralObject.ai_providers,
-      pipeline_ms:      viralObject.pipeline_ms,
+      generation_id:    crypto.randomUUID(),
       generated_at:     viralObject.created_at,
+      generator_version: 'v2.5',
+
+      input: {
+        product_schema:   viralObject.product_schema,
+        video_metadata: {
+          title:        viralObject.ingestion.title,
+          niche:        viralObject.ingestion.niche,
+          viral_score:  viralObject.ingestion.viral_score,
+          views:        viralObject.ingestion.views,
+          likes:        viralObject.ingestion.likes,
+        },
+      },
+
+      reasoning: {
+        spike_result:     viralObject.spike_result,
+        structure_match:  viralObject.structure_match,
+        router:           viralObject.router,
+        language_profile: viralObject.language_profile,
+        emotion_curve:    viralObject.emotion_curve,
+      },
+
+      final_script:  viralObject.final_script,
+
+      learning: {
+        user_feedback:      null,
+        engagement_metrics: null,
+        was_published:      false,
+        published_video_url: null,
+      },
+
+      ai_providers: viralObject.ai_providers,
+      pipeline_ms:  viralObject.pipeline_ms,
     },
   }
 
