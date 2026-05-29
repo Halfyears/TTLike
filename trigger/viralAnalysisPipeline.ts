@@ -12,6 +12,7 @@
 
 import { task, logger } from '@trigger.dev/sdk/v3'
 import { createClient } from '@supabase/supabase-js'
+import ws from 'ws'
 import { runViralPipeline } from '@/lib/engines'
 import type { ProductSchemaInput } from '@/lib/engines/types'
 
@@ -28,7 +29,8 @@ function makeServiceClient() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       auth:     { persistSession: false, autoRefreshToken: false },
-      realtime: { params: { eventsPerSecond: -1 } },
+      // Provide ws as WebSocket transport for Node.js < 22 (Trigger.dev runs Node 21)
+      realtime: { transport: ws as unknown as typeof WebSocket },
     },
   )
 }

@@ -19,6 +19,7 @@
 import { task, logger } from '@trigger.dev/sdk/v3'
 import { createClient }  from '@supabase/supabase-js'
 import { createHmac }    from 'crypto'
+import ws                from 'ws'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -217,7 +218,7 @@ export const seoBlogFlywheelTask = task({
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {
         auth:     { persistSession: false, autoRefreshToken: false },
-        realtime: { params: { eventsPerSecond: -1 } },
+        realtime: { transport: ws as unknown as typeof WebSocket },
       },
     )
 
