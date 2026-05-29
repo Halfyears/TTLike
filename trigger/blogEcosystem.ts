@@ -21,6 +21,12 @@ import { createClient }  from '@supabase/supabase-js'
 import { createHmac }    from 'crypto'
 import ws                from 'ws'
 
+// Patch globalThis.WebSocket for Node.js < 22
+if (!globalThis.WebSocket) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).WebSocket = ws
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface BlogFlywheelPayload {

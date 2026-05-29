@@ -16,6 +16,14 @@ import ws from 'ws'
 import { runViralPipeline } from '@/lib/engines'
 import type { ProductSchemaInput } from '@/lib/engines/types'
 
+// Patch globalThis.WebSocket for Node.js < 22 (Trigger.dev runs Node 21).
+// All Supabase clients created in this process (including inside runViralPipeline)
+// will use ws as the WebSocket implementation.
+if (!globalThis.WebSocket) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).WebSocket = ws
+}
+
 export interface ViralAnalysisPayload {
   video_id:       string
   product_schema: ProductSchemaInput
