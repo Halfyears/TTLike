@@ -125,7 +125,7 @@ export default async function PipelineResultsPage({
                   {video.niche}
                 </span>
               )}
-              {input?.product_schema?.['price_point'] && (
+              {input?.product_schema?.['price_point'] != null && (
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-900/40 text-emerald-300">
                   ${String(input.product_schema['price_point'])}
                 </span>
