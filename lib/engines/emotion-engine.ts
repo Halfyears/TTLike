@@ -162,35 +162,13 @@ export async function renderScript(
     }
   }
 
-  // Inject video_id if AI omitted it + normalise AI-variant enum values
+  // Inject required fields + always override language_profile with the validated object
+  // (AI-returned language_profile frequently has invalid enum values — never trust it)
   if (typeof parsed === 'object' && parsed !== null) {
     const p = parsed as Record<string, unknown>
-    if (!p.video_id)          p.video_id     = signal.video_id
-    if (!p.structure_id)      p.structure_id = structure.structure_id
-    if (!p.language_profile)  p.language_profile = languageProfile
-
-    // Normalise language_profile enum fields that AI sometimes returns in wrong format
-    const lp = (p.language_profile ?? {}) as Record<string, unknown>
-
-    // vocabulary_level: "semi-formal" → "semi_formal", unknown → "casual"
-    if (typeof lp.vocabulary_level === 'string') {
-      const vl = lp.vocabulary_level.toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_')
-      lp.vocabulary_level = ['casual', 'semi_formal', 'technical'].includes(vl) ? vl : 'casual'
-    }
-
-    // tone: normalise to known values
-    if (typeof lp.tone === 'string') {
-      const t = lp.tone.toLowerCase().replace(/[-\s]/g, '_')
-      lp.tone = ['friend_talk', 'authority', 'storyteller', 'challenger'].includes(t) ? t : 'friend_talk'
-    }
-
-    // cta_style: normalise to known values
-    if (typeof lp.cta_style === 'string') {
-      const c = lp.cta_style.toLowerCase().replace(/[-\s]/g, '_')
-      lp.cta_style = ['direct', 'soft', 'urgency', 'curiosity'].includes(c) ? c : 'direct'
-    }
-
-    p.language_profile = lp
+    p.video_id        = p.video_id     ?? signal.video_id
+    p.structure_id    = p.structure_id ?? structure.structure_id
+    p.language_profile = languageProfile  // always use the Zod-validated profile
   }
 
   const script = FinalScriptSchema.parse(parsed)
