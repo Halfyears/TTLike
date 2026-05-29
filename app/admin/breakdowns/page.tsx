@@ -1,59 +1,12 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import Link from 'next/link'
-import { ExternalLink, Zap, TrendingUp, BarChart2, Database, GitBranch, Clock } from 'lucide-react'
-import { LocalDate } from '@/components/ui/LocalDate'
+import { Zap, TrendingUp, BarChart2, Database } from 'lucide-react'
 import type { VideoBreakdownPayload, ViralPipeline } from '@/lib/types/intelligence'
 import { BatchTrigger } from './BatchTrigger'
-import { bestCoverUrl } from '@/lib/tiktokImg'
 import { ViralPipelineLauncher } from './ViralPipelineLauncher'
-import { BreakdownPipelineButton } from './BreakdownPipelineButton'
+import { PipelineResultsTable, type PipelineRow } from '@/components/admin/PipelineResultsTable'
+import { BreakdownsTable, type BreakdownRow } from '@/components/admin/BreakdownsTable'
 
 export const dynamic = 'force-dynamic'
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface BreakdownRow {
-  id: string
-  url_hash: string
-  video_id: string | null
-  seo_slug: string | null
-  payload: VideoBreakdownPayload
-  created_at: string
-  tiktok_videos: {
-    id: string
-    title: string | null
-    product_name: string | null
-    niche: string | null
-    cover_url: string | null
-    views: number | null
-    viral_score: number | null
-  } | null
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function cleanTitle(text: string): string {
-  return text.replace(/#[\w一-龥＀-￯]+\s*/g, '').replace(/\s{2,}/g, ' ').trim()
-}
-
-// fmtDate removed — use <LocalDate> in JSX for browser-local timezone
-
-function fmtNum(n: number | null | undefined) {
-  if (!n) return '—'
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `${Math.round(n / 1_000)}K`
-  return String(n)
-}
-
-/** Get first formula title, or fall back to legacy hook type for old V2 records */
-function getStrategy(payload: VideoBreakdownPayload): string {
-  if (payload?.health_report) return '— (Health Report)'
-  const formula = payload?.viral_formulas?.[0]
-  if (formula?.title) return formula.title
-  // Legacy V2 fallback
-  const legacy = payload as unknown as { analysis?: { hook?: { type?: string } } }
-  return legacy?.analysis?.hook?.type ?? '—'
-}
 
 type RowType = 'v25' | 'health' | 'legacy'
 
@@ -62,8 +15,6 @@ function getRowType(payload: VideoBreakdownPayload): RowType {
   if (payload?.health_report)          return 'health'
   return 'legacy'
 }
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function BreakdownsAdminPage() {
   const service = createServiceClient()
@@ -75,28 +26,26 @@ export default async function BreakdownsAdminPage() {
     .limit(500)
 
   if (error) {
-    return (
-      <div className="p-6 text-red-400 text-sm">
-        Failed to load breakdowns: {error.message}
-      </div>
-    )
+    return <div className="p-6 text-red-400 text-sm">Failed to load breakdowns: {error.message}</div>
   }
 
   const breakdowns = (rows ?? []) as unknown as BreakdownRow[]
 
-  // ── Stats ─────────────────────────────────────────────────────────────────
   const total       = breakdowns.length
   const weekAgo     = Date.now() - 7 * 86_400_000
   const thisWeek    = breakdowns.filter(b => new Date(b.created_at).getTime() > weekAgo).length
   const v25Count    = breakdowns.filter(b => getRowType(b.payload) === 'v25').length
   const healthCount = breakdowns.filter(b => getRowType(b.payload) === 'health').length
 
-  // ── Pipeline results: breakdowns with viral_pipeline in payload ───────────
-  const pipelineRows = breakdowns
+  // Build pipeline rows for the dedicated table
+  const pipelineRows: PipelineRow[] = breakdowns
     .filter(b => !!(b.payload as VideoBreakdownPayload & { viral_pipeline?: ViralPipeline })?.viral_pipeline)
     .map(b => ({
-      ...b,
-      pipeline: (b.payload as VideoBreakdownPayload & { viral_pipeline: ViralPipeline }).viral_pipeline,
+      id:           b.id,
+      video_id:     b.video_id,
+      created_at:   b.created_at,
+      pipeline:     (b.payload as VideoBreakdownPayload & { viral_pipeline: ViralPipeline }).viral_pipeline,
+      tiktok_videos: b.tiktok_videos,
     }))
 
   return (
@@ -137,305 +86,14 @@ export default async function BreakdownsAdminPage() {
         ))}
       </div>
 
-      {/* Pipeline Results list */}
+      {/* Pipeline Results — client component with filters + pagination + actions */}
       {pipelineRows.length > 0 && (
-        <div className="bg-gray-800 rounded-xl border border-violet-700/40 overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-violet-700/40 flex items-center justify-between bg-violet-900/10">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-violet-400" />
-              <h2 className="text-sm font-semibold text-white">Pipeline Results</h2>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-900/60 text-violet-300 uppercase tracking-wide">
-                {pipelineRows.length} generated
-              </span>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-700 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-                  <th className="text-left px-5 py-3">Product</th>
-                  <th className="text-left px-4 py-3">Structure</th>
-                  <th className="text-left px-4 py-3">Hook Line</th>
-                  <th className="text-right px-4 py-3">Lines</th>
-                  <th className="text-right px-4 py-3">Duration</th>
-                  <th className="text-right px-4 py-3">Generated</th>
-                  <th className="text-center px-4 py-3">View</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-700/50">
-                {pipelineRows.map(b => {
-                  const video    = b.tiktok_videos
-                  const pipeline = b.pipeline
-                  const name     = video
-                    ? cleanTitle(String(video.product_name ?? video.title ?? 'Untitled'))
-                    : `(url-only) ${b.url_hash.slice(0, 8)}`
-                  const coverSrc = bestCoverUrl(null, video?.cover_url ?? null)
-                  const videoId  = b.video_id ?? video?.id
-
-                  return (
-                    <tr key={b.id} className="hover:bg-gray-700/30 transition-colors">
-
-                      {/* Product */}
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          {coverSrc ? (
-                            <img src={coverSrc} alt={name} className="h-9 w-16 object-cover rounded-md shrink-0 bg-gray-700" />
-                          ) : (
-                            <div className="h-9 w-16 bg-gray-700 rounded-md shrink-0 flex items-center justify-center">
-                              <Zap className="h-4 w-4 text-gray-500" />
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-gray-200 font-medium text-xs line-clamp-2 max-w-[160px] leading-snug">{name}</p>
-                            {pipeline.input?.product_schema && (
-                              <p className="text-[10px] text-gray-500 mt-0.5">
-                                {String(pipeline.input.product_schema['category'] ?? '')}
-                                {pipeline.input.product_schema['price_point']
-                                  ? ` · $${pipeline.input.product_schema['price_point']}`
-                                  : ''}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Structure */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          <GitBranch className="h-3 w-3 text-violet-400 shrink-0" />
-                          <span className="text-xs text-violet-300 font-mono leading-snug max-w-[140px] truncate">
-                            {pipeline.reasoning?.structure_match?.structure_id ?? pipeline.final_script?.structure_id ?? '—'}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Hook line */}
-                      <td className="px-4 py-3 max-w-[220px]">
-                        <p className="text-xs text-gray-300 italic line-clamp-2 leading-snug">
-                          {pipeline.final_script?.hook_line
-                            ? `"${pipeline.final_script.hook_line}"`
-                            : '—'}
-                        </p>
-                      </td>
-
-                      {/* Script lines */}
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-xs text-gray-400 tabular-nums">
-                          {pipeline.final_script?.lines?.length ?? '—'}
-                        </span>
-                      </td>
-
-                      {/* Duration */}
-                      <td className="px-4 py-3 text-right">
-                        <span className="text-xs text-gray-500 font-mono">
-                          {pipeline.final_script?.total_duration ?? '—'}
-                        </span>
-                      </td>
-
-                      {/* Generated at */}
-                      <td className="px-4 py-3 text-right">
-                        <div className="text-right">
-                          <LocalDate date={pipeline.generated_at} className="text-xs text-gray-500 whitespace-nowrap" />
-                          {pipeline.pipeline_ms && (
-                            <p className="text-[10px] text-gray-600 flex items-center justify-end gap-0.5 mt-0.5">
-                              <Clock className="h-2.5 w-2.5" />
-                              {(pipeline.pipeline_ms / 1000).toFixed(1)}s
-                            </p>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* View link */}
-                      <td className="px-4 py-3 text-center">
-                        {videoId && (
-                          <Link
-                            href={`/admin/pipeline-results/${videoId}`}
-                            target="_blank"
-                            className="inline-flex items-center gap-1 text-[11px] font-bold text-violet-400 hover:text-violet-300 transition-colors px-2 py-1 rounded bg-violet-900/30 hover:bg-violet-900/50"
-                          >
-                            <ExternalLink className="h-3 w-3" /> View
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <PipelineResultsTable rows={pipelineRows} />
       )}
 
-      {/* Breakdowns table */}
-      <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-gray-700 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">All Breakdowns</h2>
-          <span className="text-xs text-gray-500">{total} entries</span>
-        </div>
+      {/* All Breakdowns — client component with filters + pagination + delete */}
+      <BreakdownsTable rows={breakdowns} />
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-700 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
-                <th className="text-left px-5 py-3">Product</th>
-                <th className="text-left px-4 py-3">Niche</th>
-                <th className="text-left px-4 py-3">Strategy</th>
-                <th className="text-left px-4 py-3">Engine</th>
-                <th className="text-right px-4 py-3">Views</th>
-                <th className="text-right px-4 py-3">Score</th>
-                <th className="text-right px-4 py-3">Generated</th>
-                <th className="text-center px-4 py-3">Links</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-700/50">
-              {breakdowns.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-gray-500 text-sm">
-                    No breakdowns yet. Generate one from any product page.
-                  </td>
-                </tr>
-              ) : breakdowns.map(b => {
-                const video      = b.tiktok_videos
-                const sourceMeta = b.payload?.source_meta   // present for oEmbed-sourced rows
-                const strategy   = getStrategy(b.payload)
-                const rowType    = getRowType(b.payload)
-
-                // Name: tiktok_videos join → oEmbed source_meta title → hash fallback
-                const name = video
-                  ? cleanTitle(String(video.product_name ?? video.title ?? 'Untitled'))
-                  : sourceMeta?.title
-                    ? cleanTitle(sourceMeta.title)
-                    : `(url-only) ${b.url_hash.slice(0, 8)}`
-
-                const videoId   = b.video_id ?? video?.id   // null for oEmbed rows
-                const isOembed  = !videoId && !!sourceMeta
-                const coverSrc  = bestCoverUrl(null, video?.cover_url ?? sourceMeta?.thumbnail_url)
-                const seoTarget = b.seo_slug ?? videoId     // oEmbed: seo_slug always set
-
-                return (
-                  <tr key={b.id} className="hover:bg-gray-700/30 transition-colors">
-                    {/* Product */}
-                    <td className="px-5 py-3">
-                      <div className="flex items-center gap-3">
-                        {coverSrc ? (
-                          <img
-                            src={coverSrc}
-                            alt={name}
-                            className="h-9 w-16 object-cover rounded-md shrink-0 bg-gray-700"
-                          />
-                        ) : (
-                          <div className="h-9 w-16 bg-gray-700 rounded-md shrink-0 flex items-center justify-center">
-                            <Zap className="h-4 w-4 text-gray-500" />
-                          </div>
-                        )}
-                        <span className="text-gray-200 font-medium text-xs line-clamp-2 max-w-[180px] leading-snug">
-                          {name}
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Niche */}
-                    <td className="px-4 py-3">
-                      {isOembed ? (
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-indigo-900/40 text-indigo-300">
-                          oEmbed
-                        </span>
-                      ) : (
-                        <span className="text-xs text-gray-400">{video?.niche ?? '—'}</span>
-                      )}
-                    </td>
-
-                    {/* Strategy */}
-                    <td className="px-4 py-3">
-                      <span className="text-xs text-gray-300 line-clamp-2 max-w-[160px]">{strategy}</span>
-                    </td>
-
-                    {/* Engine version + AI provider */}
-                    <td className="px-4 py-3">
-                      <div className="flex flex-col gap-1">
-                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                          rowType === 'v25'    ? 'bg-pink-900/40 text-pink-300' :
-                          rowType === 'health' ? 'bg-red-900/40 text-red-300' :
-                                                'bg-gray-700 text-gray-400'
-                        }`}>
-                          {rowType === 'v25' ? 'V2.5' : rowType === 'health' ? '🔬 Health' : 'Legacy'}
-                        </span>
-                        {b.payload?.ai_provider && (
-                          <span className={`inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded ${
-                            b.payload.ai_provider === 'groq'   ? 'bg-green-900/40 text-green-400' :
-                            b.payload.ai_provider === 'gemini' ? 'bg-blue-900/40 text-blue-400' :
-                            b.payload.ai_provider === 'github' ? 'bg-purple-900/40 text-purple-400' :
-                                                                  'bg-gray-700 text-gray-400'
-                          }`}>
-                            {b.payload.ai_provider}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    {/* Views */}
-                    <td className="px-4 py-3 text-right">
-                      <span className="text-xs text-gray-300 tabular-nums">{fmtNum(video?.views)}</span>
-                    </td>
-
-                    {/* Viral score */}
-                    <td className="px-4 py-3 text-right">
-                      <span className={`text-xs font-bold tabular-nums ${
-                        (video?.viral_score ?? 0) >= 80 ? 'text-pink-400' :
-                        (video?.viral_score ?? 0) >= 60 ? 'text-orange-400' : 'text-gray-500'
-                      }`}>
-                        {video?.viral_score != null ? Number(video.viral_score).toFixed(0) : '—'}
-                      </span>
-                    </td>
-
-                    {/* Date */}
-                    <td className="px-4 py-3 text-right">
-                      <LocalDate date={b.created_at} className="text-xs text-gray-500 whitespace-nowrap" />
-                    </td>
-
-                    {/* Links */}
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-2 flex-wrap">
-                        {/* Viral Pipeline — only for DB-sourced breakdowns with a video_id */}
-                        {videoId && (
-                          <BreakdownPipelineButton
-                            videoId={videoId}
-                            productName={video?.product_name ?? null}
-                            niche={video?.niche ?? null}
-                            hasTimeline={!!(b.payload?.visual_timeline?.length)}
-                          />
-                        )}
-                        {/* Product page */}
-                        {videoId && (
-                          <Link
-                            href={`/products/${videoId}`}
-                            target="_blank"
-                            className="text-[11px] text-gray-400 hover:text-white transition-colors"
-                          >
-                            Product
-                          </Link>
-                        )}
-                        {/* SEO page */}
-                        {seoTarget && (
-                          <Link
-                            href={`/viral/${seoTarget}`}
-                            target="_blank"
-                            className="inline-flex items-center gap-0.5 text-[11px] text-pink-400 hover:text-pink-300 font-semibold transition-colors"
-                            title={`/viral/${seoTarget}`}
-                          >
-                            <ExternalLink className="h-3 w-3" /> SEO
-                          </Link>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   )
 }
