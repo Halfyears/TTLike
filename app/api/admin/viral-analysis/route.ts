@@ -107,20 +107,22 @@ export async function POST(req: NextRequest) {
       input: {
         product_schema:   viralObject.product_schema,
         video_metadata: {
-          title:        viralObject.ingestion.title,
-          niche:        viralObject.ingestion.niche,
-          viral_score:  viralObject.ingestion.viral_score,
-          views:        viralObject.ingestion.views,
-          likes:        viralObject.ingestion.likes,
+          title:          viralObject.ingestion.title,
+          niche:          viralObject.ingestion.niche,
+          viral_score:    viralObject.ingestion.viral_score,
+          views:          viralObject.ingestion.views,
+          likes:          viralObject.ingestion.likes,
+          signal_quality: viralObject.ingestion.signal_quality,
         },
       },
 
       reasoning: {
-        spike_result:     viralObject.spike_result,
-        structure_match:  viralObject.structure_match,
-        router:           viralObject.router,
-        language_profile: viralObject.language_profile,
-        emotion_curve:    viralObject.emotion_curve,
+        spike_result:      viralObject.spike_result,
+        structure_match:   viralObject.structure_match,
+        router:            viralObject.router,
+        language_profile:  viralObject.language_profile,
+        emotion_curve:     viralObject.emotion_curve,
+        vector_confidence: viralObject.vector_confidence,
       },
 
       final_script:  viralObject.final_script,
@@ -132,8 +134,9 @@ export async function POST(req: NextRequest) {
         published_video_url: null,
       },
 
-      ai_providers: viralObject.ai_providers,
-      pipeline_ms:  viralObject.pipeline_ms,
+      ai_providers:   viralObject.ai_providers,
+      pipeline_ms:    viralObject.pipeline_ms,
+      signal_quality: viralObject.signal_quality,
     },
   }
 

@@ -8,4 +8,4 @@
  *   { script_id, structure_id, hook_line, niche, engagement_score, generated_at }
  */
 
-export const CREATIVE_MEMORY: never[] = []
+export const CREATIVE_MEMORY: unknown[] = []

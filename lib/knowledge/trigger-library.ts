@@ -8,4 +8,4 @@
  *   { trigger, persuasion_style, vocabulary_hints[], sentence_openers[] }
  */
 
-export const TRIGGER_LIBRARY: never[] = []
+export const TRIGGER_LIBRARY: unknown[] = []

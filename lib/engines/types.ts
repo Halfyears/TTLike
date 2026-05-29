@@ -233,6 +233,8 @@ export const ViralObjectSchema = z.object({
   pipeline_ms:       z.number().optional(),
   /** 0.0–1.0 feature vector confidence from buildFeatureVector (< 0.5 = fallback applied) */
   vector_confidence: z.number().min(0).max(1).optional(),
+  /** Copied from ingestion.signal_quality for top-level access in payload */
+  signal_quality:    z.enum(['full', 'metadata_only']).optional(),
 })
 
 export type ViralObject = z.infer<typeof ViralObjectSchema>

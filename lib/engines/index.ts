@@ -181,6 +181,7 @@ export async function runViralPipeline(
       created_at:        new Date().toISOString(),
       pipeline_ms:       Date.now() - startTime,
       vector_confidence: vectorConfidence,
+      signal_quality:    ingestion.signal_quality,
     })
 
     return { ok: true, viralObject }

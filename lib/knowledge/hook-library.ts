@@ -8,4 +8,4 @@
  *   { id, template, niche[], avg_engagement_lift, example_scripts[] }
  */
 
-export const HOOK_LIBRARY: never[] = []
+export const HOOK_LIBRARY: unknown[] = []
