@@ -82,8 +82,9 @@ function extractProductName(title: string): string | null {
   return fallback.length >= 5 ? fallback : null
 }
 
-/** Fetch a single TikTok video via RapidAPI tiktok-scraper7 */
-async function fetchFromRapidAPI(tiktokId: string, tiktokUrl: string): Promise<{
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type FetchedVideo = {
   tiktok_id:    string
   title:        string
   author:       string
@@ -96,63 +97,124 @@ async function fetchFromRapidAPI(tiktokId: string, tiktokUrl: string): Promise<{
   product_name: string | null
   cover_url:    string | null
   video_url:    string
-} | null> {
-  const apiKey = process.env.RAPIDAPI_KEY
-  if (!apiKey) return null
+}
 
-  try {
-    const res = await fetch(
-      `https://tiktok-scraper7.p.rapidapi.com/video/info?video_id=${tiktokId}`,
-      {
-        headers: {
-          'x-rapidapi-key':  apiKey,
-          'x-rapidapi-host': 'tiktok-scraper7.p.rapidapi.com',
-        },
-        signal: AbortSignal.timeout(15_000),
-      },
-    )
-    if (!res.ok) return null
+// ── Parse API response (handles both v1 and v2 response shapes) ───────────────
 
-    const body = await res.json()
-    // API returns { code, data: { ... video fields ... } }
-    const v = body?.data ?? body
+function parseVideoData(body: unknown, tiktokId: string, tiktokUrl: string): FetchedVideo | null {
+  if (!body || typeof body !== 'object') return null
+  const b = body as Record<string, unknown>
 
-    const author   = v?.author ?? {}
-    const videoObj = v?.video  ?? {}
+  // tiktok-scraper7 wraps in { code, data } or returns root directly
+  const v = (
+    (b['data'] && typeof b['data'] === 'object' && !Array.isArray(b['data']) ? b['data'] : null) ??
+    (b['itemInfo'] && typeof b['itemInfo'] === 'object' ? b['itemInfo'] : null) ??
+    b
+  ) as Record<string, unknown>
 
-    const title = (v?.desc ?? v?.title ?? v?.item_title ?? '') as string
-    const plays  = Number(v?.play_count    ?? v?.playCount    ?? 0)
-    const likes  = Number(v?.digg_count    ?? v?.diggCount    ?? 0)
-    const shares = Number(v?.share_count   ?? v?.shareCount   ?? 0)
-    const cmnts  = Number(v?.comment_count ?? v?.commentCount ?? 0)
-    const authorName = (author?.nickname ?? author?.unique_id ?? 'unknown') as string
+  const author   = (v['author']                   ?? {}) as Record<string, unknown>
+  const videoObj = (v['video']                    ?? {}) as Record<string, unknown>
+  const stats    = (v['stats'] ?? v['statistics'] ?? {}) as Record<string, unknown>
 
-    const coverUrl =
-      extractUrl(v?.origin_cover)   ||
-      extractUrl(v?.originCover)    ||
-      extractUrl(videoObj?.origin_cover) ||
-      extractUrl(videoObj?.cover)   ||
-      extractUrl(v?.cover)          ||
-      null
+  const title = String(
+    v['desc'] ?? v['title'] ?? v['item_title'] ?? v['text'] ?? ''
+  ).slice(0, 500)
 
-    return {
-      tiktok_id:    tiktokId,
-      title:        title.slice(0, 500) || `TikTok video ${tiktokId}`,
-      author:       authorName,
-      views:        plays,
-      likes,
-      shares,
-      comments:     cmnts,
-      viral_score:  viralScore(plays, likes, shares, cmnts),
-      niche:        detectNiche(title),
-      product_name: extractProductName(title),
-      cover_url:    coverUrl,
-      video_url:    tiktokUrl,
-    }
-  } catch {
-    return null
+  // Bail if response looks empty (no title and no id)
+  if (!title && !v['id'] && !v['aweme_id']) return null
+
+  const plays  = Number(stats['playCount']    ?? v['play_count']    ?? v['playCount']    ?? 0)
+  const likes  = Number(stats['diggCount']    ?? v['digg_count']    ?? v['diggCount']    ?? 0)
+  const shares = Number(stats['shareCount']   ?? v['share_count']   ?? v['shareCount']   ?? 0)
+  const cmnts  = Number(stats['commentCount'] ?? v['comment_count'] ?? v['commentCount'] ?? 0)
+  const authorName = String(
+    author['nickname'] ?? author['unique_id'] ?? author['uniqueId'] ?? 'unknown'
+  )
+
+  const coverUrl =
+    extractUrl(v['origin_cover'])        ||
+    extractUrl(v['originCover'])         ||
+    extractUrl(videoObj['origin_cover']) ||
+    extractUrl(videoObj['cover'])        ||
+    extractUrl(v['cover'])               ||
+    null
+
+  return {
+    tiktok_id:    tiktokId,
+    title:        title || `TikTok video ${tiktokId}`,
+    author:       authorName,
+    views:        plays,
+    likes,
+    shares,
+    comments:     cmnts,
+    viral_score:  viralScore(plays, likes, shares, cmnts),
+    niche:        detectNiche(title),
+    product_name: extractProductName(title),
+    cover_url:    coverUrl,
+    video_url:    tiktokUrl,
   }
 }
+
+// ── RapidAPI fetch — tries URL-based then ID-based endpoint ──────────────────
+
+async function fetchFromRapidAPI(
+  tiktokId: string,
+  tiktokUrl: string,
+): Promise<{ data: FetchedVideo } | { error: string }> {
+  const apiKey = process.env.RAPIDAPI_KEY
+  if (!apiKey) return { error: 'RAPIDAPI_KEY is not configured in Vercel environment variables' }
+
+  const HEADERS = {
+    'x-rapidapi-key':  apiKey,
+    'x-rapidapi-host': 'tiktok-scraper7.p.rapidapi.com',
+  }
+  const BASE = 'https://tiktok-scraper7.p.rapidapi.com'
+
+  // Try two endpoints: URL-based (more reliable) then ID-based fallback
+  const endpoints = [
+    `${BASE}/video/info?url=${encodeURIComponent(tiktokUrl)}`,
+    `${BASE}/video/info?video_id=${tiktokId}`,
+  ]
+
+  let lastStatus = 0
+  let lastErr    = ''
+
+  for (const endpoint of endpoints) {
+    try {
+      const res = await fetch(endpoint, {
+        headers: HEADERS,
+        signal:  AbortSignal.timeout(15_000),
+      })
+      lastStatus = res.status
+
+      if (!res.ok) {
+        lastErr = `HTTP ${res.status}`
+        console.error(`[resolve-url] RapidAPI ${res.status} at ${endpoint}`)
+        continue
+      }
+
+      const body = await res.json()
+      const parsed = parseVideoData(body, tiktokId, tiktokUrl)
+      if (parsed) return { data: parsed }
+
+      console.error('[resolve-url] Unexpected API shape:', JSON.stringify(body).slice(0, 400))
+      lastErr = 'Unexpected API response structure'
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : String(e)
+      console.error(`[resolve-url] fetch error at ${endpoint}:`, lastErr)
+    }
+  }
+
+  const hint =
+    lastStatus === 403 ? ' — API key invalid or quota exceeded' :
+    lastStatus === 429 ? ' — Rate limit hit, try again in a moment' :
+    lastStatus === 404 ? ' — Video may be private or deleted' :
+    ''
+
+  return { error: `RapidAPI fetch failed (${lastStatus || 'timeout'})${hint}: ${lastErr}` }
+}
+
+// ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   if (!await isAdmin()) {
@@ -169,7 +231,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'tiktok_url is required' }, { status: 400 })
   }
 
-  const rawUrl  = tiktok_url.trim()
+  // Strip query params for cleaner URL passed to API
+  const rawUrl   = tiktok_url.trim().split('?')[0]!
   const tiktokId = extractTikTokId(rawUrl)
   if (!tiktokId) {
     return NextResponse.json({
@@ -181,35 +244,32 @@ export async function POST(req: NextRequest) {
   const service = createServiceClient()
 
   // ── 1. Check DB first ─────────────────────────────────────────────────────
+  type VideoRow = { id: string; title: string | null; product_name: string | null; niche: string | null }
   const { data: existing } = await service
     .from('tiktok_videos')
     .select('id, title, product_name, niche')
     .eq('tiktok_id', tiktokId)
     .maybeSingle()
 
-  type VideoRow = { id: string; title: string | null; product_name: string | null; niche: string | null }
   let videoRow = existing as VideoRow | null
   let scraped  = false
 
   // ── 2. Not in DB → fetch from RapidAPI and insert ─────────────────────────
   if (!videoRow) {
-    const fetched = await fetchFromRapidAPI(tiktokId, rawUrl)
+    const result = await fetchFromRapidAPI(tiktokId, rawUrl)
 
-    if (!fetched) {
-      return NextResponse.json({
-        ok:    false,
-        error: `Video not found in database and could not be fetched via API (TikTok ID: ${tiktokId}). Check your RAPIDAPI_KEY or try again.`,
-      }, { status: 404 })
+    if ('error' in result) {
+      return NextResponse.json({ ok: false, error: result.error }, { status: 404 })
     }
 
     const { data: inserted, error: insertErr } = await service
       .from('tiktok_videos')
-      .insert(fetched)
+      .insert(result.data)
       .select('id, title, product_name, niche')
       .single()
 
     if (insertErr || !inserted) {
-      // Could be a duplicate race — try select again
+      // Possible duplicate race — retry select
       const { data: retry } = await service
         .from('tiktok_videos')
         .select('id, title, product_name, niche')
