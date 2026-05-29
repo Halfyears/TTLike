@@ -62,6 +62,13 @@ export async function POST(req: NextRequest) {
   // Ensure slug is URL-safe
   const safeSlug = slug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '')
 
+  // Validate status enum — only accept known values
+  const VALID_STATUSES = ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const
+  type ValidStatus = typeof VALID_STATUSES[number]
+  const safeStatus: ValidStatus = VALID_STATUSES.includes(status as ValidStatus)
+    ? (status as ValidStatus)
+    : 'DRAFT'
+
   try {
     const post = await prisma.blogPost.create({
       data: {
@@ -70,19 +77,20 @@ export async function POST(req: NextRequest) {
         content,
         excerpt:    excerpt    ?? null,
         category:   category   ?? null,
-        tags:       tags       ?? [],
-        status:     (status as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED') ?? 'DRAFT',
+        tags:       Array.isArray(tags) ? tags : [],
+        status:     safeStatus,
         seoTitle:   seoTitle   ?? null,
         seoDesc:    seoDesc    ?? null,
         authorName: authorName ?? 'TTLike Team',
         coverImage: coverImage ?? null,
-        publishedAt: status === 'PUBLISHED' ? new Date() : null,
+        publishedAt: safeStatus === 'PUBLISHED' ? new Date() : null,
       },
     })
     return NextResponse.json({ post }, { status: 201 })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    if (msg.includes('Unique constraint') || msg.includes('slug')) {
+    // Prisma unique constraint violation code P2002
+    if (msg.includes('P2002') || msg.includes('Unique constraint')) {
       return NextResponse.json({ error: 'Slug already exists, try a different one' }, { status: 409 })
     }
     return NextResponse.json({ error: msg }, { status: 500 })

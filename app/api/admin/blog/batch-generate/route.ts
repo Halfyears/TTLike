@@ -116,15 +116,23 @@ export async function POST(req: NextRequest) {
       try {
         parsed = JSON.parse(text) as GeneratedPost
       } catch {
+        console.error('[batch-generate] JSON parse failed | topic:', topic, '| provider:', provider, '| raw preview:', text.slice(0, 300))
         results.push({ topic, ok: false, provider, error: 'AI returned invalid JSON' })
         continue
       }
 
-      // 3. Validate required fields
-      if (!parsed.title || !parsed.content) {
-        results.push({ topic, ok: false, provider, error: 'AI response missing title or content' })
+      // 3. Validate required fields and coerce types
+      if (!parsed.title || typeof parsed.title !== 'string') {
+        results.push({ topic, ok: false, provider, error: 'AI response missing title' })
         continue
       }
+      if (!parsed.content || typeof parsed.content !== 'string') {
+        results.push({ topic, ok: false, provider, error: 'AI response missing content' })
+        continue
+      }
+      // Ensure tags is always an array of strings (AI may return object or null)
+      if (!Array.isArray(parsed.tags)) parsed.tags = []
+      parsed.tags = parsed.tags.filter((t): t is string => typeof t === 'string').slice(0, 10)
 
       // 4. Ensure slug is unique — append random suffix if collision
       const baseSlug = parsed.slug || toSlug(parsed.title)

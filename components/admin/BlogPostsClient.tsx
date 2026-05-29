@@ -266,15 +266,15 @@ function BatchGeneratePanel({ onGenerated }: BatchPanelProps) {
       })
       const json = await res.json()
       if (!res.ok) { alert(json.error ?? 'Batch generation failed'); return }
-      setResults(json.results as BatchResult[])
-      // Reload page to show new posts
-      const successful = (json.results as BatchResult[]).filter(r => r.ok)
-      if (successful.length > 0) {
-        // Fetch fresh list
+      const batchResults: BatchResult[] = Array.isArray(json.results) ? json.results : []
+      setResults(batchResults)
+      // Reload post list if any succeeded
+      const successCount = batchResults.filter(r => r.ok).length
+      if (successCount > 0) {
         const postsRes = await fetch('/api/admin/blog')
         if (postsRes.ok) {
           const postsJson = await postsRes.json()
-          onGenerated(postsJson.posts as BlogPost[])
+          if (Array.isArray(postsJson.posts)) onGenerated(postsJson.posts as BlogPost[])
         }
       }
     } catch (e) {

@@ -55,14 +55,20 @@ export async function PUT(req: NextRequest, { params }: RouteCtx) {
   if (body.content    !== undefined) data.content    = body.content
   if (body.excerpt    !== undefined) data.excerpt    = body.excerpt
   if (body.category   !== undefined) data.category   = body.category
-  if (body.tags       !== undefined) data.tags       = body.tags
+  if (body.tags       !== undefined) data.tags       = Array.isArray(body.tags) ? body.tags : []
   if (body.seoTitle   !== undefined) data.seoTitle   = body.seoTitle
   if (body.seoDesc    !== undefined) data.seoDesc    = body.seoDesc
   if (body.authorName !== undefined) data.authorName = body.authorName
   if (body.coverImage !== undefined) data.coverImage = body.coverImage
   if (body.status     !== undefined) {
+    // Validate status enum
+    const VALID_STATUSES = ['DRAFT', 'PUBLISHED', 'ARCHIVED'] as const
+    type ValidStatus = typeof VALID_STATUSES[number]
+    if (!VALID_STATUSES.includes(body.status as ValidStatus)) {
+      return NextResponse.json({ error: 'Invalid status value' }, { status: 400 })
+    }
     data.status = body.status
-    // Set publishedAt when transitioning to PUBLISHED
+    // Set publishedAt when first transitioning to PUBLISHED
     if (body.status === 'PUBLISHED') {
       const existing = await prisma.blogPost.findUnique({ where: { id }, select: { publishedAt: true } })
       if (!existing?.publishedAt) data.publishedAt = new Date()
@@ -74,8 +80,13 @@ export async function PUT(req: NextRequest, { params }: RouteCtx) {
     return NextResponse.json({ post })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
-    if (msg.includes('Record to update not found')) {
+    // Prisma P2025: record not found
+    if (msg.includes('P2025') || msg.includes('Record to update not found')) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+    }
+    // Prisma P2002: unique constraint (slug collision on update)
+    if (msg.includes('P2002') || msg.includes('Unique constraint')) {
+      return NextResponse.json({ error: 'Slug already exists' }, { status: 409 })
     }
     return NextResponse.json({ error: msg }, { status: 500 })
   }
