@@ -1,8 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import Link from 'next/link'
-import { ExternalLink, Zap, TrendingUp, BarChart2, Database } from 'lucide-react'
+import { ExternalLink, Zap, TrendingUp, BarChart2, Database, GitBranch, Clock } from 'lucide-react'
 import { LocalDate } from '@/components/ui/LocalDate'
-import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
+import type { VideoBreakdownPayload, ViralPipeline } from '@/lib/types/intelligence'
 import { BatchTrigger } from './BatchTrigger'
 import { bestCoverUrl } from '@/lib/tiktokImg'
 import { ViralPipelineLauncher } from './ViralPipelineLauncher'
@@ -85,12 +85,19 @@ export default async function BreakdownsAdminPage() {
   const breakdowns = (rows ?? []) as unknown as BreakdownRow[]
 
   // ── Stats ─────────────────────────────────────────────────────────────────
-  const total         = breakdowns.length
-  const weekAgo       = Date.now() - 7 * 86_400_000
-  const thisWeek      = breakdowns.filter(b => new Date(b.created_at).getTime() > weekAgo).length
-  const v25Count      = breakdowns.filter(b => getRowType(b.payload) === 'v25').length
-  const healthCount   = breakdowns.filter(b => getRowType(b.payload) === 'health').length
-  const legacyCount   = breakdowns.filter(b => getRowType(b.payload) === 'legacy').length
+  const total       = breakdowns.length
+  const weekAgo     = Date.now() - 7 * 86_400_000
+  const thisWeek    = breakdowns.filter(b => new Date(b.created_at).getTime() > weekAgo).length
+  const v25Count    = breakdowns.filter(b => getRowType(b.payload) === 'v25').length
+  const healthCount = breakdowns.filter(b => getRowType(b.payload) === 'health').length
+
+  // ── Pipeline results: breakdowns with viral_pipeline in payload ───────────
+  const pipelineRows = breakdowns
+    .filter(b => !!(b.payload as VideoBreakdownPayload & { viral_pipeline?: ViralPipeline })?.viral_pipeline)
+    .map(b => ({
+      ...b,
+      pipeline: (b.payload as VideoBreakdownPayload & { viral_pipeline: ViralPipeline }).viral_pipeline,
+    }))
 
   return (
     <div className="space-y-6">
@@ -129,6 +136,136 @@ export default async function BreakdownsAdminPage() {
           </div>
         ))}
       </div>
+
+      {/* Pipeline Results list */}
+      {pipelineRows.length > 0 && (
+        <div className="bg-gray-800 rounded-xl border border-violet-700/40 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-violet-700/40 flex items-center justify-between bg-violet-900/10">
+            <div className="flex items-center gap-2">
+              <Zap className="h-4 w-4 text-violet-400" />
+              <h2 className="text-sm font-semibold text-white">Pipeline Results</h2>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-900/60 text-violet-300 uppercase tracking-wide">
+                {pipelineRows.length} generated
+              </span>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-700 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+                  <th className="text-left px-5 py-3">Product</th>
+                  <th className="text-left px-4 py-3">Structure</th>
+                  <th className="text-left px-4 py-3">Hook Line</th>
+                  <th className="text-right px-4 py-3">Lines</th>
+                  <th className="text-right px-4 py-3">Duration</th>
+                  <th className="text-right px-4 py-3">Generated</th>
+                  <th className="text-center px-4 py-3">View</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-700/50">
+                {pipelineRows.map(b => {
+                  const video    = b.tiktok_videos
+                  const pipeline = b.pipeline
+                  const name     = video
+                    ? cleanTitle(String(video.product_name ?? video.title ?? 'Untitled'))
+                    : `(url-only) ${b.url_hash.slice(0, 8)}`
+                  const coverSrc = bestCoverUrl(null, video?.cover_url ?? null)
+                  const videoId  = b.video_id ?? video?.id
+
+                  return (
+                    <tr key={b.id} className="hover:bg-gray-700/30 transition-colors">
+
+                      {/* Product */}
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-3">
+                          {coverSrc ? (
+                            <img src={coverSrc} alt={name} className="h-9 w-16 object-cover rounded-md shrink-0 bg-gray-700" />
+                          ) : (
+                            <div className="h-9 w-16 bg-gray-700 rounded-md shrink-0 flex items-center justify-center">
+                              <Zap className="h-4 w-4 text-gray-500" />
+                            </div>
+                          )}
+                          <div>
+                            <p className="text-gray-200 font-medium text-xs line-clamp-2 max-w-[160px] leading-snug">{name}</p>
+                            {pipeline.input?.product_schema && (
+                              <p className="text-[10px] text-gray-500 mt-0.5">
+                                {String(pipeline.input.product_schema['category'] ?? '')}
+                                {pipeline.input.product_schema['price_point']
+                                  ? ` · $${pipeline.input.product_schema['price_point']}`
+                                  : ''}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Structure */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <GitBranch className="h-3 w-3 text-violet-400 shrink-0" />
+                          <span className="text-xs text-violet-300 font-mono leading-snug max-w-[140px] truncate">
+                            {pipeline.reasoning?.structure_match?.structure_id ?? pipeline.final_script?.structure_id ?? '—'}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Hook line */}
+                      <td className="px-4 py-3 max-w-[220px]">
+                        <p className="text-xs text-gray-300 italic line-clamp-2 leading-snug">
+                          {pipeline.final_script?.hook_line
+                            ? `"${pipeline.final_script.hook_line}"`
+                            : '—'}
+                        </p>
+                      </td>
+
+                      {/* Script lines */}
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-xs text-gray-400 tabular-nums">
+                          {pipeline.final_script?.lines?.length ?? '—'}
+                        </span>
+                      </td>
+
+                      {/* Duration */}
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-xs text-gray-500 font-mono">
+                          {pipeline.final_script?.total_duration ?? '—'}
+                        </span>
+                      </td>
+
+                      {/* Generated at */}
+                      <td className="px-4 py-3 text-right">
+                        <div className="text-right">
+                          <LocalDate date={pipeline.generated_at} className="text-xs text-gray-500 whitespace-nowrap" />
+                          {pipeline.pipeline_ms && (
+                            <p className="text-[10px] text-gray-600 flex items-center justify-end gap-0.5 mt-0.5">
+                              <Clock className="h-2.5 w-2.5" />
+                              {(pipeline.pipeline_ms / 1000).toFixed(1)}s
+                            </p>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* View link */}
+                      <td className="px-4 py-3 text-center">
+                        {videoId && (
+                          <Link
+                            href={`/admin/pipeline-results/${videoId}`}
+                            target="_blank"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-violet-400 hover:text-violet-300 transition-colors px-2 py-1 rounded bg-violet-900/30 hover:bg-violet-900/50"
+                          >
+                            <ExternalLink className="h-3 w-3" /> View
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Breakdowns table */}
       <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
