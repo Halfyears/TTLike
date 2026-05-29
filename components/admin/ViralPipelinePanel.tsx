@@ -67,8 +67,8 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
       .then(r => r.json())
       .then((ctx: VideoContext & { ok: boolean }) => {
         if (cancelled || !ctx.ok) return
-        if (ctx.category && !category)  setCategory(ctx.category)
-        if (ctx.pain_points?.length)    setPainTags(ctx.pain_points)
+        if (ctx.category)             setCategory(ctx.category)
+        if (ctx.pain_points?.length)  setPainTags(ctx.pain_points)
       })
       .catch(() => {/* silent — user can fill manually */})
       .finally(() => { if (!cancelled) setCtxLoading(false) })
