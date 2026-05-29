@@ -162,18 +162,18 @@ model BlogPost {
   title       String
   excerpt     String?
   content     String
-  coverImage  String?
+  coverImage  String?     @map("cover_image")
   category    String?
   tags        String[]
-  authorName  String      @default("TTLike Team")
-  authorImage String?
+  authorName  String      @default("TTLike Team") @map("author_name")
+  authorImage String?     @map("author_image")
   status      PostStatus  @default(DRAFT)
-  seoTitle    String?
-  seoDesc     String?
-  viewCount   Int         @default(0)
-  publishedAt DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  seoTitle    String?     @map("seo_title")
+  seoDesc     String?     @map("seo_desc")
+  viewCount   Int         @default(0) @map("view_count")
+  publishedAt DateTime?   @map("published_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   @@map("blog_posts")
 }
