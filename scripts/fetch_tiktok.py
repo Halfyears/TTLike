@@ -58,6 +58,27 @@ if missing:
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# ── Guard: respect admin auto_scrape toggle ───────────────────────────────────
+def check_auto_scrape_enabled() -> bool:
+    """Return False if admin has disabled auto scraping in admin_config."""
+    try:
+        resp = supabase.table('admin_config') \
+            .select('value') \
+            .eq('key', 'auto_scrape_enabled') \
+            .maybe_single() \
+            .execute()
+        if resp.data and resp.data.get('value') == 'false':
+            return False
+    except Exception as e:
+        print(f"[WARN] Could not read auto_scrape_enabled from admin_config: {e}")
+        # Fail-open: if we can't read the config, proceed with scrape
+    return True
+
+if not check_auto_scrape_enabled():
+    print("Auto scrape is DISABLED in admin settings. Exiting without scraping.")
+    print("To re-enable: Admin → Scraper → toggle Auto Scrape ON")
+    sys.exit(0)
+
 # ── helpers ───────────────────────────────────────────────────────────────────
 def log(msg: str) -> None:
     ts = datetime.now(timezone.utc).strftime('%H:%M:%S')

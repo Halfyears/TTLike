@@ -43,9 +43,16 @@ export async function GET() {
   if (authUsers.length === 0) return NextResponse.json({ users: [] })
 
   // ── 2. App-level roles / names ─────────────────────────────────────────────
-  const { data: appRows } = await service
+  // NOTE: `plan` is NOT on the users table — it lives in user_subscriptions (line 58-65).
+  // Including `plan` here causes Supabase to return an error → appRows = null → all
+  // role/account_status values revert to defaults on every page load.
+  const { data: appRows, error: appErr } = await service
     .from('users')
-    .select('id, email, name, role, referral_source, account_status, plan')
+    .select('id, email, name, role, referral_source, account_status')
+
+  if (appErr) {
+    console.error('[GET /api/admin/users] users table query failed:', appErr.message)
+  }
 
   const appByEmail = new Map<string, Record<string, unknown>>()
   const appById    = new Map<string, Record<string, unknown>>()
