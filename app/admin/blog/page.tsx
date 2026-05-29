@@ -47,9 +47,8 @@ export default async function AdminBlogPage() {
         payload,
         tiktok_videos!left(id, title, product_name, niche, cover_url, views, viral_score)
       `)
-      .order('blog_status', { ascending: true, nullsFirst: true })
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(500)
 
     breakdowns = (data ?? []) as unknown as BreakdownForFlywheel[]
   } catch {

@@ -67,6 +67,7 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
   const [rows, setRows] = useState(initial)
   const [loading, setLoading] = useState<Record<string, boolean>>({})
   const [resetting, setResetting] = useState<Record<string, boolean>>({})
+  const [resettingAll, setResettingAll] = useState(false)
   const [deleting, setDeleting] = useState<Record<string, boolean>>({})
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   // Initialize slugs from payload.blog_post_slug so they survive page refresh
@@ -139,6 +140,22 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
     }
   }
 
+  async function resetAllProcessing() {
+    setResettingAll(true)
+    try {
+      await fetch('/api/admin/blog/reset-stuck', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({}),
+      })
+      setRows(prev => prev.map(r =>
+        r.blog_status === 'PROCESSING' ? { ...r, blog_status: 'NOT_SENT' } : r
+      ))
+    } finally {
+      setResettingAll(false)
+    }
+  }
+
   async function deleteBreakdown(breakdownId: string) {
     setDeleting(p => ({ ...p, [breakdownId]: true }))
     setConfirmDelete(null)
@@ -167,7 +184,7 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
 
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-gray-700 flex items-center justify-between">
+      <div className="px-5 py-3.5 border-b border-gray-700 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Zap className="h-4 w-4 text-pink-400" />
           <h2 className="text-sm font-semibold text-white">Video Breakdown → Blog Generator</h2>
@@ -175,7 +192,22 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
             AI Powered
           </span>
         </div>
-        <span className="text-xs text-gray-500">{rows.length} breakdowns</span>
+        <div className="flex items-center gap-3">
+          {rows.some(r => r.blog_status === 'PROCESSING') && (
+            <button
+              onClick={resetAllProcessing}
+              disabled={resettingAll}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold bg-amber-700/40 hover:bg-amber-700/60 text-amber-300 border border-amber-700/50 disabled:opacity-50 transition-colors"
+            >
+              {resettingAll
+                ? <Loader2 className="h-3 w-3 animate-spin" />
+                : <RotateCcw className="h-3 w-3" />
+              }
+              Reset All Stuck
+            </button>
+          )}
+          <span className="text-xs text-gray-500">{rows.length} breakdowns</span>
+        </div>
       </div>
 
       <div className="overflow-x-auto">
