@@ -5,6 +5,7 @@ import { LocalDate } from '@/components/ui/LocalDate'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 import { BatchTrigger } from './BatchTrigger'
 import { bestCoverUrl } from '@/lib/tiktokImg'
+import { ViralPipelineLauncher } from './ViralPipelineLauncher'
 
 export const dynamic = 'force-dynamic'
 
@@ -105,6 +106,9 @@ export default async function BreakdownsAdminPage() {
 
       {/* Batch generator */}
       <BatchTrigger />
+
+      {/* Viral Pipeline launcher */}
+      <ViralPipelineLauncher />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
