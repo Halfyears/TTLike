@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react'
-import { Zap, Send, CheckCircle, Loader2, AlertTriangle, ExternalLink, Trash2 } from 'lucide-react'
+import { Zap, Send, CheckCircle, Loader2, AlertTriangle, ExternalLink, Trash2, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { LocalDate } from '@/components/ui/LocalDate'
 
@@ -31,6 +31,7 @@ export interface BreakdownForFlywheel {
   payload: {
     metrics?: { views: string; likes: string; shares: string }
     viral_formulas?: Array<{ title: string }>
+    blog_post_slug?: string
   } | null
 }
 
@@ -65,26 +66,40 @@ function fmtNum(n: number | null | undefined): string {
 export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: BreakdownForFlywheel[] }) {
   const [rows, setRows] = useState(initial)
   const [loading, setLoading] = useState<Record<string, boolean>>({})
+  const [resetting, setResetting] = useState<Record<string, boolean>>({})
   const [deleting, setDeleting] = useState<Record<string, boolean>>({})
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
-  // Track newly-generated blog slugs for quick-link to published post
-  const [generatedSlugs, setGeneratedSlugs] = useState<Record<string, string>>({})
+  // Initialize slugs from payload.blog_post_slug so they survive page refresh
+  const [generatedSlugs, setGeneratedSlugs] = useState<Record<string, string>>(() => {
+    const map: Record<string, string> = {}
+    for (const row of initial) {
+      if (row.blog_status === 'PUBLISHED' && row.payload?.blog_post_slug) {
+        map[row.id] = row.payload.blog_post_slug
+      }
+    }
+    return map
+  })
 
   async function publish(breakdownId: string) {
     setLoading(p => ({ ...p, [breakdownId]: true }))
-    // Optimistic: show PROCESSING while AI generates
     setRows(prev => prev.map(r =>
       r.id === breakdownId ? { ...r, blog_status: 'PROCESSING' } : r
     ))
+
+    // 90s client timeout — Vercel max is ~60s, this ensures we always get a FAILED state
+    const controller = new AbortController()
+    const timeoutId  = setTimeout(() => controller.abort(), 90_000)
+
     try {
       const res = await fetch('/api/admin/blog/generate-from-breakdown', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ breakdown_id: breakdownId }),
+        signal:  controller.signal,
       })
+      clearTimeout(timeoutId)
       const json = await res.json()
       if (res.ok) {
-        // Success: update row to PUBLISHED + set published_at
         setRows(prev => prev.map(r =>
           r.id === breakdownId
             ? { ...r, blog_status: 'PUBLISHED', blog_published_at: new Date().toISOString() }
@@ -92,19 +107,35 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
         ))
         setGeneratedSlugs(p => ({ ...p, [breakdownId]: json.slug as string }))
       } else {
-        // Failure: roll back to FAILED
         setRows(prev => prev.map(r =>
           r.id === breakdownId ? { ...r, blog_status: 'FAILED' } : r
         ))
         console.error('[SEOFlywheelPanel] generate error:', json.error)
       }
     } catch (e) {
+      clearTimeout(timeoutId)
       setRows(prev => prev.map(r =>
         r.id === breakdownId ? { ...r, blog_status: 'FAILED' } : r
       ))
       console.error('[SEOFlywheelPanel] fetch error:', e)
     } finally {
       setLoading(p => ({ ...p, [breakdownId]: false }))
+    }
+  }
+
+  async function resetStuck(breakdownId: string) {
+    setResetting(p => ({ ...p, [breakdownId]: true }))
+    try {
+      await fetch('/api/admin/blog/reset-stuck', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ breakdown_id: breakdownId }),
+      })
+      setRows(prev => prev.map(r =>
+        r.id === breakdownId ? { ...r, blog_status: 'NOT_SENT' } : r
+      ))
+    } finally {
+      setResetting(p => ({ ...p, [breakdownId]: false }))
     }
   }
 
@@ -167,9 +198,10 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
                 : `(url-only) ${row.id.slice(0, 8)}`
               const topFormula = row.payload?.viral_formulas?.[0]?.title ?? '—'
               const status = row.blog_status ?? 'NOT_SENT'
-              const isActive = loading[row.id]
-              const isDel    = deleting[row.id]
-              const canPublish = status === 'NOT_SENT' || status === 'FAILED'
+              const isActive     = loading[row.id]
+              const isDel        = deleting[row.id]
+              const isResetting  = resetting[row.id]
+              const canPublish   = status === 'NOT_SENT' || status === 'FAILED'
               const isConfirming = confirmDelete === row.id
 
               return (
@@ -234,7 +266,18 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
                           }
                         </button>
                       ) : status === 'PROCESSING' ? (
-                        <span className="text-xs text-gray-600 italic">Processing…</span>
+                        <button
+                          onClick={() => resetStuck(row.id)}
+                          disabled={isResetting}
+                          className="inline-flex items-center gap-1 text-[11px] text-amber-500 hover:text-amber-300 disabled:opacity-50 transition-colors"
+                          title="Stuck? Click to reset so you can retry"
+                        >
+                          {isResetting
+                            ? <Loader2 className="h-3 w-3 animate-spin" />
+                            : <RotateCcw className="h-3 w-3" />
+                          }
+                          Reset
+                        </button>
                       ) : status === 'PUBLISHED' ? (
                         generatedSlugs[row.id] ? (
                           <Link
@@ -245,7 +288,7 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
                             <CheckCircle className="h-3 w-3" /> View Post
                           </Link>
                         ) : (
-                          <span className="text-xs text-emerald-600 italic">Published</span>
+                          <span className="text-xs text-emerald-600 italic">Published ✓</span>
                         )
                       ) : (
                         <span className="text-xs text-gray-600">—</span>

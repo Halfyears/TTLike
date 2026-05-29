@@ -214,12 +214,17 @@ Write a blog post analyzing why this product went viral and how sellers can repl
     )
   }
 
-  // ── 8. Update breakdown status → PUBLISHED ───────────────────────────────────
+  // ── 8. Update breakdown status → PUBLISHED + store slug in payload ───────────
+  const updatedPayload = {
+    ...(bd.payload as object ?? {}),
+    blog_post_slug: post.slug,
+  }
   await service
     .from('video_breakdowns')
     .update({
-      blog_status:      'PUBLISHED',
+      blog_status:       'PUBLISHED',
       blog_published_at: new Date().toISOString(),
+      payload:           updatedPayload,
     })
     .eq('id', breakdown_id)
 
