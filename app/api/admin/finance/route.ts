@@ -72,7 +72,7 @@ export async function GET() {
 
   // ── 2. Subscriptions ─────────────────────────────────────────────────────────
   const [planRes, affRes] = await Promise.all([
-    service.from('users').select('plan'),
+    service.from('user_subscriptions').select('plan'),  // plan lives in user_subscriptions, not users
     service.from('affiliate_links').select('revenue').eq('is_active', true),
   ])
 
@@ -162,9 +162,10 @@ export async function GET() {
   }
 
   // Join with user plan data
+  // plan lives in user_subscriptions; join with users table for name/email separately
   const { data: userPlanRows } = await service
     .from('users')
-    .select('id, email, name, plan')
+    .select('id, email, name')
 
   // Build auth user map (email + display name) — fallback when users table row is missing
   const authUserMap = new Map<string, { email: string; name: string | null }>()

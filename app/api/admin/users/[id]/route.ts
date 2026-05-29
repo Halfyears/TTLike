@@ -37,7 +37,8 @@ export async function GET(
   // All queries in parallel — auth user is required, rest are optional
   const [authRes, appRes, subRes, profileRes, eventsRes, analyticsRes] = await Promise.all([
     service.auth.admin.getUserById(id),
-    service.from('users').select('id, email, name, role, referral_source, plan').eq('id', id).maybeSingle(),
+    // `plan` is NOT on users table — read from user_subscriptions (subRes below)
+    service.from('users').select('id, email, name, role, referral_source, account_status').eq('id', id).maybeSingle(),
     service.from('user_subscriptions').select('plan, status, current_period_end, stripe_customer_id').eq('user_id', id).maybeSingle(),
     service.from('user_behavior_profiles').select('peak_hour, total_analyses, profile_label, time_segment_label, niche_label, updated_at').eq('user_id', id).maybeSingle(),
     service.from('ledger_event_kernel')
@@ -75,7 +76,7 @@ export async function GET(
       email:           authUser.email ?? '',
       name:            (app?.name as string | null) ?? (authUser.user_metadata?.full_name as string | null) ?? null,
       role:            (app?.role as string) ?? 'USER',
-      plan:            sub?.plan ?? (app?.plan as string | null) ?? 'FREE',
+      plan:            sub?.plan ?? 'FREE',   // plan always from user_subscriptions
       sub_status:      sub?.status ?? 'ACTIVE',
       period_end:      sub?.current_period_end ?? null,
       stripe_id:       sub?.stripe_customer_id ?? null,

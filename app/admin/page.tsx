@@ -40,7 +40,7 @@ async function getDashboardData() {
     ] = await Promise.all([
       service.from('tiktok_videos').select('*', { count: 'exact', head: true }),
       service.from('users').select('*', { count: 'exact', head: true }),
-      service.from('users').select('plan'),
+      service.from('user_subscriptions').select('plan'),  // plan lives in user_subscriptions, not users
       service.from('blog_posts').select('*', { count: 'exact', head: true }).eq('status', 'PUBLISHED'),
       service.from('affiliate_links').select('clicks, conversions').eq('is_active', true),
       service.from('ledger_event_kernel').select('payload').eq('event_type', 'COMPLETE'),
