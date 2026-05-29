@@ -45,10 +45,10 @@ export async function POST() {
     payload: Record<string, unknown> | null
     blog_published_at: string | null
     video_id: string | null
-    tiktok_videos: { cover_url: string | null } | null
+    tiktok_videos: { cover_url: string | null } | { cover_url: string | null }[] | null
   }
 
-  const needSlug = (rows as Row[]).filter(r => !r.payload?.blog_post_slug)
+  const needSlug = (rows as unknown as Row[]).filter(r => !r.payload?.blog_post_slug)
   if (!needSlug.length) return NextResponse.json({ ok: true, updated: 0, map: {} })
 
   // 3. All PUBLISHED blog posts (id, slug, coverImage, publishedAt)
@@ -61,7 +61,8 @@ export async function POST() {
   const slugMap: Record<string, string> = {}
 
   for (const row of needSlug) {
-    const coverUrl = row.tiktok_videos?.cover_url ?? null
+    const tv = Array.isArray(row.tiktok_videos) ? row.tiktok_videos[0] : row.tiktok_videos
+    const coverUrl = tv?.cover_url ?? null
     const publishedAt = row.blog_published_at ? new Date(row.blog_published_at).getTime() : null
 
     let matched = null
