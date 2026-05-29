@@ -7,7 +7,7 @@
  * Uses the AI waterfall (Groq → Gemini → GitHub) server-side.
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Zap, Send, CheckCircle, Loader2, AlertTriangle, ExternalLink, Trash2, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import { LocalDate } from '@/components/ui/LocalDate'
@@ -80,6 +80,21 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
     }
     return map
   })
+
+  // On mount: backfill slugs for historical PUBLISHED rows that predate the slug-storage fix
+  useEffect(() => {
+    const hasUnresolved = rows.some(r => r.blog_status === 'PUBLISHED' && !generatedSlugs[r.id])
+    if (!hasUnresolved) return
+    fetch('/api/admin/blog/backfill-slugs', { method: 'POST' })
+      .then(r => r.json())
+      .then((res: { ok: boolean; map: Record<string, string> }) => {
+        if (res.ok && Object.keys(res.map).length > 0) {
+          setGeneratedSlugs(prev => ({ ...prev, ...res.map }))
+        }
+      })
+      .catch(() => {/* silent */})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function publish(breakdownId: string) {
     setLoading(p => ({ ...p, [breakdownId]: true }))
