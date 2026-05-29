@@ -33,9 +33,10 @@ async function isAdmin(): Promise<boolean> {
 }
 
 function toSlug(text: string): string {
+  // Strip non-ASCII (handles Chinese/emoji product names), then slugify
   return text
     .toLowerCase()
-    .replace(/[^\x00-\x7F]/g, '')
+    .replace(/[^\x00-\x7F]/g, ' ')  // replace non-ASCII with space (not empty) to preserve word breaks
     .replace(/[^a-z0-9\s-]/g, '')
     .trim()
     .replace(/\s+/g, '-')
@@ -177,7 +178,9 @@ Write a blog post analyzing why this product went viral and how sellers can repl
   parsed.tags = parsed.tags.filter((t): t is string => typeof t === 'string').slice(0, 10)
 
   // ── 6. Build unique slug ─────────────────────────────────────────────────────
-  const baseSlug = parsed.slug?.trim() || toSlug(parsed.title)
+  // Fallback: if title is all non-ASCII (e.g. Chinese), toSlug() may return "".
+  // Use breakdown_id suffix so we always get a valid, non-empty slug.
+  const baseSlug = parsed.slug?.trim() || toSlug(parsed.title) || `breakdown-${breakdown_id.slice(0, 8)}`
   let slug = baseSlug
   const existing = await prisma.blogPost.findUnique({ where: { slug }, select: { id: true } })
   if (existing) slug = `${baseSlug}-${Date.now().toString(36)}`

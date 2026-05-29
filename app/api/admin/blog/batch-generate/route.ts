@@ -30,11 +30,12 @@ async function isAdmin(): Promise<boolean> {
   } catch { return false }
 }
 
-/** Strip emoji and non-ASCII from title for safe slug generation */
+/** Slugify a title. Non-ASCII chars (Chinese, emoji) are replaced with spaces
+ *  to preserve word boundaries rather than collapsing them to nothing. */
 function toSlug(text: string): string {
   return text
     .toLowerCase()
-    .replace(/[^\x00-\x7F]/g, '')   // remove non-ASCII
+    .replace(/[^\x00-\x7F]/g, ' ')  // non-ASCII → space, keeps word breaks
     .replace(/[^a-z0-9\s-]/g, '')
     .trim()
     .replace(/\s+/g, '-')
@@ -134,8 +135,8 @@ export async function POST(req: NextRequest) {
       if (!Array.isArray(parsed.tags)) parsed.tags = []
       parsed.tags = parsed.tags.filter((t): t is string => typeof t === 'string').slice(0, 10)
 
-      // 4. Ensure slug is unique — append random suffix if collision
-      const baseSlug = parsed.slug || toSlug(parsed.title)
+      // 4. Ensure slug is unique — fallback covers all-non-ASCII titles (e.g. Chinese)
+      const baseSlug = parsed.slug?.trim() || toSlug(parsed.title) || `post-${Date.now().toString(36)}`
       let slug = baseSlug
       const existing = await prisma.blogPost.findUnique({ where: { slug }, select: { id: true } })
       if (existing) {
