@@ -1,12 +1,14 @@
 /**
  * lib/engines/spike-detector.ts
  *
- * Spike Detector Engine
+ * Engagement Signal Analyzer (named "spike-detector" for historical continuity)
  *
- * Analyses an IngestionSignal (video metadata + viral formulas + engagement metrics)
- * and infers likely emotional spike moments via the AI reasoning waterfall.
+ * NOTE: This engine analyses engagement METADATA (views/likes/viral_score +
+ * viral_formulas text), NOT actual video frames or audio. It infers likely
+ * emotional spike moments from metadata signals via the AI reasoning waterfall.
+ * Real frame-level analysis would require a separate video-processing stage.
  *
- * Output: SpikeResult — timestamped spike map with strength scores.
+ * Output: SpikeResult — inferred spike map with strength scores.
  */
 
 import 'server-only'

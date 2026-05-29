@@ -1,5 +1,5 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "structures": [
     {
       "id": "HOOK-CHAOS-DEMO-PAYOFF",
@@ -8,7 +8,8 @@
       "best_for": ["pain_intercept", "transformation", "skincare", "fitness", "home"],
       "price_range": [15, 80],
       "avg_duration_s": 45,
-      "feature_vector": [1.0, 0.9, 0.8, 0.9, 0.0, 0.0, 0.0, 0.0]
+      "feature_vector": [1.0, 0.9, 0.8, 0.9, 0.0, 0.0, 0.0, 0.0],
+      "variants": []
     },
     {
       "id": "HOOK-PROOF-CTA",
@@ -17,7 +18,8 @@
       "best_for": ["impulse", "fashion", "accessories", "food"],
       "price_range": [5, 35],
       "avg_duration_s": 20,
-      "feature_vector": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+      "feature_vector": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+      "variants": []
     },
     {
       "id": "PROBLEM-AGITATE-SOLVE",
@@ -26,7 +28,8 @@
       "best_for": ["health", "productivity", "sleep", "weight_loss"],
       "price_range": [20, 120],
       "avg_duration_s": 40,
-      "feature_vector": [0.2, 0.7, 0.9, 0.2, 0.0, 1.0, 0.0, 0.0]
+      "feature_vector": [0.2, 0.7, 0.9, 0.2, 0.0, 1.0, 0.0, 0.0],
+      "variants": []
     },
     {
       "id": "STORY-RESULT-CTA",
@@ -35,7 +38,8 @@
       "best_for": ["high_ticket", "supplements", "skincare", "coaching"],
       "price_range": [50, 300],
       "avg_duration_s": 55,
-      "feature_vector": [0.3, 0.4, 0.5, 0.8, 0.0, 0.5, 1.0, 0.0]
+      "feature_vector": [0.3, 0.4, 0.5, 0.8, 0.0, 0.5, 1.0, 0.0],
+      "variants": []
     },
     {
       "id": "CURIOSITY-REVEAL-CTA",
@@ -44,7 +48,8 @@
       "best_for": ["tech", "gadgets", "beauty_hacks", "life_hacks"],
       "price_range": [10, 60],
       "avg_duration_s": 35,
-      "feature_vector": [1.0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+      "feature_vector": [1.0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+      "variants": []
     },
     {
       "id": "COMPARISON-WINNER-CTA",
@@ -53,7 +58,8 @@
       "best_for": ["tech", "cleaning", "kitchen", "competitive_products"],
       "price_range": [20, 100],
       "avg_duration_s": 40,
-      "feature_vector": [0.8, 0.0, 0.0, 0.5, 0.8, 0.0, 0.5, 0.0]
+      "feature_vector": [0.8, 0.0, 0.0, 0.5, 0.8, 0.0, 0.5, 0.0],
+      "variants": []
     },
     {
       "id": "TREND-HIJACK-CTA",
@@ -62,7 +68,8 @@
       "best_for": ["fashion", "beauty", "food", "pop_culture"],
       "price_range": [5, 40],
       "avg_duration_s": 25,
-      "feature_vector": [0.5, 0.3, 0.0, 0.3, 0.3, 0.0, 0.0, 0.5]
+      "feature_vector": [0.5, 0.3, 0.0, 0.3, 0.3, 0.0, 0.0, 0.5],
+      "variants": []
     },
     {
       "id": "SHOCK-REFRAME-CTA",
@@ -71,7 +78,8 @@
       "best_for": ["contrarian", "supplements", "tech", "productivity"],
       "price_range": [20, 80],
       "avg_duration_s": 38,
-      "feature_vector": [0.9, 0.6, 0.0, 0.4, 0.0, 0.3, 0.0, 0.9]
+      "feature_vector": [0.9, 0.6, 0.0, 0.4, 0.0, 0.3, 0.0, 0.9],
+      "variants": []
     }
   ]
 }

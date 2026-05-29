@@ -30,6 +30,8 @@ export interface StructureDefinition {
   price_range:      [number, number]
   avg_duration_s:   number
   feature_vector:   number[]  // 8-dimensional
+  /** Placeholder for future structure variants (different tones/lengths of the same pattern) */
+  variants:         string[]
 }
 
 export interface ScoredStructure extends StructureDefinition {
