@@ -56,9 +56,9 @@ function extractPainPoint(mechanism: string): string {
   const cleaned = mechanism
     .replace(/^(creates?|builds?|establishes?|triggers?|taps? into|leverages?|exploits?|uses?)\s+/i, '')
     .replace(/^(urgency|curiosity|trust|fomo|anxiety)\s+by\s+/i, '')
-    .split(/[,.;]/)[0]!
-    .trim()
-    .slice(0, 50)
+    .split(/[,.;]/)[0]
+    ?.trim()
+    .slice(0, 50) ?? mechanism.slice(0, 50)
 
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
 }

@@ -271,7 +271,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Strip query params for cleaner URL passed to API
-  const rawUrl   = tiktok_url.trim().split('?')[0]!
+  const rawUrl   = tiktok_url.trim().split('?')[0] ?? tiktok_url.trim()
   const tiktokId = extractTikTokId(rawUrl)
   if (!tiktokId) {
     return NextResponse.json({

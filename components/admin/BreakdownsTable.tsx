@@ -282,7 +282,7 @@ export function BreakdownsTable({ rows: initial }: { rows: BreakdownRow[] }) {
                           videoId={videoId}
                           productName={video?.product_name ?? null}
                           niche={video?.niche ?? null}
-                          hasTimeline={!!(b.payload?.visual_timeline?.length)}
+                          hasTimeline={Array.isArray(b.payload?.visual_timeline) && b.payload.visual_timeline.length > 0}
                         />
                       )}
                       {videoId && (

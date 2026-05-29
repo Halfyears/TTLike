@@ -66,11 +66,18 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
     setCtxLoading(true)
     fetch(`/api/admin/pipeline/video-context?video_id=${videoId}`)
       .then(r => r.json())
-      .then((ctx: VideoContext & { ok: boolean }) => {
-        if (cancelled || !ctx.ok) return
-        if (ctx.category)             setCategory(ctx.category)
-        if (ctx.pain_points?.length)  setPainTags(ctx.pain_points)
-        if (ctx.ref_price)            setPrice(String(ctx.ref_price))
+      .then((raw: unknown) => {
+        if (cancelled) return
+        // Runtime validation — API response must be a valid object
+        if (!raw || typeof raw !== 'object') return
+        const ctx = raw as Record<string, unknown>
+        if (!ctx['ok']) return
+        if (typeof ctx['category'] === 'string' && ctx['category'])
+          setCategory(ctx['category'])
+        if (Array.isArray(ctx['pain_points']) && ctx['pain_points'].length)
+          setPainTags(ctx['pain_points'].filter((p): p is string => typeof p === 'string'))
+        if (typeof ctx['ref_price'] === 'number' && ctx['ref_price'] > 0)
+          setPrice(String(ctx['ref_price']))
       })
       .catch(() => {/* silent — user can fill manually */})
       .finally(() => { if (!cancelled) setCtxLoading(false) })
