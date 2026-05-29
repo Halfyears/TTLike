@@ -58,11 +58,25 @@ export default async function PipelineResultsPage({
   const { video_id } = await params
   const service = createServiceClient()
 
-  const { data: breakdown } = await service
+  // Primary lookup: by video_id FK
+  let { data: breakdown } = await service
     .from('video_breakdowns')
     .select('id, payload, created_at, tiktok_videos!left(title, product_name, niche, views, viral_score)')
     .eq('video_id', video_id)
+    .not('payload->viral_pipeline', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .maybeSingle()
+
+  // Fallback: maybe video_id param is actually a breakdown id
+  if (!breakdown) {
+    const { data: byId } = await service
+      .from('video_breakdowns')
+      .select('id, payload, created_at, tiktok_videos!left(title, product_name, niche, views, viral_score)')
+      .eq('id', video_id)
+      .maybeSingle()
+    if (byId) breakdown = byId
+  }
 
   const payload = breakdown?.payload as VideoBreakdownPayload | undefined
   const pipeline = payload?.viral_pipeline as ViralPipeline | undefined

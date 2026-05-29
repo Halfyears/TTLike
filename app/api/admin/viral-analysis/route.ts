@@ -138,14 +138,38 @@ export async function POST(req: NextRequest) {
   }
 
   if (existing?.id) {
-    await service
+    const { error: updateErr } = await service
       .from('video_breakdowns')
       .update({ payload: mergedPayload })
       .eq('id', existing.id)
+    if (updateErr) console.error('[viral-analysis] update error:', updateErr.message)
   } else {
-    await service
+    // url_hash is required (NOT NULL) — generate a deterministic one from video_id
+    const urlHash = Buffer.from(video_id).toString('base64url').slice(0, 32)
+    const { error: insertErr } = await service
       .from('video_breakdowns')
-      .insert({ video_id, payload: mergedPayload, blog_status: 'NOT_SENT' })
+      .insert({
+        video_id,
+        url_hash:    urlHash,
+        payload:     mergedPayload,
+        blog_status: 'NOT_SENT',
+      })
+    if (insertErr) {
+      // If unique constraint on url_hash fires, try with a random suffix
+      if (insertErr.code === '23505') {
+        const { error: retryErr } = await service
+          .from('video_breakdowns')
+          .insert({
+            video_id,
+            url_hash:    `${urlHash}-${Date.now().toString(36)}`,
+            payload:     mergedPayload,
+            blog_status: 'NOT_SENT',
+          })
+        if (retryErr) console.error('[viral-analysis] insert retry error:', retryErr.message)
+      } else {
+        console.error('[viral-analysis] insert error:', insertErr.message)
+      }
+    }
   }
 
   // ── Return summary (not the full ViralObject — too large for HTTP response) ──
