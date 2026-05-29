@@ -91,26 +91,54 @@ export async function GET(req: NextRequest) {
     .eq('video_id', video_id)
     .maybeSingle()
 
-  const payload = breakdown?.payload as VideoBreakdownPayload | null
-  const formulas = payload?.viral_formulas ?? []
+  const payload     = breakdown?.payload as VideoBreakdownPayload | null
+  const formulas    = payload?.viral_formulas ?? []
   const hasTimeline = !!(payload?.visual_timeline?.length)
 
-  // Extract one pain point per formula (max 5)
-  const painPoints: string[] = formulas
+  // ── Niche-based default pain points (fallback when no formulas) ────────────
+  const NICHE_DEFAULTS: Record<string, string[]> = {
+    Fitness:  ['low energy', 'lack of motivation', 'slow fitness results'],
+    Beauty:   ['dull skin', 'visible aging', 'uneven skin tone'],
+    Kitchen:  ['meal prep takes too long', 'food waste', 'cooking stress'],
+    Home:     ['clutter and disorganization', 'lack of storage', 'messy spaces'],
+    Tech:     ['low productivity', 'slow devices', 'poor battery life'],
+    Pets:     ['pet anxiety', 'behavioral issues', 'pet health concerns'],
+    Travel:   ['travel discomfort', 'heavy luggage', 'jet lag'],
+    Health:   ['poor sleep', 'chronic pain', 'high stress'],
+    General:  ['time scarcity', 'stress', 'not seeing results'],
+  }
+
+  // ── Extract from viral_formulas.mechanism ─────────────────────────────────
+  let painPoints: string[] = formulas
     .slice(0, 5)
     .map(f => extractPainPoint(f.mechanism))
     .filter(p => p.length >= 5)
 
-  // De-duplicate
-  const uniquePainPoints = [...new Set(painPoints)]
+  painPoints = [...new Set(painPoints)]
+
+  // ── Fallback: use niche defaults if formulas empty or extraction failed ────
+  if (painPoints.length === 0) {
+    const niche  = String(video.niche ?? 'General')
+    const defs   = NICHE_DEFAULTS[niche] ?? NICHE_DEFAULTS['General']!
+    // Also try to extract pain hints from video title
+    const title  = String(video.product_name ?? video.title ?? '')
+    const titleHints = title
+      .split(/[\s,]+/)
+      .filter(w => /pain|stress|sleep|energy|weight|fat|skin|age|hair|care|clean|organi/i.test(w))
+      .slice(0, 2)
+      .map(w => w.toLowerCase())
+    painPoints = titleHints.length >= 1
+      ? [...titleHints, ...defs].slice(0, 3)
+      : defs.slice(0, 3)
+  }
 
   return NextResponse.json({
-    ok:           true,
-    product_name: video.product_name,
-    niche:        video.niche,
-    category:     video.niche ?? '',
-    pain_points:  uniquePainPoints,
-    has_timeline: hasTimeline,
+    ok:            true,
+    product_name:  video.product_name,
+    niche:         video.niche,
+    category:      video.niche ?? '',
+    pain_points:   painPoints,
+    has_timeline:  hasTimeline,
     formula_count: formulas.length,
   })
 }
