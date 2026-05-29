@@ -1,0 +1,77 @@
+{
+  "version": "1.0",
+  "structures": [
+    {
+      "id": "HOOK-CHAOS-DEMO-PAYOFF",
+      "pattern_sequence": ["HOOK", "CHAOS", "DEMO", "PAYOFF"],
+      "description": "The classic UGC pattern: stop scroll → create tension → demonstrate solution → close sale",
+      "best_for": ["pain_intercept", "transformation", "skincare", "fitness", "home"],
+      "price_range": [15, 80],
+      "avg_duration_s": 45,
+      "feature_vector": [1.0, 0.9, 0.8, 0.9, 0.0, 0.0, 0.0, 0.0]
+    },
+    {
+      "id": "HOOK-PROOF-CTA",
+      "pattern_sequence": ["HOOK", "PROOF", "CTA"],
+      "description": "Fast credibility close: bold hook → social proof / stat → direct buy now",
+      "best_for": ["impulse", "fashion", "accessories", "food"],
+      "price_range": [5, 35],
+      "avg_duration_s": 20,
+      "feature_vector": [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
+    },
+    {
+      "id": "PROBLEM-AGITATE-SOLVE",
+      "pattern_sequence": ["PROBLEM", "AGITATE", "SOLVE", "CTA"],
+      "description": "Pain-intercept: name the problem → amplify suffering → offer solution → act now",
+      "best_for": ["health", "productivity", "sleep", "weight_loss"],
+      "price_range": [20, 120],
+      "avg_duration_s": 40,
+      "feature_vector": [0.2, 0.7, 0.9, 0.2, 0.0, 1.0, 0.0, 0.0]
+    },
+    {
+      "id": "STORY-RESULT-CTA",
+      "pattern_sequence": ["STORY", "RESULT", "PROOF", "CTA"],
+      "description": "Narrative trust arc: personal story → visible transformation → social proof → call to action",
+      "best_for": ["high_ticket", "supplements", "skincare", "coaching"],
+      "price_range": [50, 300],
+      "avg_duration_s": 55,
+      "feature_vector": [0.3, 0.4, 0.5, 0.8, 0.0, 0.5, 1.0, 0.0]
+    },
+    {
+      "id": "CURIOSITY-REVEAL-CTA",
+      "pattern_sequence": ["HOOK", "CHAOS", "REVEAL", "CTA"],
+      "description": "Curiosity loop: hook mystery → withhold answer → dramatic reveal → convert",
+      "best_for": ["tech", "gadgets", "beauty_hacks", "life_hacks"],
+      "price_range": [10, 60],
+      "avg_duration_s": 35,
+      "feature_vector": [1.0, 0.8, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]
+    },
+    {
+      "id": "COMPARISON-WINNER-CTA",
+      "pattern_sequence": ["HOOK", "COMPARISON", "WINNER", "CTA"],
+      "description": "Head-to-head proof: hook → show alternatives → declare winner with evidence → buy",
+      "best_for": ["tech", "cleaning", "kitchen", "competitive_products"],
+      "price_range": [20, 100],
+      "avg_duration_s": 40,
+      "feature_vector": [0.8, 0.0, 0.0, 0.5, 0.8, 0.0, 0.5, 0.0]
+    },
+    {
+      "id": "TREND-HIJACK-CTA",
+      "pattern_sequence": ["TREND", "PIVOT", "PROOF", "CTA"],
+      "description": "Trend-jacking: ride trending audio/format → pivot to product → social proof → CTA",
+      "best_for": ["fashion", "beauty", "food", "pop_culture"],
+      "price_range": [5, 40],
+      "avg_duration_s": 25,
+      "feature_vector": [0.5, 0.3, 0.0, 0.3, 0.3, 0.0, 0.0, 0.5]
+    },
+    {
+      "id": "SHOCK-REFRAME-CTA",
+      "pattern_sequence": ["SHOCK", "REFRAME", "DEMO", "CTA"],
+      "description": "Pattern interrupt: surprise claim → cognitive reframe (it's not what you think) → prove it → sell",
+      "best_for": ["contrarian", "supplements", "tech", "productivity"],
+      "price_range": [20, 80],
+      "avg_duration_s": 38,
+      "feature_vector": [0.9, 0.6, 0.0, 0.4, 0.0, 0.3, 0.0, 0.9]
+    }
+  ]
+}
