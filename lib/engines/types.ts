@@ -23,6 +23,7 @@ export const IngestionSignalSchema = z.object({
   likes:          z.number().int().nonnegative(),
   shares:         z.number().int().nonnegative(),
   viral_score:    z.number().min(0).max(100),
+  /** Timestamped viral formulas extracted by Gemini from actual video content */
   viral_formulas: z.array(z.object({
     title:          z.string(),
     timestamp:      z.string().optional(),
@@ -30,6 +31,13 @@ export const IngestionSignalSchema = z.object({
     mechanism:      z.string(),
     your_version:   z.string(),
   })),
+  /** Scene-by-scene timeline from Gemini multimodal analysis (actual video content) */
+  visual_timeline: z.array(z.object({
+    timecode:       z.string(),
+    visual:         z.string(),
+    audio:          z.string(),
+    why_this_works: z.string(),
+  })).optional(),
   metrics: z.object({
     views:  z.string(),
     likes:  z.string(),

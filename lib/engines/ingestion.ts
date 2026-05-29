@@ -76,8 +76,11 @@ export async function loadIngestionSignal(videoId: string): Promise<IngestionSig
   const bd = breakdown as BreakdownRow | null
   const payload = bd?.payload ?? null
 
-  // ── 3. Extract viral_formulas + metrics from payload ──────────────────────
-  const viral_formulas = payload?.viral_formulas ?? []
+  // ── 3. Extract viral_formulas + visual_timeline + metrics from payload ────
+  // These come from Gemini multimodal analysis of the actual TikTok video URL.
+  // They ARE the real video content analysis — not metadata guesses.
+  const viral_formulas  = payload?.viral_formulas  ?? []
+  const visual_timeline = payload?.visual_timeline ?? undefined
   const metrics = payload?.metrics ?? {
     views:  String(v.views),
     likes:  String(v.likes),
@@ -86,15 +89,16 @@ export async function loadIngestionSignal(videoId: string): Promise<IngestionSig
 
   // ── 4. Build and validate signal ──────────────────────────────────────────
   const raw: IngestionSignal = {
-    video_id:       v.id,
-    title:          v.title,
-    product_name:   v.product_name ?? null,
-    niche:          v.niche ?? null,
-    views:          Math.round(v.views ?? 0),
-    likes:          Math.round(v.likes ?? 0),
-    shares:         Math.round(v.shares ?? 0),
-    viral_score:    Math.min(100, Math.max(0, v.viral_score ?? 0)),
+    video_id:        v.id,
+    title:           v.title,
+    product_name:    v.product_name ?? null,
+    niche:           v.niche ?? null,
+    views:           Math.round(v.views ?? 0),
+    likes:           Math.round(v.likes ?? 0),
+    shares:          Math.round(v.shares ?? 0),
+    viral_score:     Math.min(100, Math.max(0, v.viral_score ?? 0)),
     viral_formulas,
+    visual_timeline,
     metrics,
   }
 

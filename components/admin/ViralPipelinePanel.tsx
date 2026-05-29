@@ -15,6 +15,7 @@ import {
   Zap, Loader2, CheckCircle, AlertTriangle,
   ChevronDown, ChevronUp, ExternalLink,
 } from 'lucide-react'
+// ChevronDown/Up kept for result detail toggle
 
 interface PipelineResult {
   ok:           boolean
@@ -37,7 +38,6 @@ interface Props {
 const PERSUASION_STYLES = ['ROI_PROOF', 'PAIN_INTERCEPT', 'CURIOSITY_LOOP', 'STATUS_ANXIETY'] as const
 
 export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
-  const [open,       setOpen]       = useState(true)   // default open when embedded in Launcher
   const [loading,    setLoading]    = useState(false)
   const [result,     setResult]     = useState<PipelineResult | null>(null)
   const [showDetail, setShowDetail] = useState(false)
@@ -87,25 +87,10 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
   }
 
   return (
-    <div className="bg-gray-800 border border-violet-700/40 rounded-xl overflow-hidden">
+    <div className="overflow-hidden">
 
-      {/* Header toggle */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full px-5 py-3.5 flex items-center justify-between hover:bg-gray-700/40 transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-violet-400" />
-          <span className="text-sm font-semibold text-white">Viral Pipeline</span>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-violet-900/50 text-violet-300 uppercase tracking-wide">
-            Spike → Structure → Script
-          </span>
-        </div>
-        {open ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
-      </button>
-
-      {open && (
-        <div className="border-t border-gray-700 p-5 space-y-4">
+      {/* Form always visible — toggling is handled by parent (BreakdownPipelineButton modal or ViralPipelineLauncher) */}
+      <div className="p-5 space-y-4">
 
           {/* Product context form */}
           <p className="text-xs text-gray-400">
@@ -249,7 +234,6 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
             </div>
           )}
         </div>
-      )}
     </div>
   )
 }

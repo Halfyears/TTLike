@@ -6,6 +6,7 @@ import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 import { BatchTrigger } from './BatchTrigger'
 import { bestCoverUrl } from '@/lib/tiktokImg'
 import { ViralPipelineLauncher } from './ViralPipelineLauncher'
+import { BreakdownPipelineButton } from './BreakdownPipelineButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -258,8 +259,17 @@ export default async function BreakdownsAdminPage() {
 
                     {/* Links */}
                     <td className="px-4 py-3">
-                      <div className="flex items-center justify-center gap-3">
-                        {/* Product page — only for DB-sourced breakdowns */}
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        {/* Viral Pipeline — only for DB-sourced breakdowns with a video_id */}
+                        {videoId && (
+                          <BreakdownPipelineButton
+                            videoId={videoId}
+                            productName={video?.product_name ?? null}
+                            niche={video?.niche ?? null}
+                            hasTimeline={!!(b.payload?.visual_timeline?.length)}
+                          />
+                        )}
+                        {/* Product page */}
                         {videoId && (
                           <Link
                             href={`/products/${videoId}`}
@@ -269,7 +279,7 @@ export default async function BreakdownsAdminPage() {
                             Product
                           </Link>
                         )}
-                        {/* SEO page — shown for all breakdowns with a slug (incl. oEmbed) */}
+                        {/* SEO page */}
                         {seoTarget && (
                           <Link
                             href={`/viral/${seoTarget}`}

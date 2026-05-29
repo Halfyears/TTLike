@@ -22,14 +22,25 @@ function buildSpikePrompt(signal: IngestionSignal): string {
     ? ((signal.likes + signal.shares) / signal.views * 100).toFixed(2)
     : '0'
 
-  const formulaSummary = signal.viral_formulas
-    .slice(0, 3)
-    .map((f, i) =>
-      `  Formula ${i + 1}: "${f.title}" @ ${f.timestamp ?? 'unknown'}\n` +
-      `    Mechanism: ${f.mechanism}\n` +
-      `    Script example: ${f.example_script.slice(0, 120)}`,
-    )
-    .join('\n')
+  // Primary source: visual_timeline from Gemini multimodal (actual video analysis)
+  const timelineSection = signal.visual_timeline && signal.visual_timeline.length > 0
+    ? `Scene-by-scene timeline (extracted from actual video by Gemini):
+${signal.visual_timeline.map((s, i) =>
+  `  Scene ${i + 1} [${s.timecode}]\n` +
+  `    Audio: "${s.audio}"\n` +
+  `    Visual: ${s.visual}\n` +
+  `    Why it works: ${s.why_this_works}`
+).join('\n')}`
+    : '  (no scene timeline available — use viral formula timestamps)'
+
+  // Secondary source: viral formulas with timestamps
+  const formulaSummary = signal.viral_formulas.length > 0
+    ? signal.viral_formulas.slice(0, 3).map((f, i) =>
+        `  Formula ${i + 1}: "${f.title}" @ ${f.timestamp ?? 'unknown'}\n` +
+        `    Mechanism: ${f.mechanism}\n` +
+        `    Script: ${f.example_script.slice(0, 100)}`
+      ).join('\n')
+    : '  (none available)'
 
   return `Video ID: ${signal.video_id}
 Title: ${signal.title}
@@ -39,11 +50,13 @@ Engagement: ${signal.metrics.views} views · ${signal.metrics.likes} likes · ${
 Engagement rate: ${engagementRate}%
 Viral score: ${signal.viral_score}/100
 
-Viral formulas extracted from this video:
-${formulaSummary || '  (none available)'}
+${timelineSection}
 
-Based on this data, identify the emotional spike moments in this video.
-Remember: infer timestamps from the viral formula timestamps and typical niche pacing.`
+Viral formulas (timestamped):
+${formulaSummary}
+
+Use the scene timeline and formula timestamps above to identify PRECISE emotional spike moments.
+The timeline data comes from real Gemini video analysis — use exact timecodes where available.`
 }
 
 // ── Engine ────────────────────────────────────────────────────────────────────
