@@ -76,12 +76,13 @@ export async function inferStructure(
   spikeResult: SpikeResult,
   topN = 3,
 ): Promise<{
-  result:   StructureMatch
-  provider: string
-  candidates: ScoredStructure[]
+  result:            StructureMatch
+  provider:          string
+  candidates:        ScoredStructure[]
+  vector_confidence: number
 }> {
   // ── Phase 1: cosine similarity (pure TS, no LLM) ──────────────────────────
-  const featureVec  = buildFeatureVector(spikeResult.spikes)
+  const { vector: featureVec, confidence: vector_confidence } = buildFeatureVector(spikeResult.spikes)
   const candidates  = matchStructure(featureVec, topN)
 
   // ── Phase 2: LLM confirmation ─────────────────────────────────────────────
@@ -110,12 +111,13 @@ export async function inferStructure(
         description:      top.description,
         reasoning:        `Cosine similarity fallback (LLM parse failed, provider: ${provider})`,
       }),
-      provider: `${provider}:fallback`,
+      provider:          `${provider}:fallback`,
       candidates,
+      vector_confidence,
     }
   }
 
   // Validate — throws ZodError on schema mismatch
   const result = StructureMatchSchema.parse(parsed)
-  return { result, provider, candidates }
+  return { result, provider, candidates, vector_confidence }
 }

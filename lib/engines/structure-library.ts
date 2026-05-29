@@ -88,6 +88,12 @@ export function matchStructure(featureVector: number[], topN = 3): ScoredStructu
     .slice(0, topN)
 }
 
+export interface FeatureVectorResult {
+  vector:     number[]
+  /** 0.0–1.0 — how much signal drove this vector. < 0.5 = generic fallback applied */
+  confidence: number
+}
+
 /**
  * Build a feature vector from a spike result's spike types and strengths.
  * Maps spike attributes to the 8 feature dimensions.
@@ -96,7 +102,7 @@ export function matchStructure(featureVector: number[], topN = 3): ScoredStructu
  */
 export function buildFeatureVector(
   spikes: Array<{ type: string; strength: number }>,
-): number[] {
+): FeatureVectorResult {
   // Accumulate signal per dimension from spikes
   const dims = new Array<number>(8).fill(0)
 
@@ -120,16 +126,18 @@ export function buildFeatureVector(
   dims[6] = hookToPayoff > 0.6 ? hookToPayoff * 0.8 : 0   // narrative_depth
   dims[7] = dims[1]! > 0.7 && dims[3]! > 0.6 ? 0.8 : 0   // curiosity_loop: chaos + payoff
 
-  // Fallback: if emotion-only spikes produced a zero vector, apply a minimal
-  // generic signal so cosine similarity can still return meaningful rankings
   const total = dims.reduce((s, v) => s + v, 0)
+
   if (total === 0) {
-    // Default to a mild hook + payoff signal (broadest match pattern)
+    // No recognisable spike types — apply broadest-match fallback and flag low confidence
     dims[0] = 0.5
     dims[3] = 0.5
+    return { vector: dims, confidence: 0.3 }
   }
 
-  return dims
+  // Confidence scales with signal richness (capped at 1.0)
+  const confidence = Math.min(1.0, total / 4)
+  return { vector: dims, confidence }
 }
 
 /**

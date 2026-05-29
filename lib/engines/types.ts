@@ -43,6 +43,13 @@ export const IngestionSignalSchema = z.object({
     likes:  z.string(),
     shares: z.string(),
   }),
+  /**
+   * Signal quality tier:
+   *   "full"          — has viral_formulas + visual_timeline (Gemini multimodal)
+   *   "metadata_only" — only DB metadata available (views/likes/etc.)
+   * Used by structure-inference to weight confidence and set fallback behavior.
+   */
+  signal_quality: z.enum(['full', 'metadata_only']),
 })
 
 export type IngestionSignal = z.infer<typeof IngestionSignalSchema>
@@ -222,8 +229,10 @@ export const ViralObjectSchema = z.object({
     z.enum(['spike', 'structure', 'router', 'language', 'emotion', 'script']),
     z.enum(['groq', 'gemini', 'github'])
   ).optional(),
-  created_at:       z.string().datetime().optional(),
-  pipeline_ms:      z.number().optional(),            // total pipeline duration
+  created_at:        z.string().datetime().optional(),
+  pipeline_ms:       z.number().optional(),
+  /** 0.0–1.0 feature vector confidence from buildFeatureVector (< 0.5 = fallback applied) */
+  vector_confidence: z.number().min(0).max(1).optional(),
 })
 
 export type ViralObject = z.infer<typeof ViralObjectSchema>

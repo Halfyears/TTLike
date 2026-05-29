@@ -97,11 +97,12 @@ export async function runViralPipeline(
     }
 
     // ── Stage 2: Structure Inference ────────────────────────────────────────
-    let structureMatch, candidates
+    let structureMatch, candidates, vectorConfidence
     try {
-      const { result, provider, candidates: c } = await inferStructure(spikeResult, topN)
+      const { result, provider, candidates: c, vector_confidence } = await inferStructure(spikeResult, topN)
       structureMatch      = result
       candidates          = c
+      vectorConfidence    = vector_confidence
       providers.structure = provider
     } catch (e) {
       return {
@@ -167,18 +168,19 @@ export async function runViralPipeline(
 
     // ── Assemble ViralObject ────────────────────────────────────────────────
     const viralObject = ViralObjectSchema.parse({
-      video_id:         videoId,
+      video_id:          videoId,
       ingestion,
-      product_schema:   productSchema,
-      spike_result:     spikeResult,
-      structure_match:  structureMatch,
+      product_schema:    productSchema,
+      spike_result:      spikeResult,
+      structure_match:   structureMatch,
       router,
-      language_profile: languageProfile,
-      emotion_curve:    emotionCurve,
-      final_script:     finalScript,
-      ai_providers:     providers,
-      created_at:       new Date().toISOString(),
-      pipeline_ms:      Date.now() - startTime,
+      language_profile:  languageProfile,
+      emotion_curve:     emotionCurve,
+      final_script:      finalScript,
+      ai_providers:      providers,
+      created_at:        new Date().toISOString(),
+      pipeline_ms:       Date.now() - startTime,
+      vector_confidence: vectorConfidence,
     })
 
     return { ok: true, viralObject }

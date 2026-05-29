@@ -88,6 +88,11 @@ export async function loadIngestionSignal(videoId: string): Promise<IngestionSig
   }
 
   // ── 4. Build and validate signal ──────────────────────────────────────────
+  const signal_quality: 'full' | 'metadata_only' =
+    viral_formulas.length > 0 && visual_timeline && visual_timeline.length > 0
+      ? 'full'
+      : 'metadata_only'
+
   const raw: IngestionSignal = {
     video_id:        v.id,
     title:           v.title,
@@ -100,6 +105,7 @@ export async function loadIngestionSignal(videoId: string): Promise<IngestionSig
     viral_formulas,
     visual_timeline,
     metrics,
+    signal_quality,
   }
 
   // Validate with Zod — throws ZodError if shape is wrong
