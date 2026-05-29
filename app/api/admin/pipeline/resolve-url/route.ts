@@ -187,7 +187,8 @@ export async function POST(req: NextRequest) {
     .eq('tiktok_id', tiktokId)
     .maybeSingle()
 
-  let videoRow = existing as { id: string; title: string | null; product_name: string | null; niche: string | null } | null
+  type VideoRow = { id: string; title: string | null; product_name: string | null; niche: string | null }
+  let videoRow = existing as VideoRow | null
   let scraped  = false
 
   // ── 2. Not in DB → fetch from RapidAPI and insert ─────────────────────────
@@ -221,9 +222,9 @@ export async function POST(req: NextRequest) {
           error: `Failed to save video: ${insertErr?.message ?? 'unknown'}`,
         }, { status: 500 })
       }
-      videoRow = retry as typeof videoRow
+      videoRow = retry as VideoRow
     } else {
-      videoRow = inserted as typeof videoRow
+      videoRow = inserted as VideoRow
       scraped  = true
     }
   }
