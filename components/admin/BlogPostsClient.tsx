@@ -442,6 +442,18 @@ export function BlogPostsClient({ initialPosts }: { initialPosts: BlogPost[] }) 
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
+                        {/* View published post */}
+                        {post.status === 'PUBLISHED' && (
+                          <Link
+                            href={`/blog/${post.slug}`}
+                            target="_blank"
+                            className="text-emerald-500 hover:text-emerald-300 transition-colors"
+                            title="View published post"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Link>
+                        )}
+
                         {/* Edit */}
                         <button
                           onClick={() => setEditPost(post)}
