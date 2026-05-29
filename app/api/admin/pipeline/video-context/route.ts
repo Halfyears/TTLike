@@ -132,6 +132,13 @@ export async function GET(req: NextRequest) {
       : defs.slice(0, 3)
   }
 
+  // Niche-based reference price (median impulse-buy range per category)
+  const NICHE_PRICE: Record<string, number> = {
+    Fitness: 39, Beauty: 29, Kitchen: 35, Home: 25,
+    Tech: 49, Pets: 25, Travel: 35, Health: 35, General: 29,
+  }
+  const refPrice = NICHE_PRICE[String(video.niche ?? 'General')] ?? 29
+
   return NextResponse.json({
     ok:            true,
     product_name:  video.product_name,
@@ -140,5 +147,6 @@ export async function GET(req: NextRequest) {
     pain_points:   painPoints,
     has_timeline:  hasTimeline,
     formula_count: formulas.length,
+    ref_price:     refPrice,
   })
 }

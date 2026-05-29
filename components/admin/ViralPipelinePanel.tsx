@@ -33,6 +33,7 @@ interface VideoContext {
   pain_points:   string[]
   has_timeline:  boolean
   formula_count: number
+  ref_price?:    number
 }
 
 interface Props {
@@ -51,7 +52,7 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
 
   // Form state
   const [category,        setCategory]        = useState(niche ?? '')
-  const [price,           setPrice]           = useState('29')
+  const [price,           setPrice]           = useState('')
   const [painTags,        setPainTags]        = useState<string[]>([])
   const [painInput,       setPainInput]       = useState('')
   const [persuasionStyle, setPersuasionStyle] = useState<string>('')
@@ -69,6 +70,7 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
         if (cancelled || !ctx.ok) return
         if (ctx.category)             setCategory(ctx.category)
         if (ctx.pain_points?.length)  setPainTags(ctx.pain_points)
+        if (ctx.ref_price)            setPrice(String(ctx.ref_price))
       })
       .catch(() => {/* silent — user can fill manually */})
       .finally(() => { if (!cancelled) setCtxLoading(false) })
