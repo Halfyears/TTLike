@@ -290,14 +290,14 @@ export async function POST(req: NextRequest) {
     .eq('tiktok_id', tiktokId)
     .maybeSingle()
 
-  let videoRow = existing as VideoRow | null
-  let scraped  = false
+  let videoRow   = existing as VideoRow | null
+  let scraped    = false
+  let usedOEmbed = false
 
   // ── 2. Not in DB → fetch from RapidAPI and insert ─────────────────────────
   if (!videoRow) {
     // Try RapidAPI first, fall back to TikTok oEmbed (no key needed)
-    let result  = await fetchFromRapidAPI(tiktokId, rawUrl)
-    let usedOEmbed = false
+    let result = await fetchFromRapidAPI(tiktokId, rawUrl)
     if ('error' in result) {
       console.log('[resolve-url] RapidAPI failed, trying oEmbed fallback:', result.error)
       result     = await fetchFromOEmbed(tiktokId, rawUrl)
