@@ -67,24 +67,36 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
   const [loading, setLoading] = useState<Record<string, boolean>>({})
   const [deleting, setDeleting] = useState<Record<string, boolean>>({})
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  // Track newly-generated blog slugs for quick-link to published post
+  const [generatedSlugs, setGeneratedSlugs] = useState<Record<string, string>>({})
 
   async function publish(breakdownId: string) {
     setLoading(p => ({ ...p, [breakdownId]: true }))
+    // Optimistic: show PROCESSING while AI generates
     setRows(prev => prev.map(r =>
       r.id === breakdownId ? { ...r, blog_status: 'PROCESSING' } : r
     ))
     try {
-      const res = await fetch('/api/admin/blog/trigger-flywheel', {
+      const res = await fetch('/api/admin/blog/generate-from-breakdown', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ breakdown_id: breakdownId }),
       })
       const json = await res.json()
-      if (!res.ok) {
+      if (res.ok) {
+        // Success: update row to PUBLISHED + set published_at
+        setRows(prev => prev.map(r =>
+          r.id === breakdownId
+            ? { ...r, blog_status: 'PUBLISHED', blog_published_at: new Date().toISOString() }
+            : r
+        ))
+        setGeneratedSlugs(p => ({ ...p, [breakdownId]: json.slug as string }))
+      } else {
+        // Failure: roll back to FAILED
         setRows(prev => prev.map(r =>
           r.id === breakdownId ? { ...r, blog_status: 'FAILED' } : r
         ))
-        console.error('[SEOFlywheelPanel] publish error:', json.error)
+        console.error('[SEOFlywheelPanel] generate error:', json.error)
       }
     } catch (e) {
       setRows(prev => prev.map(r =>
@@ -221,10 +233,22 @@ export function SEOFlywheelPanel({ breakdowns: initial }: { breakdowns: Breakdow
                             : <><Send className="h-3 w-3" /> Generate Blog</>
                           }
                         </button>
+                      ) : status === 'PROCESSING' ? (
+                        <span className="text-xs text-gray-600 italic">Processing…</span>
+                      ) : status === 'PUBLISHED' ? (
+                        generatedSlugs[row.id] ? (
+                          <Link
+                            href={`/blog/${generatedSlugs[row.id]}`}
+                            target="_blank"
+                            className="inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300"
+                          >
+                            <CheckCircle className="h-3 w-3" /> View Post
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-emerald-600 italic">Published</span>
+                        )
                       ) : (
-                        <span className="text-xs text-gray-600 italic">
-                          {status === 'PROCESSING' ? 'Processing…' : '—'}
-                        </span>
+                        <span className="text-xs text-gray-600">—</span>
                       )}
 
                       {video?.id && (
