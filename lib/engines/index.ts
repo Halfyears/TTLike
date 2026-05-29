@@ -193,6 +193,7 @@ export async function runViralPipeline(
   }
 }
 
-// ── Re-export all engine types for convenience ────────────────────────────────
-export type { ViralObject, ProductSchemaInput, PipelineInput }
+// ── Re-export types from types.ts for convenience ────────────────────────────
+export type { ViralObject, ProductSchemaInput } from '@/lib/engines/types'
 export { IngestionSignalSchema } from '@/lib/engines/types'
+// PipelineInput is already exported above as `export interface PipelineInput`

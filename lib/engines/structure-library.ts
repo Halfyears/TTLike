@@ -39,7 +39,7 @@ export interface ScoredStructure extends StructureDefinition {
 // ── Load library ──────────────────────────────────────────────────────────────
 
 const LIBRARY: StructureDefinition[] = (
-  structureLibraryData as { structures: StructureDefinition[] }
+  structureLibraryData as unknown as { structures: StructureDefinition[] }
 ).structures
 
 // ── Cosine similarity ─────────────────────────────────────────────────────────
