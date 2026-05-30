@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { Plus, X, Loader2, ChevronLeft, Clock, Zap } from 'lucide-react'
 import { URLInputCard } from '@/components/studio/URLInputCard'
 import { AnalysisWaitScreen } from '@/components/studio/AnalysisWaitScreen'
@@ -254,6 +254,10 @@ export default function StudioPage() {
   const [resultMeta, setResultMeta]     = useState<ResultMeta>({ generated_at: null, pipeline_ms: null })
   const [errorMsg, setErrorMsg]         = useState<string | null>(null)
 
+  // Stable ref so handleCompleted can always access the latest breakdownId
+  // without re-creating the function and restarting the poll effect
+  const breakdownIdRef = useRef<string | null>(null)
+
   // ── Step 1: URL resolved → fetch context → fill form → transition ──────────
   const handleResolved = useCallback(async (
     videoId: string,
@@ -305,6 +309,7 @@ export default function StudioPage() {
         setSubmitError(data.error ?? 'Something went wrong. Please try again.')
         return
       }
+      breakdownIdRef.current = data.breakdown_id
       setBreakdownId(data.breakdown_id)
       setStage('analyzing')
     } catch {
@@ -315,10 +320,12 @@ export default function StudioPage() {
   }
 
   // ── Step 3: Pipeline completed → fetch result ──────────────────────────────
+  // Uses ref so this function stays stable — no poll restart on re-render
   const handleCompleted = useCallback(async () => {
-    if (!breakdownId) return
+    const id = breakdownIdRef.current
+    if (!id) return
     try {
-      const res  = await fetch(`/api/studio/result/${breakdownId}`)
+      const res  = await fetch(`/api/studio/result/${id}`)
       const data = await res.json()
       if (!data.ok) {
         setErrorMsg(data.error ?? 'Failed to load result')
@@ -332,7 +339,7 @@ export default function StudioPage() {
       setErrorMsg('Failed to load result. Please try again.')
       setStage('error')
     }
-  }, [breakdownId])
+  }, [])  // stable — reads breakdownId via ref
 
   const handleFailed = useCallback((err: string) => {
     setErrorMsg(err || 'Analysis failed. Please try again.')
@@ -343,6 +350,7 @@ export default function StudioPage() {
     setStage('url_input')
     setVideoMeta(null)
     setForm({ category: '', pain_points: [], price_point: 29 })
+    breakdownIdRef.current = null
     setBreakdownId(null)
     setResult(null)
     setResultMeta({ generated_at: null, pipeline_ms: null })
