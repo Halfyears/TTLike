@@ -52,5 +52,10 @@ export async function GET(
 
   const result = viralPipelineToStudioResult(vp)
 
-  return NextResponse.json({ ok: true, ...result })
+  return NextResponse.json({
+    ok:           true,
+    generated_at: vp.generated_at ?? new Date().toISOString(),
+    pipeline_ms:  vp.pipeline_ms  ?? null,
+    ...result,
+  })
 }

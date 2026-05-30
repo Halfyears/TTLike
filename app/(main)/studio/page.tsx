@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Plus, X, Loader2, ChevronLeft } from 'lucide-react'
+import { Plus, X, Loader2, ChevronLeft, Clock, Zap } from 'lucide-react'
 import { URLInputCard } from '@/components/studio/URLInputCard'
 import { AnalysisWaitScreen } from '@/components/studio/AnalysisWaitScreen'
 import { CreativeBlueprintCard } from '@/components/studio/CreativeBlueprintCard'
@@ -28,6 +28,11 @@ interface ProductForm {
   category:    string
   pain_points: string[]
   price_point: number
+}
+
+interface ResultMeta {
+  generated_at: string | null
+  pipeline_ms:  number | null
 }
 
 // ── Product Form Component ────────────────────────────────────────────────────
@@ -64,16 +69,22 @@ function ProductFormStep({
 
   return (
     <div className="w-full max-w-xl mx-auto">
-      <button onClick={onBack} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
+      >
         <ChevronLeft className="w-4 h-4" /> Back
       </button>
 
       <div className="bg-white border border-gray-200 rounded-2xl p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Confirm Product Details</h2>
+
+        {/* Video title preview */}
         {meta.title && (
-          <p className="text-xs text-gray-400 mb-5 truncate" title={meta.title ?? ''}>
-            {meta.title}
-          </p>
+          <div className="flex items-start gap-2 mb-5 p-3 bg-gray-50 rounded-xl">
+            <Zap className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">{meta.title}</p>
+          </div>
         )}
 
         <div className="space-y-5">
@@ -99,7 +110,7 @@ function ProductFormStep({
               {form.pain_points.map((p, i) => (
                 <span key={i} className="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm">
                   {p}
-                  <button onClick={() => removePain(i)} className="hover:text-indigo-900">
+                  <button onClick={() => removePain(i)} className="hover:text-indigo-900 ml-0.5">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
@@ -142,15 +153,25 @@ function ProductFormStep({
           </div>
         </div>
 
-        {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        {error && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-100 rounded-xl">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
 
         <button
           onClick={onSubmit}
           disabled={loading || !form.category.trim() || form.pain_points.length === 0}
           className="mt-6 w-full py-3 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
         >
-          {loading ? <><Loader2 className="w-4 h-4 animate-spin" />Starting...</> : 'Generate Script'}
+          {loading
+            ? <><Loader2 className="w-4 h-4 animate-spin" />Starting analysis...</>
+            : 'Generate Script →'}
         </button>
+
+        {form.pain_points.length === 0 && (
+          <p className="mt-2 text-xs text-center text-gray-400">Add at least one pain point to continue</p>
+        )}
       </div>
     </div>
   )
@@ -161,20 +182,59 @@ function ProductFormStep({
 function ResultView({
   blueprint,
   script,
+  meta,
+  resultMeta,
   onReset,
 }: {
-  blueprint: CreativeBlueprint
-  script:    ScriptLayer
-  onReset:   () => void
+  blueprint:  CreativeBlueprint
+  script:     ScriptLayer
+  meta:       VideoMeta
+  resultMeta: ResultMeta
+  onReset:    () => void
 }) {
+  // Format relative time
+  const timeAgo = resultMeta.generated_at
+    ? (() => {
+        const secs = Math.floor((Date.now() - new Date(resultMeta.generated_at).getTime()) / 1000)
+        if (secs < 10)  return 'just now'
+        if (secs < 60)  return `${secs}s ago`
+        if (secs < 120) return '1 min ago'
+        return `${Math.floor(secs / 60)} min ago`
+      })()
+    : null
+
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-gray-900">Your Script</h2>
-        <button onClick={onReset} className="text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
-          <ChevronLeft className="w-4 h-4" /> Analyze another video
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
+            {timeAgo ? `Generated ${timeAgo}` : 'Generated'}
+            {resultMeta.pipeline_ms && (
+              <span className="text-gray-300">·</span>
+            )}
+            {resultMeta.pipeline_ms && (
+              <span className="flex items-center gap-0.5">
+                <Clock className="w-3 h-3" />
+                {(resultMeta.pipeline_ms / 1000).toFixed(1)}s
+              </span>
+            )}
+          </p>
+          {meta.title && (
+            <p className="text-sm text-gray-600 font-medium truncate max-w-sm" title={meta.title}>
+              {meta.title}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={onReset}
+          className="shrink-0 text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1 whitespace-nowrap"
+        >
+          <ChevronLeft className="w-4 h-4" /> New video
         </button>
       </div>
+
       <CreativeBlueprintCard blueprint={blueprint} />
       <ScriptLayerCard script={script} />
     </div>
@@ -184,19 +244,25 @@ function ResultView({
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function StudioPage() {
-  const [stage, setStage]           = useState<Stage>('url_input')
-  const [videoMeta, setVideoMeta]   = useState<VideoMeta | null>(null)
-  const [form, setForm]             = useState<ProductForm>({ category: '', pain_points: [], price_point: 29 })
-  const [breakdownId, setBreakdownId] = useState<string | null>(null)
+  const [stage, setStage]               = useState<Stage>('url_input')
+  const [videoMeta, setVideoMeta]       = useState<VideoMeta | null>(null)
+  const [form, setForm]                 = useState<ProductForm>({ category: '', pain_points: [], price_point: 29 })
+  const [breakdownId, setBreakdownId]   = useState<string | null>(null)
   const [submitLoading, setSubmitLoading] = useState(false)
-  const [submitError, setSubmitError]     = useState<string | null>(null)
-  const [result, setResult]         = useState<{ blueprint: CreativeBlueprint; script: ScriptLayer } | null>(null)
-  const [errorMsg, setErrorMsg]     = useState<string | null>(null)
+  const [submitError, setSubmitError]   = useState<string | null>(null)
+  const [result, setResult]             = useState<{ blueprint: CreativeBlueprint; script: ScriptLayer } | null>(null)
+  const [resultMeta, setResultMeta]     = useState<ResultMeta>({ generated_at: null, pipeline_ms: null })
+  const [errorMsg, setErrorMsg]         = useState<string | null>(null)
 
-  // Step 1: URL resolved → fetch context and fill form
-  async function handleResolved(videoId: string, title: string | null, productName: string | null, niche: string | null) {
+  // ── Step 1: URL resolved → fetch context → fill form → transition ──────────
+  const handleResolved = useCallback(async (
+    videoId: string,
+    title: string | null,
+    productName: string | null,
+    niche: string | null,
+  ): Promise<void> => {
     setVideoMeta({ video_id: videoId, title, product_name: productName, niche })
-    // Auto-fill with context API
+    // Fetch context while URLInputCard still shows loading
     try {
       const res  = await fetch(`/api/studio/context/${videoId}`)
       const data = await res.json()
@@ -204,7 +270,7 @@ export default function StudioPage() {
         setForm({
           category:    data.category || niche || '',
           pain_points: data.pain_points ?? [],
-          price_point: data.ref_price ?? 29,
+          price_point: data.ref_price  ?? 29,
         })
       } else {
         setForm({ category: niche ?? '', pain_points: [], price_point: 29 })
@@ -212,10 +278,11 @@ export default function StudioPage() {
     } catch {
       setForm({ category: niche ?? '', pain_points: [], price_point: 29 })
     }
+    // Only after context is ready do we show the form (URLInputCard loading turns off)
     setStage('product_form')
-  }
+  }, [])
 
-  // Step 2: Submit product form → trigger pipeline
+  // ── Step 2: Submit product form → trigger pipeline ─────────────────────────
   async function handleSubmitForm() {
     if (!videoMeta) return
     setSubmitLoading(true)
@@ -225,7 +292,7 @@ export default function StudioPage() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          video_id: videoMeta.video_id,
+          video_id:       videoMeta.video_id,
           product_schema: {
             category:    form.category,
             pain_points: form.pain_points,
@@ -234,24 +301,32 @@ export default function StudioPage() {
         }),
       })
       const data = await res.json()
-      if (!data.ok) { setSubmitError(data.error); return }
+      if (!data.ok) {
+        setSubmitError(data.error ?? 'Something went wrong. Please try again.')
+        return
+      }
       setBreakdownId(data.breakdown_id)
       setStage('analyzing')
     } catch {
-      setSubmitError('Network error. Please try again.')
+      setSubmitError('Network error — please check your connection and try again.')
     } finally {
       setSubmitLoading(false)
     }
   }
 
-  // Step 3: Polling completed → fetch result
+  // ── Step 3: Pipeline completed → fetch result ──────────────────────────────
   const handleCompleted = useCallback(async () => {
     if (!breakdownId) return
     try {
       const res  = await fetch(`/api/studio/result/${breakdownId}`)
       const data = await res.json()
-      if (!data.ok) { setErrorMsg(data.error ?? 'Failed to load result'); setStage('error'); return }
+      if (!data.ok) {
+        setErrorMsg(data.error ?? 'Failed to load result')
+        setStage('error')
+        return
+      }
       setResult({ blueprint: data.creative_blueprint, script: data.script_layer })
+      setResultMeta({ generated_at: data.generated_at ?? null, pipeline_ms: data.pipeline_ms ?? null })
       setStage('result')
     } catch {
       setErrorMsg('Failed to load result. Please try again.')
@@ -260,7 +335,7 @@ export default function StudioPage() {
   }, [breakdownId])
 
   const handleFailed = useCallback((err: string) => {
-    setErrorMsg(err)
+    setErrorMsg(err || 'Analysis failed. Please try again.')
     setStage('error')
   }, [])
 
@@ -270,6 +345,7 @@ export default function StudioPage() {
     setForm({ category: '', pain_points: [], price_point: 29 })
     setBreakdownId(null)
     setResult(null)
+    setResultMeta({ generated_at: null, pipeline_ms: null })
     setErrorMsg(null)
     setSubmitError(null)
   }
@@ -302,14 +378,27 @@ export default function StudioPage() {
         </div>
       )}
 
-      {stage === 'result' && result && (
-        <ResultView blueprint={result.blueprint} script={result.script} onReset={reset} />
+      {stage === 'result' && result && videoMeta && (
+        <ResultView
+          blueprint={result.blueprint}
+          script={result.script}
+          meta={videoMeta}
+          resultMeta={resultMeta}
+          onReset={reset}
+        />
       )}
 
       {stage === 'error' && (
         <div className="max-w-md mx-auto text-center py-12">
-          <p className="text-red-600 font-medium mb-4">{errorMsg ?? 'Something went wrong'}</p>
-          <button onClick={reset} className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700">
+          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+            <X className="w-5 h-5 text-red-500" />
+          </div>
+          <p className="text-gray-900 font-medium mb-2">Analysis failed</p>
+          <p className="text-sm text-gray-500 mb-6">{errorMsg ?? 'Something went wrong'}</p>
+          <button
+            onClick={reset}
+            className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors"
+          >
             Try again
           </button>
         </div>

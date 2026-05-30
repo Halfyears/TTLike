@@ -78,12 +78,27 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const handle = await viralAnalysisPipelineTask.trigger({
-    video_id,
-    product_schema: parsedProduct.data,
-    top_n:          3,
-    breakdown_id,
-  })
+  let handle: { id: string }
+  try {
+    handle = await viralAnalysisPipelineTask.trigger({
+      video_id,
+      product_schema: parsedProduct.data,
+      top_n:          3,
+      breakdown_id,
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[studio/analyze-video] Trigger.dev error:', msg)
+    // Revert status so the row isn't stuck in PROCESSING (best-effort, non-fatal)
+    try {
+      await service.from('video_breakdowns')
+        .update({ viral_status: 'FAILED', viral_error: `Trigger failed: ${msg}` })
+        .eq('id', breakdown_id)
+    } catch (dbErr) {
+      console.error('[studio/analyze-video] Failed to revert viral_status:', dbErr)
+    }
+    return NextResponse.json({ ok: false, error: 'Failed to start analysis. Please try again.' }, { status: 500 })
+  }
 
   await service.from('video_breakdowns').update({ trigger_run_id: handle.id }).eq('id', breakdown_id)
 

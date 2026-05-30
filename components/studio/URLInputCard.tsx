@@ -4,13 +4,14 @@ import { useState } from 'react'
 import { Link2, ArrowRight, Loader2 } from 'lucide-react'
 
 interface URLInputCardProps {
-  onResolved: (videoId: string, title: string | null, productName: string | null, niche: string | null) => void
+  // Returns a Promise so the card stays in loading state while parent fetches context
+  onResolved: (videoId: string, title: string | null, productName: string | null, niche: string | null) => Promise<void>
 }
 
 export function URLInputCard({ onResolved }: URLInputCardProps) {
-  const [url, setUrl]       = useState('')
+  const [url, setUrl]         = useState('')
   const [loading, setLoading] = useState(false)
-  const [error, setError]   = useState<string | null>(null)
+  const [error, setError]     = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -25,7 +26,8 @@ export function URLInputCard({ onResolved }: URLInputCardProps) {
       })
       const data = await res.json()
       if (!data.ok) { setError(data.error); return }
-      onResolved(data.video_id, data.title, data.product_name, data.niche)
+      // Await onResolved so loading spinner stays on while parent fetches context
+      await onResolved(data.video_id, data.title, data.product_name, data.niche)
     } catch {
       setError('Network error. Please try again.')
     } finally {
@@ -58,7 +60,7 @@ export function URLInputCard({ onResolved }: URLInputCardProps) {
           className="px-6 py-3.5 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
         >
           {loading ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Fetching...</>
+            <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
           ) : (
             <><span>Analyze</span><ArrowRight className="w-4 h-4" /></>
           )}
