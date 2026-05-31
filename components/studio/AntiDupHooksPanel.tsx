@@ -127,7 +127,7 @@ export function AntiDupHooksPanel({ hookLine }: Props) {
       const res  = await fetch('/api/hooks', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ text: hookLine }),
+        body:    JSON.stringify({ text: hookLine, source: 'studio' }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`)

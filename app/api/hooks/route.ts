@@ -250,7 +250,7 @@ async function runWaterfall(hookText: string): Promise<{ result: TTLikeHookRespo
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: Request) {
-  let body: { text?: string }
+  let body: { text?: string; source?: string }
   try {
     body = await req.json()
   } catch {
@@ -263,6 +263,26 @@ export async function POST(req: Request) {
   }
   if (text.length > 500) {
     return NextResponse.json({ error: 'text must be under 500 characters' }, { status: 400 })
+  }
+
+  // Studio source requires Creator+ tier — public Hook Machine skips this gate
+  if (body.source === 'studio') {
+    const { createClient, createServiceClient } = await import('@/lib/supabase/server')
+    const auth = await createClient()
+    const { data: { user } } = await auth.auth.getUser()
+    if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+
+    const service = createServiceClient()
+    await service.rpc('ensure_billing_tier', { uid: user.id })
+    const { data: tierRow } = await service
+      .from('user_billing_tiers')
+      .select('tier_name, custom_hook_limit')
+      .eq('user_id', user.id)
+      .single()
+
+    if ((tierRow?.custom_hook_limit ?? 0) === 0) {
+      return NextResponse.json({ error: 'upgrade_required', tier: tierRow?.tier_name ?? 'free' }, { status: 403 })
+    }
   }
 
   try {

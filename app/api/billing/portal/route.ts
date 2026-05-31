@@ -22,11 +22,16 @@ export async function POST() {
   }
 
   const service = createServiceClient()
-  const { data: sub } = await service
+  const { data: sub, error: subErr } = await service
     .from('user_subscriptions')
     .select('stripe_customer_id')
     .eq('user_id', user.id)
     .maybeSingle()
+
+  if (subErr) {
+    console.error('[billing/portal] DB error fetching subscription:', subErr.message)
+    return NextResponse.json({ error: 'Failed to load subscription data' }, { status: 500 })
+  }
 
   const stripeCustomerId = (sub as { stripe_customer_id?: string | null } | null)?.stripe_customer_id
   if (!stripeCustomerId) {

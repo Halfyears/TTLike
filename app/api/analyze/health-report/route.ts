@@ -46,22 +46,7 @@ export async function POST(req: Request) {
   const service  = createServiceClient()
   const cacheKey = healthHash(video_id)
 
-  // ── 1. Cache check (no quota consumed for cached results) ──────────────────
-  const { data: cached } = await service
-    .from('video_breakdowns')
-    .select('payload')
-    .eq('url_hash', cacheKey)
-    .maybeSingle()
-
-  if (cached?.payload?.health_report) {
-    return NextResponse.json({
-      report:      cached.payload.health_report,
-      ai_provider: (cached.payload as { ai_provider?: string }).ai_provider ?? null,
-      fromCache:   true,
-    })
-  }
-
-  // ── 2. Tier + quota gate ────────────────────────────────────────────────────
+  // ── 1. Tier gate (before cache — free users must not read cached paid reports) ──
   await service.rpc('ensure_billing_tier', { uid: user.id })
 
   const { data: tierRow } = await service
@@ -78,6 +63,21 @@ export async function POST(req: Request) {
       { error: 'upgrade_required', tier: tierRow?.tier_name ?? 'free' },
       { status: 403 },
     )
+  }
+
+  // ── 2. Cache check (no quota consumed for cached results) ──────────────────
+  const { data: cached } = await service
+    .from('video_breakdowns')
+    .select('payload')
+    .eq('url_hash', cacheKey)
+    .maybeSingle()
+
+  if (cached?.payload?.health_report) {
+    return NextResponse.json({
+      report:      cached.payload.health_report,
+      ai_provider: (cached.payload as { ai_provider?: string }).ai_provider ?? null,
+      fromCache:   true,
+    })
   }
 
   if (used >= limit) {

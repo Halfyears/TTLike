@@ -36,7 +36,7 @@ interface BatchItem {
 
 interface Props {
   tier:      string
-  remaining: number
+  remaining: number   // server-rendered; we track live remaining in state
   limit:     number
 }
 
@@ -63,10 +63,11 @@ function StatusBadge({ status, error }: { status: ItemStatus; error?: string }) 
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function BatchClient({ tier, remaining, limit }: Props) {
-  const [items,    setItems]    = useState<BatchItem[]>([{ id: '1', url: '', status: 'idle' }])
-  const [running,  setRunning]  = useState(false)
-  const [input,    setInput]    = useState('')
+export function BatchClient({ tier, remaining: remainingInit, limit }: Props) {
+  const [items,     setItems]     = useState<BatchItem[]>([{ id: '1', url: '', status: 'idle' }])
+  const [running,   setRunning]   = useState(false)
+  const [input,     setInput]     = useState('')
+  const [remaining, setRemaining] = useState(remainingInit)
   const abortRef = useRef(false)
 
   const isFree = tier === 'free'
@@ -194,8 +195,10 @@ export function BatchClient({ tier, remaining, limit }: Props) {
   // ── Run batch ─────────────────────────────────────────────────────────────────
 
   async function runBatch() {
-    const validItems = items.filter(it => it.url.trim())
-    if (!validItems.length) return
+    const allValid   = items.filter(it => it.url.trim())
+    // Pre-flight: only process up to the quota remaining
+    const toProcess  = allValid.slice(0, remaining)
+    if (!toProcess.length) return
 
     abortRef.current = false
     setRunning(true)
@@ -205,11 +208,15 @@ export function BatchClient({ tier, remaining, limit }: Props) {
       it.url.trim() ? { ...it, status: 'idle', error: undefined, video_id: undefined, breakdown_id: undefined } : it
     ))
 
-    for (const item of validItems) {
+    let consumed = 0
+    for (const item of toProcess) {
       if (abortRef.current) break
       await processItem(item)
+      consumed++
     }
 
+    // Update remaining so the next batch in the same session is accurate
+    setRemaining(r => Math.max(0, r - consumed))
     setRunning(false)
   }
 

@@ -31,11 +31,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'plan must be "creator" or "scale"' }, { status: 400 })
   }
 
+  if (!user.email) {
+    return NextResponse.json({ error: 'Account email required for checkout. Please add an email to your account.' }, { status: 400 })
+  }
+
   try {
     const session = await createCheckoutSession(
       user.id,
       plan,
-      user.email ?? '',
+      user.email,
     )
     return NextResponse.json({ url: session.url })
   } catch (err) {

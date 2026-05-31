@@ -100,14 +100,16 @@ export async function POST(request: Request) {
         const userId  = session.metadata?.userId
         if (!userId || !session.subscription) break
 
-        // Retrieve full subscription; attach userId to metadata for future events
-        const sub = await stripe.subscriptions.retrieve(session.subscription as string, {
+        // Retrieve full subscription; attach userId + plan to metadata for all future events
+        const sub    = await stripe.subscriptions.retrieve(session.subscription as string, {
           expand: ['items.data'],
         })
-        if (!sub.metadata?.userId) {
-          await stripe.subscriptions.update(sub.id, { metadata: { ...sub.metadata, userId } })
+        const plan   = session.metadata?.plan ?? sub.metadata?.plan
+        const merged = { ...sub.metadata, userId, ...(plan ? { plan } : {}) }
+        if (!sub.metadata?.userId || !sub.metadata?.plan) {
+          await stripe.subscriptions.update(sub.id, { metadata: merged })
         }
-        await syncSubscription({ ...sub, metadata: { ...sub.metadata, userId } }, userId)
+        await syncSubscription({ ...sub, metadata: merged }, userId)
         break
       }
 
@@ -135,8 +137,9 @@ export async function POST(request: Request) {
         break
     }
   } catch (err) {
-    // Return 200 to prevent Stripe retries; log for manual review
+    // Return 500 so Stripe retries the event (DB failure, network issue, etc.)
     console.error('[webhook] handler error for', event.type, ':', err)
+    return NextResponse.json({ error: 'Handler failed' }, { status: 500 })
   }
 
   return NextResponse.json({ received: true })
