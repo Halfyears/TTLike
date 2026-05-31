@@ -52,10 +52,14 @@ export async function GET(
 
   const result = viralPipelineToStudioResult(vp)
 
+  // has_audio: true if Whisper transcription ran and produced content
+  const hasAudio = typeof payload?.transcript_full === 'string' && payload.transcript_full.length > 0
+
   return NextResponse.json({
     ok:           true,
     generated_at: vp.generated_at ?? new Date().toISOString(),
     pipeline_ms:  vp.pipeline_ms  ?? null,
+    has_audio:    hasAudio,
     ...result,
   })
 }

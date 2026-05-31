@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Plus, X, Loader2, ChevronLeft, Clock, Zap, Clapperboard } from 'lucide-react'
+import { Plus, X, Loader2, ChevronLeft, Clock, Zap, Clapperboard, Mic } from 'lucide-react'
 import { handleIntent } from '@/lib/behavior/intent-bridge'
 import { useBehaviorStore } from '@/lib/behavior/state-machine'
 import { URLInputCard } from '@/components/studio/URLInputCard'
@@ -10,6 +10,8 @@ import { AnalysisWaitScreen } from '@/components/studio/AnalysisWaitScreen'
 import { CreativeBlueprintCard } from '@/components/studio/CreativeBlueprintCard'
 import { ScriptLayerCard } from '@/components/studio/ScriptLayerCard'
 import { AntiDupHooksPanel } from '@/components/studio/AntiDupHooksPanel'
+import { FilmingPrepCard } from '@/components/studio/FilmingPrepCard'
+import { QuietProgress } from '@/components/behavior/QuietProgress'
 import type { CreativeBlueprint, ScriptLayer } from '@/lib/utils/result-transform'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -38,6 +40,7 @@ interface ProductForm {
 interface ResultMeta {
   generated_at: string | null
   pipeline_ms:  number | null
+  has_audio:    boolean
 }
 
 // ── Product Form Component ────────────────────────────────────────────────────
@@ -273,6 +276,15 @@ function ResultView({
                 {(resultMeta.pipeline_ms / 1000).toFixed(1)}s
               </span>
             )}
+            {resultMeta.has_audio && (
+              <>
+                <span className="text-gray-300">·</span>
+                <span className="flex items-center gap-0.5 text-emerald-500">
+                  <Mic className="w-3 h-3" />
+                  Audio analyzed
+                </span>
+              </>
+            )}
           </p>
           {meta.title && (
             <p className="text-sm text-gray-600 font-medium truncate max-w-sm" title={meta.title}>
@@ -295,6 +307,9 @@ function ResultView({
       {blueprint.hook && (
         <AntiDupHooksPanel hookLine={blueprint.hook} />
       )}
+
+      {/* Pre-shoot checklist */}
+      <FilmingPrepCard />
 
       {/* Storyboard CTA */}
       {storyboardProduct && (
@@ -324,7 +339,7 @@ export function StudioClient() {
   const [submitLoading, setSubmitLoading] = useState(false)
   const [submitError, setSubmitError]   = useState<string | null>(null)
   const [result, setResult]             = useState<{ blueprint: CreativeBlueprint; script: ScriptLayer } | null>(null)
-  const [resultMeta, setResultMeta]     = useState<ResultMeta>({ generated_at: null, pipeline_ms: null })
+  const [resultMeta, setResultMeta]     = useState<ResultMeta>({ generated_at: null, pipeline_ms: null, has_audio: false })
   const [errorMsg, setErrorMsg]         = useState<string | null>(null)
   const [prefillUrl, setPrefillUrl]     = useState<string | null>(null)
 
@@ -432,7 +447,7 @@ export function StudioClient() {
       }
       handleIntent('RESULT_READY')
       setResult({ blueprint: data.creative_blueprint, script: data.script_layer })
-      setResultMeta({ generated_at: data.generated_at ?? null, pipeline_ms: data.pipeline_ms ?? null })
+      setResultMeta({ generated_at: data.generated_at ?? null, pipeline_ms: data.pipeline_ms ?? null, has_audio: Boolean(data.has_audio) })
       setStage('result')
     } catch {
       setErrorMsg('Failed to load result. Please try again.')
@@ -458,7 +473,7 @@ export function StudioClient() {
     breakdownIdRef.current = null
     setBreakdownId(null)
     setResult(null)
-    setResultMeta({ generated_at: null, pipeline_ms: null })
+    setResultMeta({ generated_at: null, pipeline_ms: null, has_audio: false })
     setErrorMsg(null)
     setSubmitError(null)
   }
@@ -531,6 +546,10 @@ export function StudioClient() {
             resultMeta={resultMeta}
             onReset={reset}
           />
+          {/* Courage badge trace — mirrors dashboard sidebar, visible on public Studio */}
+          <div className="max-w-2xl mx-auto mt-2">
+            <QuietProgress variant="inline" />
+          </div>
         </div>
       )}
 

@@ -134,6 +134,9 @@ export interface VideoBreakdownPayload {
 
   /** Viral Pipeline result — populated by /api/admin/viral-analysis */
   viral_pipeline?: ViralPipeline
+
+  /** Full Whisper transcript — written by Trigger.dev pipeline when audio is available */
+  transcript_full?: string
 }
 
 // ── TTLike Commerce Payload v1 ────────────────────────────────────────────────
