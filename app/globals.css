@@ -19,3 +19,28 @@ body {
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Behavioral State CSS Layer (v1.5) ───────────────────────────────────────
+ * Driven by body[data-state] written by StateRuntime (app/layout.tsx root).
+ * States: ENTRY → READY → FIRST_TAKE → FLOW → COMPLETE
+ *
+ * Rules here are ADDITIVE — never override existing React-controlled styles.
+ * Removing StateRuntime → data-state absent → none of these rules activate.
+ *
+ * Use for future state-aware UI: progressive disclosure, focus rings, etc.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* ENTRY: user landed on /studio, URL input stage */
+body[data-state="ENTRY"]      {}
+
+/* READY: URL resolved, product form visible */
+body[data-state="READY"]      {}
+
+/* FIRST_TAKE: pipeline triggered, analysis in progress */
+body[data-state="FIRST_TAKE"] {}
+
+/* FLOW: result cards visible, user reviewing script */
+body[data-state="FLOW"]       {}
+
+/* COMPLETE: user copied script or extended to storyboard */
+body[data-state="COMPLETE"]   {}

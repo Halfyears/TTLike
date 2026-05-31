@@ -3,6 +3,7 @@ import { Geist } from 'next/font/google'
 import Script from 'next/script'
 import './globals.css'
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from '@/lib/constants'
+import { StateRuntime } from '@/components/system/StateRuntime'
 
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-geist' })
@@ -31,6 +32,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="msvalidate.01" content="701F44DD8CD51992D895FDE510E30B05" />
       </head>
       <body className="min-h-screen bg-white font-sans antialiased">
+        {/* Behavioral runtime — headless, mirrors Zustand state to body[data-state] */}
+        <StateRuntime />
         {children}
 
         {/* ── F1: Google Analytics 4 (G-87PJR2NW87) ─────────────────────── */}

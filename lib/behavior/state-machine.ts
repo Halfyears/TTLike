@@ -23,7 +23,7 @@ interface BehaviorStore {
   state:           State
   session:         SessionContext
   dispatch:        (event: BehaviorEvent) => void
-  incrementTake:   () => void
+  // Session flag setters (session metadata, not state-machine state)
   markStoryboard:  () => void
   markCopy:        () => void
 }
@@ -66,16 +66,20 @@ export const useBehaviorStore = create<BehaviorStore>((set) => ({
 
   dispatch: (event) => set((s) => {
     const next = transition(s.state, event)
-    // On RESET wipe session; on first ANALYSIS_STARTED stamp start time
-    const session =
-      event === 'RESET'             ? BLANK_SESSION :
-      event === 'ANALYSIS_STARTED' && s.session.startedAt === null
-        ? { ...s.session, startedAt: Date.now() }
-        : s.session
+    let session = s.session
+    if (event === 'RESET') {
+      session = BLANK_SESSION
+    } else if (event === 'ANALYSIS_STARTED') {
+      // takeCount increment and startedAt stamp both live here — no direct store mutation needed
+      session = {
+        ...s.session,
+        takeCount: s.session.takeCount + 1,
+        startedAt: s.session.startedAt ?? Date.now(),
+      }
+    }
     return { state: next, session }
   }),
 
-  incrementTake:  () => set((s) => ({ session: { ...s.session, takeCount: s.session.takeCount + 1 } })),
   markStoryboard: () => set((s) => ({ session: { ...s.session, storyboardClicked: true } })),
   markCopy:       () => set((s) => ({ session: { ...s.session, copyUsed: true } })),
 }))

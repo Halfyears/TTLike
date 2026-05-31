@@ -4,7 +4,6 @@ import { createClient } from '@/lib/supabase/server'
 import { Zap } from 'lucide-react'
 import { SignOutButton } from './SignOutButton'
 import { NavLinks, MobileTabBar } from './NavLinks'
-import { StateRuntime } from '@/components/system/StateRuntime'
 import { QuietProgress } from '@/components/behavior/QuietProgress'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -68,13 +67,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="p-4 sm:p-6 max-w-5xl mx-auto">
           {children}
         </div>
+        {/* Mobile: quiet progress — inline, light background, above tab bar */}
+        <div className="md:hidden px-4 pb-2">
+          <QuietProgress variant="inline" />
+        </div>
       </main>
 
       {/* ── Mobile bottom tab bar (client) ── */}
       <MobileTabBar />
-
-      {/* Behavioral runtime — headless, zero side effects if removed */}
-      <StateRuntime />
     </div>
   )
 }

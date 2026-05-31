@@ -374,8 +374,7 @@ export function StudioClient() {
         setSubmitError('Analysis could not be started. Please try again.')
         return
       }
-      handleIntent('ANALYSIS_STARTED')
-      useBehaviorStore.getState().incrementTake()
+      handleIntent('ANALYSIS_STARTED')   // takeCount increment is now inside dispatch
       breakdownIdRef.current = data.breakdown_id
       setBreakdownId(data.breakdown_id)
       setStage('analyzing')
