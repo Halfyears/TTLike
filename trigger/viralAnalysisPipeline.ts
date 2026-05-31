@@ -14,6 +14,7 @@ import { task, logger } from '@trigger.dev/sdk/v3'
 import { createClient } from '@supabase/supabase-js'
 import ws from 'ws'
 import { runViralPipeline } from '@/lib/engines'
+import { transcribeVideoUrl } from '@/lib/ai/transcription'
 import type { ProductSchemaInput } from '@/lib/engines/types'
 
 // Patch globalThis.WebSocket for Node.js < 22 (Trigger.dev runs Node 21).
@@ -60,6 +61,94 @@ export const viralAnalysisPipelineTask = task({
         .update({ viral_status: 'PROCESSING', viral_error: null })
         .eq('id', breakdown_id)
     }
+
+    // ── Pre-step: Groq Whisper Transcription ───────────────────────────────────
+    // Transcribes the real TikTok audio, populating visual_timeline + viral_formulas
+    // so the 6-stage pipeline runs in 'full' mode (real content vs metadata guesses).
+    // This step is best-effort: any failure silently falls back to metadata_only.
+    await (async () => {
+      if (!breakdown_id) return
+
+      // Skip if already transcribed on a previous run
+      const { data: bd } = await supabase
+        .from('video_breakdowns')
+        .select('payload')
+        .eq('id', breakdown_id)
+        .maybeSingle()
+
+      const existing = (bd?.payload ?? {}) as Record<string, unknown>
+      const alreadyDone = Array.isArray(existing['visual_timeline']) &&
+                          (existing['visual_timeline'] as unknown[]).length > 0
+      if (alreadyDone) {
+        logger.info('Transcription already cached, skipping', { breakdown_id })
+        return
+      }
+
+      // Get CDN download URL from tiktok_videos
+      const { data: vid } = await supabase
+        .from('tiktok_videos')
+        .select('video_url')
+        .eq('id', video_id)
+        .maybeSingle()
+
+      const downloadUrl = vid?.video_url as string | undefined
+      if (!downloadUrl) return
+
+      logger.info('Starting Groq Whisper transcription', { video_id, url_preview: downloadUrl.slice(0, 60) })
+
+      const transcript = await transcribeVideoUrl(downloadUrl)
+      if (!transcript || transcript.segments.length === 0) {
+        logger.warn('Transcription returned no content — staying metadata_only', { video_id })
+        return
+      }
+
+      logger.info('Transcription complete', {
+        segments: transcript.segments.length,
+        chars:    transcript.full_text.length,
+      })
+
+      // ── Build visual_timeline (real timestamps + spoken words) ─────────────
+      const visual_timeline = transcript.segments.map(seg => ({
+        timecode:       seg.timecode,
+        visual:         '(video)',          // no frame analysis — audio only
+        audio:          seg.audio,
+        why_this_works: '',                 // spike-detector will infer from content
+      }))
+
+      // ── Build viral_formulas (spoken content per segment) ──────────────────
+      const viral_formulas = transcript.segments
+        .filter(seg => seg.audio.length >= 10)
+        .slice(0, 8)
+        .map((seg, i) => ({
+          title:          `Scene ${i + 1}  [${seg.timecode}]`,
+          timestamp:      seg.timecode.split('-')[0] ?? '00:00',
+          example_script: `SAY: "${seg.audio}"`,
+          mechanism:      'transcribed spoken audio',
+          your_version:   seg.audio,
+        }))
+
+      // ── Persist into breakdown payload ─────────────────────────────────────
+      const updatedPayload: Record<string, unknown> = {
+        ...existing,
+        visual_timeline,
+        viral_formulas,
+        transcript_full: transcript.full_text,
+      }
+
+      const { error: updateErr } = await supabase
+        .from('video_breakdowns')
+        .update({ payload: updatedPayload })
+        .eq('id', breakdown_id)
+
+      if (updateErr) {
+        logger.error('Failed to persist transcript', { error: updateErr.message })
+      } else {
+        logger.info('Transcript persisted — pipeline will run in full mode', {
+          visual_timeline_count: visual_timeline.length,
+          viral_formulas_count:  viral_formulas.length,
+        })
+      }
+    })()
 
     // ── Run the full pipeline ──────────────────────────────────────────────────
     let result

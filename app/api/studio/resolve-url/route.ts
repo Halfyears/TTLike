@@ -137,12 +137,25 @@ function parseVideoData(body: unknown, tiktokId: string, tiktokUrl: string): Fet
     extractUrl(videoObj['cover'])        ||
     extractUrl(v['cover'])               ||
     null
+
+  // CDN download URL — stored so Trigger.dev pipeline can transcribe audio.
+  // Prefer no-watermark or play URL from the RapidAPI response.
+  const downloadUrl: string =
+    (typeof v['no_watermark'] === 'string' && v['no_watermark'].startsWith('http') ? v['no_watermark'] : '') ||
+    (typeof v['play']         === 'string' && v['play'].startsWith('http')         ? v['play']         : '') ||
+    (typeof v['wmplay']       === 'string' && v['wmplay'].startsWith('http')       ? v['wmplay']       : '') ||
+    extractUrl(videoObj['play_addr'])     ||
+    extractUrl(videoObj['download_addr']) ||
+    ''
+
   return {
     tiktok_id: tiktokId, title: title || `TikTok video ${tiktokId}`,
     author: authorName, views: plays, likes, shares, comments: cmnts,
     viral_score: viralScore(plays, likes, shares, cmnts),
     niche: detectNiche(title), product_name: extractProductName(title),
-    cover_url: coverUrl, video_url: tiktokUrl,
+    cover_url: coverUrl,
+    // Store CDN download URL when available; fall back to TikTok page URL
+    video_url: downloadUrl || tiktokUrl,
   }
 }
 
