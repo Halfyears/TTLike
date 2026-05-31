@@ -24,6 +24,15 @@ export default function UrlIngestion() {
     const trimmed = url.trim()
     if (!trimmed) return
 
+    if (trimmed.length > 500) {
+      setError('URL is too long. Please paste a standard TikTok video URL.')
+      return
+    }
+    if (!/^https?:\/\//i.test(trimmed) || !trimmed.includes('tiktok.com')) {
+      setError('Please enter a valid TikTok URL (https://www.tiktok.com/...)')
+      return
+    }
+
     setLoading(true)
     setError('')
     setNotScraped(false)

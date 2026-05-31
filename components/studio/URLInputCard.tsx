@@ -18,6 +18,16 @@ export function URLInputCard({ onResolved, prefillUrl }: URLInputCardProps) {
   // ── Shared resolve logic — single source of truth ─────────────────────────
   const resolveUrl = useCallback(async (target: string) => {
     setError(null)
+
+    if (target.length > 500) {
+      setError('URL is too long. Please paste a standard TikTok video URL.')
+      return
+    }
+    if (!/^https?:\/\//i.test(target) || !target.includes('tiktok.com')) {
+      setError('Please enter a valid TikTok URL (https://www.tiktok.com/...)')
+      return
+    }
+
     setLoading(true)
     try {
       const res  = await fetch('/api/studio/resolve-url', {

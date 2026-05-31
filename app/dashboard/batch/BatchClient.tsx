@@ -89,7 +89,10 @@ export function BatchClient({ tier, remaining: remainingInit, limit }: Props) {
 
   function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
     const text  = e.clipboardData.getData('text')
-    const lines = text.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
+    // Truncate extremely long paste content before splitting (DoS guard)
+    const lines = text.slice(0, 5000).split(/[\n,]+/)
+      .map(s => s.trim().slice(0, 500))   // cap each URL at 500 chars
+      .filter(Boolean)
     if (lines.length <= 1) return   // single URL: let normal input handle it
 
     e.preventDefault()

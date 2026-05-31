@@ -92,6 +92,9 @@ async function fetchTikTokOembed(videoUrl: string): Promise<TikTokOembed | null>
  * Only fires for short-link hostnames — standard www.tiktok.com URLs are
  * returned immediately with no network round-trip.
  */
+// Allowed TikTok hostnames — mirrors resolve-url/route.ts
+const ALLOWED_TIKTOK_HOSTS = /^(www\.|m\.|vm\.|vt\.)?tiktok\.com$/i
+
 async function resolveShortUrl(raw: string): Promise<string> {
   try {
     const hostname = new URL(raw).hostname
@@ -100,13 +103,17 @@ async function resolveShortUrl(raw: string): Promise<string> {
     const res = await fetch(raw, {
       method:   'HEAD',
       redirect: 'follow',
-      // 5-second ceiling — never block the analysis pipeline
       signal:   AbortSignal.timeout(5_000),
     })
-    // res.url is the final URL after all redirects
-    return res.url || raw
+    const expanded = res.url || raw
+    // SSRF guard: only accept if redirect stayed on tiktok.com
+    try {
+      const expandedHost = new URL(expanded).hostname
+      if (!ALLOWED_TIKTOK_HOSTS.test(expandedHost)) return raw
+    } catch { return raw }
+    return expanded
   } catch {
-    return raw   // timeout, network error, invalid URL — continue with original
+    return raw
   }
 }
 
@@ -122,6 +129,14 @@ export async function POST(req: Request) {
   const { video_id, url } = body
   if (!video_id && !url) {
     return NextResponse.json({ error: 'video_id or url is required' }, { status: 400 })
+  }
+
+  // Input length caps — prevent DoS via oversized strings
+  if (url && (typeof url !== 'string' || url.length > 500)) {
+    return NextResponse.json({ error: 'URL too long' }, { status: 400 })
+  }
+  if (video_id && (typeof video_id !== 'string' || video_id.length > 100)) {
+    return NextResponse.json({ error: 'Invalid video_id' }, { status: 400 })
   }
 
   const service = createServiceClient()
@@ -170,8 +185,9 @@ export async function POST(req: Request) {
       }
     }
   } catch (e) {
-    // Auth/tier check failure is non-fatal — let analysis proceed
-    console.warn('[analyze] tier guard error (non-fatal):', e)
+    // Auth infrastructure error — fail closed rather than silently granting free access
+    console.error('[analyze] tier guard error:', e)
+    return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 503 })
   }
 
   // ── 0. Resolve short URLs before any cache or DB lookup ────────────────────
@@ -245,13 +261,12 @@ export async function POST(req: Request) {
       .maybeSingle()
     : { data: null }
 
-    // Pass 3 — numeric video-ID substring match (handles any URL variant)
+    // Pass 3 — tiktok_id exact match (indexed column, no full-table scan)
     const { data: d3 } = (!d1 && !d2 && tikVideoId) ? await service
       .from('tiktok_videos')
       .select('id, title, product_name, niche, views, likes, shares, author')
-      .ilike('video_url', `%${tikVideoId}%`)
+      .eq('tiktok_id', tikVideoId)
       .is('deleted_at', null)
-      .limit(1)
       .maybeSingle()
     : { data: null }
 

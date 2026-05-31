@@ -42,6 +42,9 @@ export async function POST(req: Request) {
   if (!video_id) {
     return NextResponse.json({ error: 'video_id is required' }, { status: 400 })
   }
+  if (typeof video_id !== 'string' || video_id.length > 100 || !/^[0-9a-f-]+$/i.test(video_id)) {
+    return NextResponse.json({ error: 'Invalid video_id' }, { status: 400 })
+  }
 
   const service  = createServiceClient()
   const cacheKey = healthHash(video_id)
