@@ -69,12 +69,12 @@ function EmptyState() {
     <div className="text-center py-20 text-gray-400">
       <Zap className="h-12 w-12 mx-auto mb-4 text-gray-200" />
       <p className="text-sm font-semibold text-gray-700 mb-1">No generation events yet</p>
-      <p className="text-xs">Generate your first AI script — activity will appear here.</p>
+      <p className="text-xs">Analyze a TikTok video in Viral Studio — activity will appear here.</p>
       <a
-        href="/dashboard/ai-scripts"
-        className="inline-block mt-4 px-4 py-2 rounded-lg bg-pink-500 text-white text-sm font-medium hover:bg-pink-600 transition-colors"
+        href="/studio"
+        className="inline-block mt-4 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-violet-500 text-white text-sm font-semibold hover:opacity-90 transition-opacity"
       >
-        Generate Scripts
+        Open Viral Studio
       </a>
     </div>
   )

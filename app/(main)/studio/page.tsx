@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -9,7 +9,7 @@ import { CreativeBlueprintCard } from '@/components/studio/CreativeBlueprintCard
 import { ScriptLayerCard } from '@/components/studio/ScriptLayerCard'
 import type { CreativeBlueprint, ScriptLayer } from '@/lib/utils/result-transform'
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type Stage =
   | 'url_input'
@@ -36,7 +36,7 @@ interface ResultMeta {
   pipeline_ms:  number | null
 }
 
-// ── Product Form Component ────────────────────────────────────────────────────
+// â”€â”€ Product Form Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ProductFormStep({
   meta,
@@ -83,7 +83,7 @@ function ProductFormStep({
         {/* Video title preview */}
         {meta.title && (
           <div className="flex items-start gap-2 mb-5 p-3 bg-gray-50 rounded-xl">
-            <Zap className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+            <Zap className="w-4 h-4 text-pink-400 shrink-0 mt-0.5" />
             <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">{meta.title}</p>
           </div>
         )}
@@ -97,7 +97,7 @@ function ProductFormStep({
               value={form.category}
               onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
               placeholder="e.g. skincare, fitness, kitchen"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
             />
           </div>
 
@@ -109,9 +109,9 @@ function ProductFormStep({
             </label>
             <div className="flex flex-wrap gap-2 mb-2">
               {form.pain_points.map((p, i) => (
-                <span key={i} className="flex items-center gap-1 px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-full text-sm">
+                <span key={i} className="flex items-center gap-1 px-3 py-1.5 bg-pink-50 text-pink-700 rounded-full text-sm">
                   {p}
-                  <button onClick={() => removePain(i)} className="hover:text-indigo-900 ml-0.5">
+                  <button onClick={() => removePain(i)} className="hover:text-pink-900 ml-0.5">
                     <X className="w-3 h-3" />
                   </button>
                 </span>
@@ -125,7 +125,7 @@ function ProductFormStep({
                   onChange={e => setNewPain(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPain() } }}
                   placeholder="Add a pain point..."
-                  className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
                 />
                 <button
                   onClick={addPain}
@@ -148,7 +148,7 @@ function ProductFormStep({
                 onChange={e => setForm(f => ({ ...f, price_point: Number(e.target.value) }))}
                 min={1}
                 step={1}
-                className="w-full pl-7 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-7 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
               />
             </div>
           </div>
@@ -163,11 +163,11 @@ function ProductFormStep({
         <button
           onClick={onSubmit}
           disabled={loading || !form.category.trim() || form.pain_points.length === 0}
-          className="mt-6 w-full py-3 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
+          className="mt-6 w-full py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
         >
           {loading
             ? <><Loader2 className="w-4 h-4 animate-spin" />Starting analysis...</>
-            : 'Generate Script →'}
+            : 'Generate Script â†’'}
         </button>
 
         {form.pain_points.length === 0 && (
@@ -178,7 +178,7 @@ function ProductFormStep({
   )
 }
 
-// ── Result View ───────────────────────────────────────────────────────────────
+// â”€â”€ Result View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ResultView({
   blueprint,
@@ -213,7 +213,7 @@ function ResultView({
             <span className="w-2 h-2 rounded-full bg-green-400 inline-block"></span>
             {timeAgo ? `Generated ${timeAgo}` : 'Generated'}
             {resultMeta.pipeline_ms && (
-              <span className="text-gray-300">·</span>
+              <span className="text-gray-300">Â·</span>
             )}
             {resultMeta.pipeline_ms && (
               <span className="flex items-center gap-0.5">
@@ -230,7 +230,7 @@ function ResultView({
         </div>
         <button
           onClick={onReset}
-          className="shrink-0 text-sm text-indigo-600 hover:text-indigo-700 flex items-center gap-1 whitespace-nowrap"
+          className="shrink-0 text-sm text-pink-500 hover:text-pink-600 flex items-center gap-1 whitespace-nowrap"
         >
           <ChevronLeft className="w-4 h-4" /> New video
         </button>
@@ -242,7 +242,7 @@ function ResultView({
   )
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function StudioPage() {
   const searchParams = useSearchParams()
@@ -261,7 +261,7 @@ export default function StudioPage() {
   // without re-creating the function and restarting the poll effect
   const breakdownIdRef = useRef<string | null>(null)
 
-  // Auto-prefill URL from ?url= param — fire only once per unique value
+  // Auto-prefill URL from ?url= param â€” fire only once per unique value
   const handledUrlRef = useRef<string | null>(null)
   useEffect(() => {
     const urlParam = searchParams.get('url')
@@ -271,7 +271,7 @@ export default function StudioPage() {
     }
   }, [searchParams])
 
-  // ── Step 1: URL resolved → fetch context → fill form → transition ──────────
+  // â”€â”€ Step 1: URL resolved â†’ fetch context â†’ fill form â†’ transition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handleResolved = useCallback(async (
     videoId: string,
     title: string | null,
@@ -299,7 +299,7 @@ export default function StudioPage() {
     setStage('product_form')
   }, [])
 
-  // ── Step 2: Submit product form → trigger pipeline ─────────────────────────
+  // â”€â”€ Step 2: Submit product form â†’ trigger pipeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   async function handleSubmitForm() {
     if (!videoMeta) return
     setSubmitLoading(true)
@@ -330,14 +330,14 @@ export default function StudioPage() {
       setBreakdownId(data.breakdown_id)
       setStage('analyzing')
     } catch {
-      setSubmitError('Network error — please check your connection and try again.')
+      setSubmitError('Network error â€” please check your connection and try again.')
     } finally {
       setSubmitLoading(false)
     }
   }
 
-  // ── Step 3: Pipeline completed → fetch result ──────────────────────────────
-  // Uses ref so this function stays stable — no poll restart on re-render
+  // â”€â”€ Step 3: Pipeline completed â†’ fetch result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Uses ref so this function stays stable â€” no poll restart on re-render
   const handleCompleted = useCallback(async () => {
     const id = breakdownIdRef.current
     if (!id) return
@@ -356,7 +356,7 @@ export default function StudioPage() {
       setErrorMsg('Failed to load result. Please try again.')
       setStage('error')
     }
-  }, [])  // stable — reads breakdownId via ref
+  }, [])  // stable â€” reads breakdownId via ref
 
   const handleFailed = useCallback((err: string) => {
     setErrorMsg(err || 'Analysis failed. Please try again.')
@@ -427,7 +427,7 @@ export default function StudioPage() {
           <p className="text-sm text-gray-500 mb-6">{errorMsg ?? 'Something went wrong'}</p>
           <button
             onClick={reset}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors"
+            className="px-6 py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-colors"
           >
             Try again
           </button>
@@ -436,3 +436,4 @@ export default function StudioPage() {
     </main>
   )
 }
+
