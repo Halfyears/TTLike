@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server'
 import { Zap } from 'lucide-react'
 import { SignOutButton } from './SignOutButton'
 import { NavLinks, MobileTabBar } from './NavLinks'
+import { StateRuntime } from '@/components/system/StateRuntime'
+import { QuietProgress } from '@/components/behavior/QuietProgress'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -32,6 +34,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
         {/* Nav groups (client — needs usePathname) */}
         <NavLinks />
+
+        {/* Quiet Progress — silent badge trace, low contrast */}
+        <QuietProgress />
 
         {/* User footer */}
         <div className="px-3 py-3 border-t border-slate-800">
@@ -67,6 +72,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       {/* ── Mobile bottom tab bar (client) ── */}
       <MobileTabBar />
+
+      {/* Behavioral runtime — headless, zero side effects if removed */}
+      <StateRuntime />
     </div>
   )
 }

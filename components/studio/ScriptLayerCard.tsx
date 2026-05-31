@@ -5,10 +5,11 @@ import { FileText, Copy, Check } from 'lucide-react'
 import type { ScriptLayer } from '@/lib/utils/result-transform'
 
 interface ScriptLayerCardProps {
-  script: ScriptLayer
+  script:   ScriptLayer
+  onCopy?:  () => void
 }
 
-export function ScriptLayerCard({ script }: ScriptLayerCardProps) {
+export function ScriptLayerCard({ script, onCopy }: ScriptLayerCardProps) {
   const [copied, setCopied] = useState(false)
 
   function buildPlainText() {
@@ -22,6 +23,7 @@ export function ScriptLayerCard({ script }: ScriptLayerCardProps) {
       await navigator.clipboard.writeText(buildPlainText())
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+      onCopy?.()
     } catch {}
   }
 

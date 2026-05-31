@@ -3,6 +3,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Plus, X, Loader2, ChevronLeft, Clock, Zap, Clapperboard } from 'lucide-react'
+import { handleIntent } from '@/lib/behavior/intent-bridge'
+import { useBehaviorStore } from '@/lib/behavior/state-machine'
 import { URLInputCard } from '@/components/studio/URLInputCard'
 import { AnalysisWaitScreen } from '@/components/studio/AnalysisWaitScreen'
 import { CreativeBlueprintCard } from '@/components/studio/CreativeBlueprintCard'
@@ -216,6 +218,23 @@ function ResultView({
     : null
 
   const storyboardProduct = encodeURIComponent(meta.product_name ?? meta.niche ?? '')
+  const { markStoryboard, markCopy, session } = useBehaviorStore()
+
+  function triggerComplete(type: 'copy' | 'storyboard') {
+    if (type === 'copy')       markCopy()
+    if (type === 'storyboard') markStoryboard()
+    handleIntent('COMPLETE_SESSION')
+    // Fire-and-forget badge check — QuietProgress refetches on COMPLETE state
+    void fetch('/api/behavior/check-badges', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        takeCount:         session.takeCount,
+        storyboardClicked: type === 'storyboard' ? true : session.storyboardClicked,
+        copyUsed:          type === 'copy'        ? true : session.copyUsed,
+      }),
+    })
+  }
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6">
@@ -248,19 +267,19 @@ function ResultView({
       </div>
 
       <CreativeBlueprintCard blueprint={blueprint} />
-      <ScriptLayerCard script={script} />
+      <ScriptLayerCard script={script} onCopy={() => triggerComplete('copy')} />
 
       {/* Storyboard CTA */}
       {storyboardProduct && (
         <div className="flex justify-center pt-2">
           <a
             href={`/dashboard/studio?product=${storyboardProduct}`}
+            onClick={() => triggerComplete('storyboard')}
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-pink-500/20"
           >
             <Clapperboard className="w-4 h-4" />
             Generate Storyboard →
           </a>
-          <p className="sr-only">Turn this script into a shot-by-shot storyboard</p>
         </div>
       )}
     </div>
@@ -300,6 +319,7 @@ export function StudioClient() {
     productName: string | null,
     niche: string | null,
   ): Promise<void> => {
+    handleIntent('URL_RESOLVED')
     setVideoMeta({ video_id: videoId, title, product_name: productName, niche })
     try {
       const res  = await fetch(`/api/studio/context/${videoId}`)
@@ -350,6 +370,8 @@ export function StudioClient() {
         setSubmitError('Analysis could not be started. Please try again.')
         return
       }
+      handleIntent('ANALYSIS_STARTED')
+      useBehaviorStore.getState().incrementTake()
       breakdownIdRef.current = data.breakdown_id
       setBreakdownId(data.breakdown_id)
       setStage('analyzing')
@@ -372,6 +394,7 @@ export function StudioClient() {
         setStage('error')
         return
       }
+      handleIntent('RESULT_READY')
       setResult({ blueprint: data.creative_blueprint, script: data.script_layer })
       setResultMeta({ generated_at: data.generated_at ?? null, pipeline_ms: data.pipeline_ms ?? null })
       setStage('result')
@@ -391,6 +414,7 @@ export function StudioClient() {
   }, [])
 
   function reset() {
+    handleIntent('RESET')
     setStage('url_input')
     setVideoMeta(null)
     setForm({ category: '', pain_points: [], price_point: 29 })

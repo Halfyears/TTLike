@@ -227,6 +227,19 @@ model SpamRule {
   @@map("spam_rules")
 }
 
+// ── Behavior System (v1.6) — side-table, non-invasive ───────────────────────
+// Cumulative across sessions. If this model is removed, core SaaS is unaffected.
+model BadgeLog {
+  id        String   @id @default(uuid())
+  userId    String
+  badgeType String   // FIRST_RESULT | NO_PERFECT_TAKE | STORYBOARD_EXTENDED | WELCOME_BACK
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, badgeType])
+  @@map("badge_logs")
+}
+
 model AffiliateLink {
   id          String   @id @default(uuid())
   userId      String?

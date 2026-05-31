@@ -29,7 +29,8 @@
     "stripe": "^22.1.1",
     "tailwind-merge": "^3.6.0",
     "ws": "^8.21.0",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
