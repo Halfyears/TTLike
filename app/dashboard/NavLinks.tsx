@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Clapperboard, Search,
-  TrendingUp, BookOpen, BarChart2, Wand2,
+  TrendingUp, BookOpen, BarChart2, Wand2, Layers,
 } from 'lucide-react'
 
 const GROUPS = [
@@ -12,6 +12,7 @@ const GROUPS = [
     label: 'Create',
     links: [
       { href: '/studio',           icon: Wand2,        label: 'Viral Studio', badge: 'NEW' },
+      { href: '/dashboard/batch',  icon: Layers,       label: 'Batch Analysis' },
       { href: '/dashboard/studio', icon: Clapperboard, label: 'Storyboard' },
     ],
   },
