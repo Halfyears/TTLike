@@ -51,7 +51,7 @@ export default function TermsPage() {
 
           {/* 3. Account */}
           <section>
-            <h2 className="text-lg font-semibent text-gray-900 mb-3">3. Account Registration &amp; Security</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Account Registration &amp; Security</h2>
             <p className="text-gray-600 mb-2">To access certain features, you must create an account. You agree to:</p>
             <ul className="list-disc list-inside text-gray-600 space-y-1">
               <li>Provide accurate, current, and complete registration information.</li>

@@ -20,10 +20,16 @@ export function SignupForm() {
     setLoading(true)
     setError('')
 
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      setError('Password must be at least 8 characters and include a letter and a number.')
+      setLoading(false)
+      return
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name }, emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard` },
+      options: { data: { name }, emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin}/auth/callback?next=/dashboard` },
     })
 
     if (error) {

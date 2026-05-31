@@ -7,10 +7,10 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
 
-  // Guard against open-redirect: next must be a relative path starting with /
-  // and must NOT start with // (which browsers treat as protocol-relative URL).
+  // Guard against open-redirect: only allow known app routes.
+  const ALLOWED_NEXT = new Set(['/dashboard', '/studio', '/products', '/hooks', '/trending', '/blog', '/pricing'])
   const rawNext = searchParams.get('next') ?? '/dashboard'
-  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/dashboard'
+  const next = ALLOWED_NEXT.has(rawNext) ? rawNext : '/dashboard'
 
   // Prefer explicit site URL (set in Vercel env) to avoid localhost redirects
   // when the server-side request.url resolves to an internal or preview address.
@@ -20,11 +20,10 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      // ── Upsert Prisma User — ensures OAuth users have a DB record ────────────
-      ;(async () => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser()
-          if (!user?.email) return
+      // ── Upsert Prisma User — awaited so the record exists before redirect ──────
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user?.email) {
           const meta = user.user_metadata ?? {}
           await prisma.user.upsert({
             where: { email: user.email },
@@ -33,16 +32,14 @@ export async function GET(request: NextRequest) {
               email: user.email,
               name: meta.full_name ?? meta.name ?? null,
               avatarUrl: meta.avatar_url ?? meta.picture ?? null,
-              updatedAt: new Date().toISOString(),
             },
             update: {
               name: meta.full_name ?? meta.name ?? undefined,
               avatarUrl: meta.avatar_url ?? meta.picture ?? undefined,
-              updatedAt: new Date().toISOString(),
             },
           })
-        } catch { /* non-fatal — user can still access the app */ }
-      })()
+        }
+      } catch { /* non-fatal — user can still access the app */ }
 
       // ── REQ-A1: Affiliate attribution (inlined — no internal fetch) ──────────
       // Read the `ref` cookie set when the user followed an affiliate link
