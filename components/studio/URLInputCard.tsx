@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link2, ArrowRight, Loader2 } from 'lucide-react'
 
 interface URLInputCardProps {
@@ -15,51 +15,43 @@ export function URLInputCard({ onResolved, prefillUrl }: URLInputCardProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
 
-  // Auto-fill and auto-submit when prefillUrl is provided (from Dashboard)
-  useEffect(() => {
-    if (!prefillUrl) return
-    setUrl(prefillUrl)
-    void (async () => {
-      setError(null)
-      setLoading(true)
-      try {
-        const res  = await fetch('/api/studio/resolve-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ tiktok_url: prefillUrl }),
-        })
-        const data = await res.json()
-        if (!data.ok) { setError(data.error); return }
-        await onResolved(data.video_id, data.title, data.product_name, data.niche)
-      } catch {
-        setError('Network error. Please try again.')
-      } finally {
-        setLoading(false)
-      }
-    })()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefillUrl])
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!url.trim()) return
+  // ── Shared resolve logic — single source of truth ─────────────────────────
+  const resolveUrl = useCallback(async (target: string) => {
     setError(null)
     setLoading(true)
     try {
       const res  = await fetch('/api/studio/resolve-url', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ tiktok_url: url.trim() }),
+        body:    JSON.stringify({ tiktok_url: target }),
       })
       const data = await res.json()
-      if (!data.ok) { setError(data.error); return }
-      // Await onResolved so loading spinner stays on while parent fetches context
+      if (!data.ok) {
+        // Surface specific server error when available
+        setError(data.error ?? 'Could not resolve this URL. Please check it and try again.')
+        return
+      }
       await onResolved(data.video_id, data.title, data.product_name, data.niche)
     } catch {
-      setError('Network error. Please try again.')
+      setError('Network error. Please check your connection and try again.')
     } finally {
       setLoading(false)
     }
+  }, [onResolved])
+
+  // Auto-fill and auto-submit when prefillUrl is provided (from Dashboard)
+  // Guard: only fire once per unique prefillUrl value
+  useEffect(() => {
+    if (!prefillUrl) return
+    setUrl(prefillUrl)
+    void resolveUrl(prefillUrl)
+  }, [prefillUrl, resolveUrl])
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    const trimmed = url.trim()
+    if (!trimmed) return
+    await resolveUrl(trimmed)
   }
 
   return (
@@ -75,7 +67,7 @@ export function URLInputCard({ onResolved, prefillUrl }: URLInputCardProps) {
           <input
             type="url"
             value={url}
-            onChange={e => setUrl(e.target.value)}
+            onChange={e => { setUrl(e.target.value); setError(null) }}
             placeholder="https://www.tiktok.com/@user/video/..."
             className="w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
             disabled={loading}

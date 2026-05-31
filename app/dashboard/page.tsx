@@ -49,27 +49,32 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const firstName = (user?.user_metadata?.name as string | undefined)?.split(' ')[0]
+  // Strip non-alphanumeric chars to prevent XSS in greeting display
+  const rawName = (user?.user_metadata?.name as string | undefined)?.split(' ')[0]
     ?? user?.email?.split('@')[0]
     ?? 'there'
+  const firstName = rawName.replace(/[^a-zA-Z0-9一-龥_\- ]/g, '').slice(0, 30) || 'there'
 
-  // ── Top products ─────────────────────────────────────────────────────────────
+  // ── Top products (5s timeout guard) ──────────────────────────────────────────
   let topProducts: Array<{ id: string; name: string; niche: string; score: number }> = []
   try {
-    const { data } = await supabase
+    const timeout = new Promise<null>(r => setTimeout(() => r(null), 5000))
+    const query   = supabase
       .from('tiktok_videos')
       .select('id, product_name, title, niche, viral_score')
       .order('viral_score', { ascending: false })
       .limit(5)
+    const result = await Promise.race([query, timeout])
+    const data = result && 'data' in result ? result.data : null
     if (data?.length) {
       topProducts = data.map(r => ({
         id:    r.id,
-        name:  r.product_name ?? r.title,
+        name:  r.product_name ?? r.title ?? '',
         niche: r.niche ?? 'General',
         score: Math.round(r.viral_score ?? 0),
       }))
     }
-  } catch { /* ignore */ }
+  } catch { /* ignore — show empty state */ }
 
   // ── Ledger stats ──────────────────────────────────────────────────────────────
   let totalGenerations = 0

@@ -261,10 +261,14 @@ export default function StudioPage() {
   // without re-creating the function and restarting the poll effect
   const breakdownIdRef = useRef<string | null>(null)
 
-  // Auto-prefill URL from ?url= param (passed from Dashboard ViralStudioCard)
+  // Auto-prefill URL from ?url= param — fire only once per unique value
+  const handledUrlRef = useRef<string | null>(null)
   useEffect(() => {
     const urlParam = searchParams.get('url')
-    if (urlParam) setPrefillUrl(urlParam)
+    if (urlParam && urlParam !== handledUrlRef.current) {
+      handledUrlRef.current = urlParam
+      setPrefillUrl(urlParam)
+    }
   }, [searchParams])
 
   // ── Step 1: URL resolved → fetch context → fill form → transition ──────────
@@ -318,6 +322,10 @@ export default function StudioPage() {
         setSubmitError(data.error ?? 'Something went wrong. Please try again.')
         return
       }
+      if (!data.breakdown_id) {
+        setSubmitError('Analysis could not be started. Please try again.')
+        return
+      }
       breakdownIdRef.current = data.breakdown_id
       setBreakdownId(data.breakdown_id)
       setStage('analyzing')
@@ -352,6 +360,11 @@ export default function StudioPage() {
 
   const handleFailed = useCallback((err: string) => {
     setErrorMsg(err || 'Analysis failed. Please try again.')
+    // Clear stale pipeline state so retry starts fresh
+    breakdownIdRef.current = null
+    setBreakdownId(null)
+    setVideoMeta(null)
+    setForm({ category: '', pain_points: [], price_point: 29 })
     setStage('error')
   }, [])
 

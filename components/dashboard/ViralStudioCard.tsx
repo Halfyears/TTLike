@@ -1,18 +1,29 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import { Wand2, ArrowRight, Loader2 } from 'lucide-react'
 
 export function ViralStudioCard() {
   const [url, setUrl]         = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
+  const [error, setError]     = useState<string | null>(null)
+  const router   = useRouter()
+  const pathname = usePathname()
+
+  // Reset loading if user navigates back to dashboard without completing the flow
+  useEffect(() => { setLoading(false) }, [pathname])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const trimmed = url.trim()
     if (!trimmed) return
+    // Validate: must be a real https TikTok URL
+    if (!trimmed.startsWith('https://') || !trimmed.includes('tiktok.com')) {
+      setError('Please enter a valid TikTok video URL (https://www.tiktok.com/...)')
+      return
+    }
+    setError(null)
     setLoading(true)
     router.push(`/studio?url=${encodeURIComponent(trimmed)}`)
   }
@@ -49,6 +60,10 @@ export function ViralStudioCard() {
             : <><ArrowRight className="h-4 w-4" /></>}
         </button>
       </form>
+
+      {error && (
+        <p className="mt-2 text-[11px] text-red-500">{error}</p>
+      )}
 
       <p className="mt-2.5 text-[11px] text-gray-400">
         Analyzes hook structure · emotion arc · script blueprint · ready-to-film lines
