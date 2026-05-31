@@ -47,9 +47,10 @@ export function URLInputCard({ onResolved, prefillUrl }: URLInputCardProps) {
   // Auto-fill and auto-submit when prefillUrl is provided (from Dashboard)
   // Guard: only fire once per unique prefillUrl value
   useEffect(() => {
-    if (!prefillUrl) return
-    setUrl(prefillUrl)
-    void resolveUrl(prefillUrl)
+    if (!prefillUrl?.trim()) return
+    const trimmed = prefillUrl.trim()
+    setUrl(trimmed)
+    void resolveUrl(trimmed)
   }, [prefillUrl, resolveUrl])
 
   async function handleSubmit(e: React.FormEvent) {

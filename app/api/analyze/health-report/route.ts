@@ -83,19 +83,8 @@ export async function POST(req: Request) {
     })
   }
 
-  // ── 3. Fetch video metadata ─────────────────────────────────────────────────
-  const { data: meta } = await service
-    .from('tiktok_videos')
-    .select('id, title, product_name, niche, views, likes, shares, author')
-    .eq('id', video_id)
-    .is('deleted_at', null)
-    .maybeSingle()
-
-  if (!meta) {
-    return NextResponse.json({ error: 'Video not found' }, { status: 404 })
-  }
-
-  // ── 4. Atomic quota claim — only increments if still under limit ──────────────
+  // ── 3. Atomic quota claim — only increments if still under limit ─────────────
+  // Placed BEFORE the video fetch so quota-exceeded users don't trigger DB reads.
   // Uses a conditional UPDATE (WHERE used < limit) so two concurrent requests
   // cannot both claim the last slot: exactly one will match, the other gets 0 rows.
   // .select('user_id') is required to get affected rows back in Supabase JS v2.
@@ -112,11 +101,27 @@ export async function POST(req: Request) {
   }
 
   if (!claimedData || claimedData.length === 0) {
-    // Another concurrent request already consumed the last slot
     return NextResponse.json(
       { error: 'quota_exceeded', used: limit, limit },
       { status: 402 },
     )
+  }
+
+  // ── 4. Fetch video metadata ─────────────────────────────────────────────────
+  const { data: meta } = await service
+    .from('tiktok_videos')
+    .select('id, title, product_name, niche, views, likes, shares, author')
+    .eq('id', video_id)
+    .is('deleted_at', null)
+    .maybeSingle()
+
+  if (!meta) {
+    // Refund: video not found — release the quota slot we just claimed
+    void service.from('user_billing_tiers')
+      .update({ strategy_audit_used: used })
+      .eq('user_id', user.id)
+      .gt('strategy_audit_used', 0)
+    return NextResponse.json({ error: 'Video not found' }, { status: 404 })
   }
 
   // ── 5. Generate health report via AI waterfall ──────────────────────────────

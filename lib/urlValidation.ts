@@ -33,11 +33,12 @@ export function isTikTokUrl(raw: string): boolean {
  * Intended for client-side inline error messages before submitting.
  */
 export function tikTokUrlError(raw: string): string | null {
-  if (!raw.trim()) return null   // empty: let required-field handler deal with it
-  if (raw.length > MAX_URL_LENGTH) return 'URL is too long. Please paste a standard TikTok video URL.'
-  if (!/^https?:\/\//i.test(raw)) return 'Please enter a URL starting with https://'
+  const s = raw.trim()
+  if (!s) return null   // empty: let required-field handler deal with it
+  if (s.length > MAX_URL_LENGTH) return 'URL is too long. Please paste a standard TikTok video URL.'
+  if (!/^https?:\/\//i.test(s)) return 'Please enter a URL starting with https://'
   try {
-    const { hostname } = new URL(raw)
+    const { hostname } = new URL(s)
     if (!TIKTOK_HOST_RE.test(hostname)) return 'Only TikTok URLs are accepted (tiktok.com)'
   } catch {
     return 'Invalid URL format'

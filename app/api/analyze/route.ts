@@ -129,9 +129,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'video_id or url is required' }, { status: 400 })
   }
 
-  // Input length caps — prevent DoS via oversized strings
-  if (url && (typeof url !== 'string' || url.length > MAX_URL_LENGTH)) {
-    return NextResponse.json({ error: 'URL too long' }, { status: 400 })
+  // Input validation — length + hostname check on url; format check on video_id
+  if (url) {
+    if (typeof url !== 'string' || url.length > MAX_URL_LENGTH) {
+      return NextResponse.json({ error: 'URL too long' }, { status: 400 })
+    }
+    // Hostname check: only TikTok domains accepted (prevents SSRF via oEmbed/resolveShortUrl)
+    try {
+      const host = new URL(url).hostname
+      if (!TIKTOK_HOST_RE.test(host)) {
+        return NextResponse.json({ error: 'Only TikTok URLs are accepted' }, { status: 400 })
+      }
+    } catch {
+      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 })
+    }
   }
   if (video_id && (typeof video_id !== 'string' || video_id.length > 100)) {
     return NextResponse.json({ error: 'Invalid video_id' }, { status: 400 })
