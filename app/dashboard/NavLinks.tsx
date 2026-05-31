@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Clapperboard, Search,
-  TrendingUp, BookOpen, BarChart2, Wand2, Layers,
+  TrendingUp, BookOpen, BarChart2, Wand2, Layers, User,
 } from 'lucide-react'
 
 const GROUPS = [
@@ -78,13 +78,14 @@ export function NavLinks() {
   )
 }
 
-// ── Mobile bottom tab bar (5 items only) ──────────────────────────────────────
+// ── Mobile bottom tab bar (5 items) ──────────────────────────────────────────
+// Storyboard omitted — accessible from Studio page; replaced with Account entry
 const MOBILE_TABS = [
   { href: '/dashboard',        icon: LayoutDashboard, label: 'Home' },
   { href: '/studio',           icon: Wand2,           label: 'Studio' },
-  { href: '/dashboard/studio', icon: Clapperboard,    label: 'Storyboard' },
   { href: '/products',         icon: Search,          label: 'Products' },
   { href: '/trending',         icon: TrendingUp,      label: 'Trending' },
+  { href: '/dashboard/usage',  icon: User,            label: 'Account' },
 ]
 
 export function MobileTabBar() {
