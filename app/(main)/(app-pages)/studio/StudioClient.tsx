@@ -13,7 +13,6 @@ import { AntiDupHooksPanel } from '@/components/studio/AntiDupHooksPanel'
 import { FilmingPrepCard } from '@/components/studio/FilmingPrepCard'
 import { TranscriptCard } from '@/components/studio/TranscriptCard'
 import type { TranscriptSegment } from '@/components/studio/TranscriptCard'
-import { QuietProgress } from '@/components/behavior/QuietProgress'
 import type { CreativeBlueprint, ScriptLayer } from '@/lib/utils/result-transform'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -489,7 +488,7 @@ export function StudioClient() {
   }
 
   return (
-    <main className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white">
 
       {stage === 'url_input' && (
         <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-4 pt-20 pb-24">
@@ -557,10 +556,6 @@ export function StudioClient() {
             transcript={transcript}
             onReset={reset}
           />
-          {/* Courage badge trace — mirrors dashboard sidebar, visible on public Studio */}
-          <div className="max-w-2xl mx-auto mt-2">
-            <QuietProgress variant="inline" />
-          </div>
         </div>
       )}
 
@@ -579,6 +574,6 @@ export function StudioClient() {
           </button>
         </div>
       )}
-    </main>
+    </div>
   )
 }

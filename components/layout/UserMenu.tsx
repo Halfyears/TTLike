@@ -29,8 +29,10 @@ export function UserMenu({ email, initials }: UserMenuProps) {
   async function handleSignOut() {
     setOpen(false)
     await supabase.auth.signOut()
+    // push first, then refresh — avoids a race where refresh re-runs a protected
+    // Server Component (e.g. /studio redirects to /auth/login) before navigation lands
     router.push('/')
-    router.refresh()
+    setTimeout(() => router.refresh(), 100)
   }
 
   return (
