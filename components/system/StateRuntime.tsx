@@ -11,10 +11,15 @@ import { useBehaviorStore } from '@/lib/behavior/state-machine'
 export function StateRuntime() {
   const state = useBehaviorStore((s) => s.state)
 
+  // Set on every change — no cleanup here to avoid brief gap between transitions
   useEffect(() => {
     document.body.dataset.state = state
-    return () => { delete document.body.dataset.state }
   }, [state])
+
+  // Cleanup only on unmount: runtime removed = data-state gone
+  useEffect(() => {
+    return () => { delete document.body.dataset.state }
+  }, [])
 
   return null
 }
