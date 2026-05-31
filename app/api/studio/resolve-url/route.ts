@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { TIKTOK_HOST_RE, MAX_URL_LENGTH } from '@/lib/urlValidation'
 
 async function getUser() {
   try {
@@ -222,7 +223,7 @@ export async function POST(req: NextRequest) {
 
   // ── Input validation ────────────────────────────────────────────────────────
   // Reject oversized inputs (DoS via memory/timeout)
-  if (tiktok_url.length > 500) {
+  if (tiktok_url.length > MAX_URL_LENGTH) {
     return NextResponse.json({ ok: false, error: 'URL too long' }, { status: 400 })
   }
 
@@ -238,8 +239,7 @@ export async function POST(req: NextRequest) {
   try { parsedUrl = new URL(trimmed) } catch {
     return NextResponse.json({ ok: false, error: 'Invalid URL format' }, { status: 400 })
   }
-  const ALLOWED_TIKTOK_HOSTS = /^(www\.|m\.|vm\.|vt\.)?tiktok\.com$/i
-  if (!ALLOWED_TIKTOK_HOSTS.test(parsedUrl.hostname)) {
+  if (!TIKTOK_HOST_RE.test(parsedUrl.hostname)) {
     return NextResponse.json({ ok: false, error: 'Only TikTok URLs are accepted' }, { status: 400 })
   }
 
@@ -251,7 +251,7 @@ export async function POST(req: NextRequest) {
     // SSRF guard: re-validate that the redirect stayed on tiktok.com
     try {
       const expandedHost = new URL(expanded).hostname
-      if (ALLOWED_TIKTOK_HOSTS.test(expandedHost)) {
+      if (TIKTOK_HOST_RE.test(expandedHost)) {
         rawUrl = expanded.split('?')[0] ?? expanded
       }
       // If redirect left TikTok, keep the original rawUrl and let extractTikTokId handle it

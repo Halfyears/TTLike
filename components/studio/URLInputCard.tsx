@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Link2, ArrowRight, Loader2 } from 'lucide-react'
+import { tikTokUrlError } from '@/lib/urlValidation'
 
 interface URLInputCardProps {
   // Returns a Promise so the card stays in loading state while parent fetches context
@@ -19,14 +20,8 @@ export function URLInputCard({ onResolved, prefillUrl }: URLInputCardProps) {
   const resolveUrl = useCallback(async (target: string) => {
     setError(null)
 
-    if (target.length > 500) {
-      setError('URL is too long. Please paste a standard TikTok video URL.')
-      return
-    }
-    if (!/^https?:\/\//i.test(target) || !target.includes('tiktok.com')) {
-      setError('Please enter a valid TikTok URL (https://www.tiktok.com/...)')
-      return
-    }
+    const urlErr = tikTokUrlError(target)
+    if (urlErr) { setError(urlErr); return }
 
     setLoading(true)
     try {

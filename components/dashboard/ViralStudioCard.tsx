@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { ArrowRight, Loader2, Link2 } from 'lucide-react'
+import { tikTokUrlError } from '@/lib/urlValidation'
 
 export function ViralStudioCard() {
   const [url, setUrl]         = useState('')
@@ -18,10 +19,8 @@ export function ViralStudioCard() {
     e.preventDefault()
     const trimmed = url.trim()
     if (!trimmed) return
-    if (!trimmed.startsWith('https://') || !trimmed.includes('tiktok.com')) {
-      setError('Please enter a valid TikTok video URL (https://www.tiktok.com/...)')
-      return
-    }
+    const urlErr = tikTokUrlError(trimmed)
+    if (urlErr) { setError(urlErr); return }
     setError(null)
     setLoading(true)
     router.push(`/studio?url=${encodeURIComponent(trimmed)}`)

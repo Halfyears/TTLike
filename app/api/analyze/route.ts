@@ -15,6 +15,7 @@
 import { NextResponse }               from 'next/server'
 import { revalidatePath }             from 'next/cache'
 import { createServiceClient, createClient } from '@/lib/supabase/server'
+import { TIKTOK_HOST_RE, MAX_URL_LENGTH } from '@/lib/urlValidation'
 import { callVideoBreakdown }         from '@/lib/ai/parserPrompt'
 import { fetchVideoComments }         from '@/lib/scraper'
 import { filterHighValueComments, estimateTokens } from '@/lib/sentimentFilter'
@@ -92,9 +93,6 @@ async function fetchTikTokOembed(videoUrl: string): Promise<TikTokOembed | null>
  * Only fires for short-link hostnames — standard www.tiktok.com URLs are
  * returned immediately with no network round-trip.
  */
-// Allowed TikTok hostnames — mirrors resolve-url/route.ts
-const ALLOWED_TIKTOK_HOSTS = /^(www\.|m\.|vm\.|vt\.)?tiktok\.com$/i
-
 async function resolveShortUrl(raw: string): Promise<string> {
   try {
     const hostname = new URL(raw).hostname
@@ -109,7 +107,7 @@ async function resolveShortUrl(raw: string): Promise<string> {
     // SSRF guard: only accept if redirect stayed on tiktok.com
     try {
       const expandedHost = new URL(expanded).hostname
-      if (!ALLOWED_TIKTOK_HOSTS.test(expandedHost)) return raw
+      if (!TIKTOK_HOST_RE.test(expandedHost)) return raw
     } catch { return raw }
     return expanded
   } catch {
@@ -132,7 +130,7 @@ export async function POST(req: Request) {
   }
 
   // Input length caps — prevent DoS via oversized strings
-  if (url && (typeof url !== 'string' || url.length > 500)) {
+  if (url && (typeof url !== 'string' || url.length > MAX_URL_LENGTH)) {
     return NextResponse.json({ error: 'URL too long' }, { status: 400 })
   }
   if (video_id && (typeof video_id !== 'string' || video_id.length > 100)) {
@@ -144,9 +142,12 @@ export async function POST(req: Request) {
   // ── Tier Guard — quota enforcement for authenticated users ──────────────────
   // Unauthenticated visitors (public product pages) are not blocked here;
   // quota is only enforced when a valid session is present.
+  // currentUser is hoisted so the quota-increment block (step 6b) reuses it.
+  let currentUser: import('@supabase/supabase-js').User | null = null
   try {
     const authClient = await createClient()
     const { data: { user } } = await authClient.auth.getUser()
+    currentUser = user ?? null
 
     if (user) {
       // Admins bypass quota entirely.
@@ -261,7 +262,7 @@ export async function POST(req: Request) {
       .maybeSingle()
     : { data: null }
 
-    // Pass 3 — tiktok_id exact match (indexed column, no full-table scan)
+    // Pass 3 — tiktok_id exact match (indexed, fast; works for all rows with tiktok_id populated)
     const { data: d3 } = (!d1 && !d2 && tikVideoId) ? await service
       .from('tiktok_videos')
       .select('id, title, product_name, niche, views, likes, shares, author')
@@ -270,7 +271,18 @@ export async function POST(req: Request) {
       .maybeSingle()
     : { data: null }
 
-    meta = (d1 ?? d2 ?? d3) as VideoRow | null
+    // Pass 4 — legacy fallback for rows where tiktok_id IS NULL (pre-migration scraper rows)
+    // Uses ilike only when passes 1-3 all missed, limiting full-table-scan frequency
+    const { data: d4 } = (!d1 && !d2 && !d3 && tikVideoId) ? await service
+      .from('tiktok_videos')
+      .select('id, title, product_name, niche, views, likes, shares, author')
+      .ilike('video_url', `%${tikVideoId}%`)
+      .is('deleted_at', null)
+      .limit(1)
+      .maybeSingle()
+    : { data: null }
+
+    meta = (d1 ?? d2 ?? d3 ?? d4) as VideoRow | null
   }
 
   // ── Pass 4 — oEmbed fallback for any public TikTok URL ────────────────────
@@ -428,8 +440,7 @@ export async function POST(req: Request) {
 
   // ── 6b. Increment quota + log niche to user_analytics ────────────────────
   try {
-    const authClient = await createClient()
-    const { data: { user } } = await authClient.auth.getUser()
+    const user = currentUser   // reuse session resolved at step 1 — no second createClient()
     if (user) {
       await service.rpc('increment_analysis_credit', { uid: user.id })
 

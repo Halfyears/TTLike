@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Search, Loader2, AlertTriangle, ArrowRight } from 'lucide-react'
+import { tikTokUrlError } from '@/lib/urlValidation'
 
 /**
  * UrlIngestion — user pastes a TikTok video URL, we look it up in our DB,
@@ -24,14 +25,8 @@ export default function UrlIngestion() {
     const trimmed = url.trim()
     if (!trimmed) return
 
-    if (trimmed.length > 500) {
-      setError('URL is too long. Please paste a standard TikTok video URL.')
-      return
-    }
-    if (!/^https?:\/\//i.test(trimmed) || !trimmed.includes('tiktok.com')) {
-      setError('Please enter a valid TikTok URL (https://www.tiktok.com/...)')
-      return
-    }
+    const urlErr = tikTokUrlError(trimmed)
+    if (urlErr) { setError(urlErr); return }
 
     setLoading(true)
     setError('')

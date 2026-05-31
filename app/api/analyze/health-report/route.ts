@@ -83,13 +83,6 @@ export async function POST(req: Request) {
     })
   }
 
-  if (used >= limit) {
-    return NextResponse.json(
-      { error: 'quota_exceeded', used, limit },
-      { status: 402 },
-    )
-  }
-
   // ── 3. Fetch video metadata ─────────────────────────────────────────────────
   const { data: meta } = await service
     .from('tiktok_videos')
@@ -102,15 +95,28 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Video not found' }, { status: 404 })
   }
 
-  // ── 4. Increment quota BEFORE AI generation — eliminates concurrent-request race ──
-  // If AI fails below, we compensate with a decrement so the user isn't charged.
-  const { error: quotaErr } = await service
+  // ── 4. Atomic quota claim — only increments if still under limit ──────────────
+  // Uses a conditional UPDATE (WHERE used < limit) so two concurrent requests
+  // cannot both claim the last slot: exactly one will match, the other gets 0 rows.
+  // .select('user_id') is required to get affected rows back in Supabase JS v2.
+  const { data: claimedData, error: quotaErr } = await service
     .from('user_billing_tiers')
     .update({ strategy_audit_used: used + 1 })
     .eq('user_id', user.id)
+    .lt('strategy_audit_used', limit)   // atomic guard: only updates if still under limit
+    .select('user_id')
 
   if (quotaErr) {
-    console.warn('[health-report] quota increment failed (non-fatal):', quotaErr.message)
+    console.error('[health-report] quota claim failed:', quotaErr.message)
+    return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 503 })
+  }
+
+  if (!claimedData || claimedData.length === 0) {
+    // Another concurrent request already consumed the last slot
+    return NextResponse.json(
+      { error: 'quota_exceeded', used: limit, limit },
+      { status: 402 },
+    )
   }
 
   // ── 5. Generate health report via AI waterfall ──────────────────────────────
@@ -127,10 +133,11 @@ export async function POST(req: Request) {
     })
   } catch (e) {
     console.error('[health-report] AI error:', e)
-    // Compensate: refund the quota slot so the user isn't charged for a failed call
+    // Compensate: release the slot — only decrement if value is still > 0 (safety guard)
     void service.from('user_billing_tiers')
-      .update({ strategy_audit_used: used })
+      .update({ strategy_audit_used: used })   // reset to pre-claim snapshot
       .eq('user_id', user.id)
+      .gt('strategy_audit_used', 0)
     return NextResponse.json({ error: 'AI analysis failed — try again later' }, { status: 500 })
   }
 
