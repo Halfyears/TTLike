@@ -1,17 +1,44 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link2, ArrowRight, Loader2 } from 'lucide-react'
 
 interface URLInputCardProps {
   // Returns a Promise so the card stays in loading state while parent fetches context
   onResolved: (videoId: string, title: string | null, productName: string | null, niche: string | null) => Promise<void>
+  // Optional prefill from Dashboard ?url= param
+  prefillUrl?: string
 }
 
-export function URLInputCard({ onResolved }: URLInputCardProps) {
+export function URLInputCard({ onResolved, prefillUrl }: URLInputCardProps) {
   const [url, setUrl]         = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
+
+  // Auto-fill and auto-submit when prefillUrl is provided (from Dashboard)
+  useEffect(() => {
+    if (!prefillUrl) return
+    setUrl(prefillUrl)
+    void (async () => {
+      setError(null)
+      setLoading(true)
+      try {
+        const res  = await fetch('/api/studio/resolve-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ tiktok_url: prefillUrl }),
+        })
+        const data = await res.json()
+        if (!data.ok) { setError(data.error); return }
+        await onResolved(data.video_id, data.title, data.product_name, data.niche)
+      } catch {
+        setError('Network error. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillUrl])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

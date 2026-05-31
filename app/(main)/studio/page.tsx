@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Plus, X, Loader2, ChevronLeft, Clock, Zap } from 'lucide-react'
 import { URLInputCard } from '@/components/studio/URLInputCard'
 import { AnalysisWaitScreen } from '@/components/studio/AnalysisWaitScreen'
@@ -244,6 +245,7 @@ function ResultView({
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function StudioPage() {
+  const searchParams = useSearchParams()
   const [stage, setStage]               = useState<Stage>('url_input')
   const [videoMeta, setVideoMeta]       = useState<VideoMeta | null>(null)
   const [form, setForm]                 = useState<ProductForm>({ category: '', pain_points: [], price_point: 29 })
@@ -253,10 +255,17 @@ export default function StudioPage() {
   const [result, setResult]             = useState<{ blueprint: CreativeBlueprint; script: ScriptLayer } | null>(null)
   const [resultMeta, setResultMeta]     = useState<ResultMeta>({ generated_at: null, pipeline_ms: null })
   const [errorMsg, setErrorMsg]         = useState<string | null>(null)
+  const [prefillUrl, setPrefillUrl]     = useState<string | null>(null)
 
   // Stable ref so handleCompleted can always access the latest breakdownId
   // without re-creating the function and restarting the poll effect
   const breakdownIdRef = useRef<string | null>(null)
+
+  // Auto-prefill URL from ?url= param (passed from Dashboard ViralStudioCard)
+  useEffect(() => {
+    const urlParam = searchParams.get('url')
+    if (urlParam) setPrefillUrl(urlParam)
+  }, [searchParams])
 
   // ── Step 1: URL resolved → fetch context → fill form → transition ──────────
   const handleResolved = useCallback(async (
@@ -361,7 +370,7 @@ export default function StudioPage() {
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-16">
       {stage === 'url_input' && (
-        <URLInputCard onResolved={handleResolved} />
+        <URLInputCard onResolved={handleResolved} prefillUrl={prefillUrl ?? undefined} />
       )}
 
       {stage === 'product_form' && videoMeta && (

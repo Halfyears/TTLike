@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Zap, Clapperboard, Search,
+  LayoutDashboard, Clapperboard, Search,
   TrendingUp, BookOpen, BarChart2, Wand2,
 } from 'lucide-react'
 
@@ -11,9 +11,8 @@ const GROUPS = [
   {
     label: 'Create',
     links: [
-      { href: '/studio',               icon: Wand2,        label: 'Viral Studio', badge: 'NEW' },
-      { href: '/dashboard/ai-scripts', icon: Zap,          label: 'AI Scripts',   badge: 'HOT' },
-      { href: '/dashboard/studio',     icon: Clapperboard, label: 'Drama Studio' },
+      { href: '/studio',           icon: Wand2,        label: 'Viral Studio', badge: 'NEW' },
+      { href: '/dashboard/studio', icon: Clapperboard, label: 'Storyboard' },
     ],
   },
   {
@@ -80,11 +79,11 @@ export function NavLinks() {
 
 // ── Mobile bottom tab bar (5 items only) ──────────────────────────────────────
 const MOBILE_TABS = [
-  { href: '/dashboard',            icon: LayoutDashboard, label: 'Home' },
-  { href: '/studio',               icon: Wand2,           label: 'Studio' },
-  { href: '/dashboard/ai-scripts', icon: Zap,             label: 'Scripts' },
-  { href: '/products',             icon: Search,          label: 'Products' },
-  { href: '/trending',             icon: TrendingUp,      label: 'Trending' },
+  { href: '/dashboard',        icon: LayoutDashboard, label: 'Home' },
+  { href: '/studio',           icon: Wand2,           label: 'Studio' },
+  { href: '/dashboard/studio', icon: Clapperboard,    label: 'Storyboard' },
+  { href: '/products',         icon: Search,          label: 'Products' },
+  { href: '/trending',         icon: TrendingUp,      label: 'Trending' },
 ]
 
 export function MobileTabBar() {
