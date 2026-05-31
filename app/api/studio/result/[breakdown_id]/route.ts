@@ -52,14 +52,21 @@ export async function GET(
 
   const result = viralPipelineToStudioResult(vp)
 
-  // has_audio: true if Whisper transcription ran and produced content
-  const hasAudio = typeof payload?.transcript_full === 'string' && payload.transcript_full.length > 0
+  // Transcript: only the fields the UI needs (timecode + spoken text)
+  const rawTimeline = Array.isArray(payload?.visual_timeline) ? payload.visual_timeline : []
+  const transcriptSegments = rawTimeline
+    .filter(s => typeof s.audio === 'string' && s.audio.length > 0)
+    .map(s => ({ timecode: s.timecode as string, text: s.audio as string }))
+
+  const hasAudio = transcriptSegments.length > 0 ||
+    (typeof payload?.transcript_full === 'string' && payload.transcript_full.length > 0)
 
   return NextResponse.json({
-    ok:           true,
-    generated_at: vp.generated_at ?? new Date().toISOString(),
-    pipeline_ms:  vp.pipeline_ms  ?? null,
-    has_audio:    hasAudio,
+    ok:                  true,
+    generated_at:        vp.generated_at ?? new Date().toISOString(),
+    pipeline_ms:         vp.pipeline_ms  ?? null,
+    has_audio:           hasAudio,
+    transcript_segments: transcriptSegments,   // [{timecode, text}]
     ...result,
   })
 }

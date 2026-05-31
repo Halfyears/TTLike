@@ -11,6 +11,8 @@ import { CreativeBlueprintCard } from '@/components/studio/CreativeBlueprintCard
 import { ScriptLayerCard } from '@/components/studio/ScriptLayerCard'
 import { AntiDupHooksPanel } from '@/components/studio/AntiDupHooksPanel'
 import { FilmingPrepCard } from '@/components/studio/FilmingPrepCard'
+import { TranscriptCard } from '@/components/studio/TranscriptCard'
+import type { TranscriptSegment } from '@/components/studio/TranscriptCard'
 import { QuietProgress } from '@/components/behavior/QuietProgress'
 import type { CreativeBlueprint, ScriptLayer } from '@/lib/utils/result-transform'
 
@@ -220,12 +222,14 @@ function ResultView({
   script,
   meta,
   resultMeta,
+  transcript,
   onReset,
 }: {
   blueprint:  CreativeBlueprint
   script:     ScriptLayer
   meta:       VideoMeta
   resultMeta: ResultMeta
+  transcript: TranscriptSegment[]
   onReset:    () => void
 }) {
   const timeAgo = resultMeta.generated_at
@@ -303,6 +307,9 @@ function ResultView({
       <CreativeBlueprintCard blueprint={blueprint} />
       <ScriptLayerCard script={script} onCopy={() => triggerComplete('copy')} />
 
+      {/* Audio transcript with pause / topic-turn markers */}
+      {transcript.length > 0 && <TranscriptCard segments={transcript} />}
+
       {/* Anti-duplication variants */}
       {blueprint.hook && (
         <AntiDupHooksPanel hookLine={blueprint.hook} />
@@ -340,6 +347,7 @@ export function StudioClient() {
   const [submitError, setSubmitError]   = useState<string | null>(null)
   const [result, setResult]             = useState<{ blueprint: CreativeBlueprint; script: ScriptLayer } | null>(null)
   const [resultMeta, setResultMeta]     = useState<ResultMeta>({ generated_at: null, pipeline_ms: null, has_audio: false })
+  const [transcript, setTranscript]     = useState<TranscriptSegment[]>([])
   const [errorMsg, setErrorMsg]         = useState<string | null>(null)
   const [prefillUrl, setPrefillUrl]     = useState<string | null>(null)
 
@@ -448,6 +456,7 @@ export function StudioClient() {
       handleIntent('RESULT_READY')
       setResult({ blueprint: data.creative_blueprint, script: data.script_layer })
       setResultMeta({ generated_at: data.generated_at ?? null, pipeline_ms: data.pipeline_ms ?? null, has_audio: Boolean(data.has_audio) })
+      setTranscript(Array.isArray(data.transcript_segments) ? data.transcript_segments : [])
       setStage('result')
     } catch {
       setErrorMsg('Failed to load result. Please try again.')
@@ -474,6 +483,7 @@ export function StudioClient() {
     setBreakdownId(null)
     setResult(null)
     setResultMeta({ generated_at: null, pipeline_ms: null, has_audio: false })
+    setTranscript([])
     setErrorMsg(null)
     setSubmitError(null)
   }
@@ -544,6 +554,7 @@ export function StudioClient() {
             script={result.script}
             meta={videoMeta}
             resultMeta={resultMeta}
+            transcript={transcript}
             onReset={reset}
           />
           {/* Courage badge trace — mirrors dashboard sidebar, visible on public Studio */}
