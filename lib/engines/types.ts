@@ -62,6 +62,8 @@ export const productSchemaInputSchema = z.object({
   category:          z.string(),           // e.g. "skincare", "fitness", "tech"
   price_point:       z.number().positive(), // USD
   pain_points:       z.array(z.string()).min(1).max(5),
+  /** User-supplied product name — overrides unreliable title extraction */
+  product_name:      z.string().max(120).optional(),
   persuasion_style:  z.enum(['ROI_PROOF', 'PAIN_INTERCEPT', 'CURIOSITY_LOOP', 'STATUS_ANXIETY']).optional(),
   target_audience:   z.string().optional(),
 })

@@ -28,9 +28,10 @@ interface VideoMeta {
 }
 
 interface ProductForm {
-  category:    string
-  pain_points: string[]
-  price_point: number
+  product_name: string
+  category:     string
+  pain_points:  string[]
+  price_point:  number
 }
 
 interface ResultMeta {
@@ -93,6 +94,22 @@ function ProductFormStep({
         )}
 
         <div className="space-y-5">
+          {/* Product Name — most important field, placed first */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Product Name
+              <span className="text-gray-400 font-normal ml-1">(the AI will use this directly)</span>
+            </label>
+            <input
+              type="text"
+              value={form.product_name}
+              onChange={e => setForm(f => ({ ...f, product_name: e.target.value.slice(0, 120) }))}
+              placeholder="e.g. Posture Corrector Belt, LED Face Mask..."
+              maxLength={120}
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
+            />
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Category / Niche</label>
             <input
@@ -296,7 +313,7 @@ export function StudioClient() {
   const searchParams = useSearchParams()
   const [stage, setStage]               = useState<Stage>('url_input')
   const [videoMeta, setVideoMeta]       = useState<VideoMeta | null>(null)
-  const [form, setForm]                 = useState<ProductForm>({ category: '', pain_points: [], price_point: 29 })
+  const [form, setForm]                 = useState<ProductForm>({ product_name: '', category: '', pain_points: [], price_point: 29 })
   const [breakdownId, setBreakdownId]   = useState<string | null>(null)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [submitError, setSubmitError]   = useState<string | null>(null)
@@ -330,15 +347,16 @@ export function StudioClient() {
       const data = await res.json()
       if (data.ok) {
         setForm({
-          category:    data.category || niche || '',
-          pain_points: data.pain_points ?? [],
-          price_point: data.ref_price  ?? 29,
+          product_name: data.product_name ?? productName ?? '',
+          category:     data.category || niche || '',
+          pain_points:  data.pain_points ?? [],
+          price_point:  data.ref_price   ?? 29,
         })
       } else {
-        setForm({ category: niche ?? '', pain_points: [], price_point: 29 })
+        setForm({ product_name: productName ?? '', category: niche ?? '', pain_points: [], price_point: 29 })
       }
     } catch {
-      setForm({ category: niche ?? '', pain_points: [], price_point: 29 })
+      setForm({ product_name: productName ?? '', category: niche ?? '', pain_points: [], price_point: 29 })
     }
     setStage('product_form')
   }, [])
@@ -355,9 +373,10 @@ export function StudioClient() {
         body:    JSON.stringify({
           video_id:       videoMeta.video_id,
           product_schema: {
-            category:    form.category,
-            pain_points: form.pain_points,
-            price_point: form.price_point,
+            product_name: form.product_name.trim() || undefined,
+            category:     form.category,
+            pain_points:  form.pain_points,
+            price_point:  form.price_point,
           },
         }),
       })
@@ -413,7 +432,7 @@ export function StudioClient() {
     breakdownIdRef.current = null
     setBreakdownId(null)
     setVideoMeta(null)
-    setForm({ category: '', pain_points: [], price_point: 29 })
+    setForm({ product_name: '', category: '', pain_points: [], price_point: 29 })
     setStage('error')
   }, [])
 
@@ -421,7 +440,7 @@ export function StudioClient() {
     handleIntent('RESET')
     setStage('url_input')
     setVideoMeta(null)
-    setForm({ category: '', pain_points: [], price_point: 29 })
+    setForm({ product_name: '', category: '', pain_points: [], price_point: 29 })
     breakdownIdRef.current = null
     setBreakdownId(null)
     setResult(null)

@@ -18,8 +18,41 @@ async function getUser() {
 }
 
 function extractTikTokId(url: string): string | null {
-  const match = url.match(/\/video\/(\d{10,20})/)
-  return match ? match[1] : null
+  // PC and mobile: /video/ID (www.tiktok.com, m.tiktok.com after redirect)
+  const videoMatch = url.match(/\/video\/(\d{10,20})/)
+  if (videoMatch) return videoMatch[1]!
+
+  // Mobile browser: m.tiktok.com/v/ID.html or /v/ID
+  const mobileMatch = url.match(/\/v\/(\d{10,20})(?:\.html)?(?:[?/]|$)/)
+  if (mobileMatch) return mobileMatch[1]!
+
+  return null
+}
+
+/** Short-URL patterns that require an HTTP redirect follow before extraction */
+function isShortTikTokUrl(url: string): boolean {
+  return (
+    /^https?:\/\/(vm|vt)\.tiktok\.com\//.test(url) ||
+    /tiktok\.com\/t\/[A-Za-z0-9]+/.test(url)
+  )
+}
+
+/**
+ * Follow redirect on short TikTok URLs (vm.tiktok.com, vt.tiktok.com, /t/ share tokens).
+ * Returns the final URL; falls back to the original if the request fails.
+ */
+async function expandShortUrl(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, {
+      method:   'HEAD',
+      redirect: 'follow',
+      signal:   AbortSignal.timeout(8_000),
+      headers:  { 'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36' },
+    })
+    return res.url || url
+  } catch {
+    return url
+  }
 }
 
 function extractUrl(field: unknown): string {
@@ -174,10 +207,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'tiktok_url is required' }, { status: 400 })
   }
 
-  const rawUrl   = tiktok_url.trim().split('?')[0] ?? tiktok_url.trim()
+  let rawUrl = tiktok_url.trim().split('?')[0] ?? tiktok_url.trim()
+
+  // Short URLs (vm.tiktok.com, vt.tiktok.com, /t/ share tokens) need redirect expansion
+  if (isShortTikTokUrl(rawUrl)) {
+    rawUrl = await expandShortUrl(rawUrl)
+    rawUrl = rawUrl.split('?')[0] ?? rawUrl  // strip query params from expanded URL
+  }
+
   const tiktokId = extractTikTokId(rawUrl)
   if (!tiktokId) {
-    return NextResponse.json({ ok: false, error: 'Could not parse TikTok video ID. Use format: https://www.tiktok.com/@user/video/ID' }, { status: 400 })
+    return NextResponse.json({
+      ok:    false,
+      error: 'Could not parse TikTok video ID. Paste the full video URL from TikTok (PC or mobile browser).',
+    }, { status: 400 })
   }
 
   const service = createServiceClient()

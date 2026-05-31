@@ -82,6 +82,12 @@ export async function runViralPipeline(
       }
     }
 
+    // Override product_name with the user-supplied value when provided.
+    // The title-regex extraction is unreliable; what the user types is authoritative.
+    if (productSchema.product_name?.trim()) {
+      ingestion = { ...ingestion, product_name: productSchema.product_name.trim() }
+    }
+
     // ── Stage 1: Spike Detection ────────────────────────────────────────────
     let spikeResult
     try {
