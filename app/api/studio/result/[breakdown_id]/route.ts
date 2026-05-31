@@ -55,7 +55,8 @@ export async function GET(
   // Transcript: only the fields the UI needs (timecode + spoken text)
   const rawTimeline = Array.isArray(payload?.visual_timeline) ? payload.visual_timeline : []
   const transcriptSegments = rawTimeline
-    .filter(s => typeof s.audio === 'string' && s.audio.length > 0)
+    .filter(s => typeof s.audio === 'string' && s.audio.length > 0
+               && typeof s.timecode === 'string' && s.timecode.length > 0)
     .map(s => ({ timecode: s.timecode as string, text: s.audio as string }))
 
   const hasAudio = transcriptSegments.length > 0 ||

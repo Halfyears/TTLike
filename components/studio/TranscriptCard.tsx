@@ -12,7 +12,8 @@ export interface TranscriptSegment {
 
 function parseSeconds(mmss: string): number {
   const [m, s] = mmss.split(':').map(Number)
-  return (m ?? 0) * 60 + (s ?? 0)
+  // Use || 0 (not ?? 0): NaN is falsy so it falls back to 0, unlike ?? which only catches null/undefined
+  return (m || 0) * 60 + (s || 0)
 }
 
 /** Gap in seconds between end of seg[i] and start of seg[i+1]. Returns null for last segment. */

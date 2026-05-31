@@ -116,11 +116,17 @@ export async function POST(req: Request) {
     .maybeSingle()
 
   if (!meta) {
-    // Refund: video not found — release the quota slot we just claimed
-    void service.from('user_billing_tiers')
-      .update({ strategy_audit_used: used })
-      .eq('user_id', user.id)
-      .gt('strategy_audit_used', 0)
+    // Refund: video not found — release the quota slot we just claimed.
+    // We write `used` (the pre-claim snapshot) which is equivalent to `claimedValue - 1`.
+    // Awaited so a DB error doesn't silently strand the user with a consumed credit.
+    try {
+      await service.from('user_billing_tiers')
+        .update({ strategy_audit_used: used })
+        .eq('user_id', user.id)
+        .gt('strategy_audit_used', 0)
+    } catch (refundErr) {
+      console.error('[health-report] refund failed (video not found path):', refundErr)
+    }
     return NextResponse.json({ error: 'Video not found' }, { status: 404 })
   }
 
@@ -138,11 +144,15 @@ export async function POST(req: Request) {
     })
   } catch (e) {
     console.error('[health-report] AI error:', e)
-    // Compensate: release the slot — only decrement if value is still > 0 (safety guard)
-    void service.from('user_billing_tiers')
-      .update({ strategy_audit_used: used })   // reset to pre-claim snapshot
-      .eq('user_id', user.id)
-      .gt('strategy_audit_used', 0)
+    // Compensate: release the slot — awaited so the credit is not silently lost on DB error.
+    try {
+      await service.from('user_billing_tiers')
+        .update({ strategy_audit_used: used })   // pre-claim snapshot = claimedValue - 1
+        .eq('user_id', user.id)
+        .gt('strategy_audit_used', 0)
+    } catch (refundErr) {
+      console.error('[health-report] refund failed (AI error path):', refundErr)
+    }
     return NextResponse.json({ error: 'AI analysis failed — try again later' }, { status: 500 })
   }
 

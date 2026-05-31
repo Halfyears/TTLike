@@ -52,21 +52,21 @@ export function FilmingPrepCard() {
         />
       </button>
 
-      {/* Progress bar */}
-      <div className="px-5 pb-2">
-        <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${allDone ? 'bg-emerald-400' : 'bg-pink-400'}`}
-            style={{ width: `${(done / total) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Checklist items */}
+      {/* Checklist items + progress bar — both inside the animated div so neither shows when collapsed */}
       <div
         className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
       >
-        <ul className="px-5 pb-5 pt-2 space-y-3">
+        {/* Progress bar */}
+        <div className="px-5 pt-1 pb-3">
+          <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${allDone ? 'bg-emerald-400' : 'bg-pink-400'}`}
+              style={{ width: `${(done / total) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        <ul className="px-5 pb-5 space-y-3">
           {CHECKLIST.map(item => (
             <li key={item.id}>
               <button
