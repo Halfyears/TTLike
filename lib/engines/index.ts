@@ -22,6 +22,7 @@ import { inferStructure }        from '@/lib/engines/structure-inference'
 import { routeStructure }        from '@/lib/engines/router'
 import { buildLanguageProfile }  from '@/lib/engines/language-engine'
 import { renderScript }          from '@/lib/engines/emotion-engine'
+import { runDirectScript }       from '@/lib/engines/direct-script'
 import {
   ViralObjectSchema,
   type ViralObject,
@@ -86,6 +87,36 @@ export async function runViralPipeline(
     // The title-regex extraction is unreliable; what the user types is authoritative.
     if (productSchema.product_name?.trim()) {
       ingestion = { ...ingestion, product_name: productSchema.product_name.trim() }
+    }
+
+    // ── Fast path: single LLM call when transcript is available ────────────
+    // signal_quality === 'full' means real spoken content is in visual_timeline.
+    // One comprehensive call replaces the 5-stage reasoning chain.
+    if (ingestion.signal_quality === 'full') {
+      let directResult
+      try {
+        directResult = await runDirectScript(ingestion, productSchema)
+      } catch (e) {
+        // Direct call failed → fall through to the 5-stage pipeline below
+        console.warn('[pipeline] Direct script failed, falling back to 5-stage:', e instanceof Error ? e.message : e)
+        directResult = null
+      }
+
+      if (directResult) {
+        const viralObject = ViralObjectSchema.parse({
+          video_id:         videoId,
+          ingestion,
+          product_schema:   productSchema,
+          final_script:     directResult.finalScript,
+          emotion_curve:    directResult.emotionCurve,
+          language_profile: directResult.languageProfile,
+          ai_providers:     { script: directResult.provider },
+          created_at:       new Date().toISOString(),
+          pipeline_ms:      Date.now() - startTime,
+          signal_quality:   'full',
+        })
+        return { ok: true, viralObject }
+      }
     }
 
     // ── Stage 1: Spike Detection ────────────────────────────────────────────
