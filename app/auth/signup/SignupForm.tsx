@@ -77,7 +77,12 @@ export function SignupForm() {
         <Input id="email" type="email" label="Email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required />
         <Input id="password" type="password" label="Password" placeholder="Min 8 characters" value={password} onChange={e => setPassword(e.target.value)} minLength={8} required />
         <Button type="submit" className="w-full" loading={loading}>Create Free Account</Button>
-        <p className="text-xs text-center text-gray-500">By signing up you agree to our Terms &amp; Privacy Policy</p>
+        <p className="text-xs text-center text-gray-500">
+          By signing up you agree to our{' '}
+          <a href="/terms" className="underline hover:text-gray-700">Terms of Service</a>
+          {' '}&amp;{' '}
+          <a href="/privacy" className="underline hover:text-gray-700">Privacy Policy</a>
+        </p>
       </form>
     </div>
   )

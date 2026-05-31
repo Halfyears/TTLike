@@ -16,7 +16,7 @@ export default function SignupPage() {
           <p className="text-gray-600 text-sm mt-2">Create your free account</p>
           <div className="mt-3 inline-flex items-center gap-1.5 bg-pink-50 text-pink-600 text-xs font-medium px-3 py-1.5 rounded-full border border-pink-100">
             <span className="h-1.5 w-1.5 rounded-full bg-pink-500 animate-pulse" />
-            Beta: 100% free, no credit card
+            Free to start · No credit card
           </div>
         </div>
 

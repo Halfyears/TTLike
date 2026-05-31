@@ -20,6 +20,30 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // ── Upsert Prisma User — ensures OAuth users have a DB record ────────────
+      ;(async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser()
+          if (!user?.email) return
+          const meta = user.user_metadata ?? {}
+          await prisma.user.upsert({
+            where: { email: user.email },
+            create: {
+              id: user.id,
+              email: user.email,
+              name: meta.full_name ?? meta.name ?? null,
+              avatarUrl: meta.avatar_url ?? meta.picture ?? null,
+              updatedAt: new Date().toISOString(),
+            },
+            update: {
+              name: meta.full_name ?? meta.name ?? undefined,
+              avatarUrl: meta.avatar_url ?? meta.picture ?? undefined,
+              updatedAt: new Date().toISOString(),
+            },
+          })
+        } catch { /* non-fatal — user can still access the app */ }
+      })()
+
       // ── REQ-A1: Affiliate attribution (inlined — no internal fetch) ──────────
       // Read the `ref` cookie set when the user followed an affiliate link
       // (/api/auth/affiliate/[code]). Done inline to avoid forwarding cookies.
