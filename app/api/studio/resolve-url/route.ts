@@ -220,12 +220,42 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'tiktok_url is required' }, { status: 400 })
   }
 
-  let rawUrl = tiktok_url.trim().split('?')[0] ?? tiktok_url.trim()
+  // ── Input validation ────────────────────────────────────────────────────────
+  // Reject oversized inputs (DoS via memory/timeout)
+  if (tiktok_url.length > 500) {
+    return NextResponse.json({ ok: false, error: 'URL too long' }, { status: 400 })
+  }
+
+  const trimmed = tiktok_url.trim()
+
+  // Reject non-HTTP protocols (file://, javascript:, data:, etc.)
+  if (!/^https?:\/\//i.test(trimmed)) {
+    return NextResponse.json({ ok: false, error: 'Only https:// URLs are accepted' }, { status: 400 })
+  }
+
+  // Validate domain is TikTok before any network call
+  let parsedUrl: URL
+  try { parsedUrl = new URL(trimmed) } catch {
+    return NextResponse.json({ ok: false, error: 'Invalid URL format' }, { status: 400 })
+  }
+  const ALLOWED_TIKTOK_HOSTS = /^(www\.|m\.|vm\.|vt\.)?tiktok\.com$/i
+  if (!ALLOWED_TIKTOK_HOSTS.test(parsedUrl.hostname)) {
+    return NextResponse.json({ ok: false, error: 'Only TikTok URLs are accepted' }, { status: 400 })
+  }
+
+  let rawUrl = trimmed.split('?')[0] ?? trimmed
 
   // Short URLs (vm.tiktok.com, vt.tiktok.com, /t/ share tokens) need redirect expansion
   if (isShortTikTokUrl(rawUrl)) {
-    rawUrl = await expandShortUrl(rawUrl)
-    rawUrl = rawUrl.split('?')[0] ?? rawUrl  // strip query params from expanded URL
+    const expanded = await expandShortUrl(rawUrl)
+    // SSRF guard: re-validate that the redirect stayed on tiktok.com
+    try {
+      const expandedHost = new URL(expanded).hostname
+      if (ALLOWED_TIKTOK_HOSTS.test(expandedHost)) {
+        rawUrl = expanded.split('?')[0] ?? expanded
+      }
+      // If redirect left TikTok, keep the original rawUrl and let extractTikTokId handle it
+    } catch { /* keep rawUrl unchanged */ }
   }
 
   const tiktokId = extractTikTokId(rawUrl)

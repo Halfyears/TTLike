@@ -120,7 +120,7 @@ export function BatchClient({ tier, remaining: remainingInit, limit }: Props) {
       const res  = await fetch('/api/studio/resolve-url', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ url: item.url }),
+        body:    JSON.stringify({ tiktok_url: item.url }),
       })
       const json = await res.json()
       if (!res.ok || !json.video_id) throw new Error(json.error ?? 'Could not resolve URL')

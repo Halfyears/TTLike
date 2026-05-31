@@ -34,6 +34,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'video_id is required' }, { status: 400 })
   }
 
+  // video_id is a UUID from our own DB — reject oversized or non-UUID values
+  if (video_id.length > 100 || !/^[0-9a-f-]+$/i.test(video_id)) {
+    return NextResponse.json({ ok: false, error: 'Invalid video_id' }, { status: 400 })
+  }
+
   const parsedProduct = productSchemaInputSchema.safeParse(product_schema)
   if (!parsedProduct.success) {
     return NextResponse.json({
@@ -68,9 +73,14 @@ export async function POST(req: NextRequest) {
 
   // Ensure breakdown row exists; update or insert
   const { data: existing } = await service
-    .from('video_breakdowns').select('id').eq('video_id', video_id).maybeSingle()
+    .from('video_breakdowns').select('id, viral_status').eq('video_id', video_id).maybeSingle()
 
   let breakdown_id: string
+
+  // Cache hit: COMPLETED result already archived — return immediately without re-run or quota charge
+  if (existing?.id && (existing as { viral_status?: string }).viral_status === 'COMPLETED') {
+    return NextResponse.json({ ok: true, breakdown_id: existing.id, status: 'COMPLETED', fromCache: true })
+  }
 
   if (existing?.id) {
     breakdown_id = existing.id

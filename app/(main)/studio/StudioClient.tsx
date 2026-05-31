@@ -399,9 +399,17 @@ export function StudioClient() {
         setSubmitError('Analysis could not be started. Please try again.')
         return
       }
-      handleIntent('ANALYSIS_STARTED')   // takeCount increment is now inside dispatch
       breakdownIdRef.current = data.breakdown_id
       setBreakdownId(data.breakdown_id)
+
+      // Cache hit: archived result available immediately — skip polling
+      if (data.fromCache && data.status === 'COMPLETED') {
+        handleIntent('ANALYSIS_STARTED')
+        setStage('analyzing')
+        return   // AnalysisWaitScreen polls status and will find COMPLETED instantly
+      }
+
+      handleIntent('ANALYSIS_STARTED')   // takeCount increment is now inside dispatch
       setStage('analyzing')
     } catch {
       setSubmitError('Network error — please check your connection and try again.')
