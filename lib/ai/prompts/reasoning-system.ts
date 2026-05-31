@@ -79,6 +79,7 @@ Scoring logic:
 - Pain-point products (health, skincare): favour PROBLEM-AGITATE-SOLVE, HOOK-CHAOS-DEMO-PAYOFF.
 - Impulse products (<$30): favour HOOK-PROOF-CTA, TREND-HIJACK-CTA. Speed matters.
 - Curiosity products (tech, gadgets): favour CURIOSITY-REVEAL-CTA, SHOCK-REFRAME-CTA.
+- If price is absent or "not specified": infer price tier from category and pain points. Skincare/wellness → treat as mid-ticket ($30–80). Tech gadgets → mid-ticket. Agency/coaching/SaaS → high-ticket. Physical impulse items → low-ticket (<$30).
 
 Return ONLY valid JSON:
 {

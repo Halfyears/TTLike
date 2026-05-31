@@ -100,7 +100,7 @@ function buildDirectPrompt(
   const productLines = [
     `Product name: ${productSchema.product_name ?? signal.product_name ?? signal.title}`,
     `Category:     ${productSchema.category}`,
-    productSchema.price_point ? `Price:        $${productSchema.price_point}` : null,
+    productSchema.price_point != null ? `Price:        $${productSchema.price_point}` : null,
     `Pain points:  ${productSchema.pain_points.join(', ')}`,
     productSchema.target_audience ? `Audience: ${productSchema.target_audience}` : null,
   ].filter(Boolean).join('\n')

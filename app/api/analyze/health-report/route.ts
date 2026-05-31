@@ -116,12 +116,13 @@ export async function POST(req: Request) {
     .maybeSingle()
 
   if (!meta) {
-    // Refund: video not found — release the quota slot we just claimed.
-    // Supabase returns { error }, does NOT throw — check the error field.
+    // Refund: release the quota slot we just claimed.
+    // Guard: only write if value is still exactly what we set (used + 1).
+    // Avoids overwriting a concurrent request's own increment.
     const { error: refundErr } = await service.from('user_billing_tiers')
       .update({ strategy_audit_used: used })
       .eq('user_id', user.id)
-      .gt('strategy_audit_used', 0)
+      .eq('strategy_audit_used', used + 1) // atomic: only refund if no concurrent claim happened
     if (refundErr) {
       console.error('[health-report] refund failed (video not found path):', refundErr.message)
     }
@@ -142,11 +143,11 @@ export async function POST(req: Request) {
     })
   } catch (e) {
     console.error('[health-report] AI error:', e)
-    // Compensate: release the slot. Supabase returns { error }, does NOT throw.
+    // Compensate: release the slot. Guard with .eq() to avoid overwriting concurrent claims.
     const { error: refundErr } = await service.from('user_billing_tiers')
       .update({ strategy_audit_used: used })
       .eq('user_id', user.id)
-      .gt('strategy_audit_used', 0)
+      .eq('strategy_audit_used', used + 1) // atomic: only refund if no concurrent claim happened
     if (refundErr) {
       console.error('[health-report] refund failed (AI error path):', refundErr.message)
     }

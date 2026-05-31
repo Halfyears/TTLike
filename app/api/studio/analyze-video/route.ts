@@ -131,13 +131,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Failed to start analysis. Please try again.' }, { status: 500 })
   }
 
-  // Increment quota usage.
-  // Supabase returns { error } — it does NOT throw. Use the returned error object.
-  // If tier is null (ensure_billing_tier race), skip increment to avoid setting usage to 1.
+  // Increment quota usage atomically — .lt() guard prevents concurrent requests from
+  // both incrementing from the same stale base value (TOCTOU race).
+  // Supabase returns { error }, does NOT throw.
+  // If tier is null (ensure_billing_tier race), skip to avoid resetting usage to 1.
   if (tier) {
     const { error: quotaIncErr } = await service.from('user_billing_tiers')
       .update({ video_analysis_used: tier.video_analysis_used + 1 })
       .eq('user_id', user.id)
+      .eq('video_analysis_used', tier.video_analysis_used) // atomic: only updates if value unchanged
     if (quotaIncErr) {
       console.error('[studio/analyze-video] quota increment failed:', quotaIncErr.message)
     }
