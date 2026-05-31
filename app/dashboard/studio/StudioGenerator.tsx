@@ -134,24 +134,45 @@ function ResultsPanel({ result, onReset }: { result: GenerateResponse; onReset: 
 }
 
 // ── Main generator component ──────────────────────────────────────────────────
-export function StudioGenerator() {
-  const [title,      setTitle]      = useState('')
-  const [rawScript,  setRawScript]  = useState('')
-  const [loading,    setLoading]    = useState(false)
-  const [error,      setError]      = useState('')
-  const [result,     setResult]     = useState<GenerateResponse | null>(null)
+const STYLES = [
+  { value: 'ugc',       label: '🎬 UGC Hook',    desc: 'Casual creator, personal story' },
+  { value: 'dramatic',  label: '🎭 Dramatic',     desc: 'Emotional, high-stakes reveal' },
+  { value: 'tutorial',  label: '📖 Tutorial',     desc: 'Step-by-step demonstration' },
+]
 
-  const charCount = rawScript.length
-  const MAX       = 8000
+/** Build a minimal raw_script from product name + style so the AI has enough context */
+function buildScript(product: string, style: string): string {
+  const p = product.trim()
+  if (style === 'dramatic') {
+    return `TikTok product video for: ${p}\n\nScene 1: Problem — show the pain point this product solves.\nScene 2: Discovery — reveal the product with a dramatic hook.\nScene 3: Proof — demonstrate the result or transformation.\nScene 4: CTA — urge viewers to act now.`
+  }
+  if (style === 'tutorial') {
+    return `TikTok tutorial video for: ${p}\n\nScene 1: Hook — "Here's how to use ${p} in 30 seconds."\nScene 2: Unboxing — show the product up close.\nScene 3: Step-by-step — demonstrate key usage.\nScene 4: Result — show the outcome.\nScene 5: CTA — link in bio.`
+  }
+  // default: ugc
+  return `TikTok UGC video for: ${p}\n\nScene 1: Hook — creator holds product, speaks directly to camera.\nScene 2: Personal story — "I tried ${p} and here's what happened…"\nScene 3: Highlight 2-3 key benefits naturally.\nScene 4: Honest recommendation + CTA.`
+}
+
+export function StudioGenerator() {
+  const [product,  setProduct]  = useState('')
+  const [style,    setStyle]    = useState('ugc')
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState('')
+  const [result,   setResult]   = useState<GenerateResponse | null>(null)
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault()
+    const trimmed = product.trim()
+    if (!trimmed) return
     setLoading(true); setError(''); setResult(null)
     try {
       const res  = await fetch('/api/studio/generate', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ title: title.trim() || 'Untitled', raw_script: rawScript }),
+        body:    JSON.stringify({
+          title:      trimmed,
+          raw_script: buildScript(trimmed, style),
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error ?? 'Generation failed')
@@ -170,48 +191,60 @@ export function StudioGenerator() {
       <CardContent className="p-6">
         <form onSubmit={handleGenerate} className="space-y-5">
 
-          {/* Title */}
+          {/* Product name */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-gray-700">Drama Title</label>
+            <label className="text-sm font-semibold text-gray-700">
+              Product Name
+              <span className="ml-1.5 text-xs font-normal text-gray-400">required</span>
+            </label>
             <input
               type="text"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              placeholder="e.g., The Forgotten Promise"
-              className="rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-            />
-          </div>
-
-          {/* Script textarea */}
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700">Script / Story</label>
-              <span className={`text-xs tabular-nums ${charCount > MAX * 0.9 ? 'text-red-500' : 'text-gray-400'}`}>
-                {charCount.toLocaleString()} / {MAX.toLocaleString()}
-              </span>
-            </div>
-            <textarea
-              value={rawScript}
-              onChange={e => setRawScript(e.target.value)}
-              placeholder={`Paste your script or story here…\n\nExample:\nScene 1: Linda walks into the empty office at midnight, clutching a folder of evidence. Her phone buzzes — an unknown number.\n"We know what you found," the voice says. "Leave it alone."\nShe looks out the window. Someone is watching from the street below.`}
-              rows={12}
-              maxLength={MAX}
+              value={product}
+              onChange={e => setProduct(e.target.value.slice(0, 80))}
+              placeholder="e.g., Posture Corrector Belt, LED Face Mask, Portable Blender…"
+              maxLength={80}
               required
-              className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none leading-relaxed"
+              className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
             />
             <p className="text-xs text-gray-400">
-              Supports Chinese and English · AI will extract characters and generate image + video prompts per scene
+              AI will build a full shot-by-shot storyboard based on this product
             </p>
           </div>
 
+          {/* Video style */}
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">Video Style</label>
+            <div className="grid grid-cols-3 gap-2">
+              {STYLES.map(s => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => setStyle(s.value)}
+                  className={`flex flex-col items-start gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-all ${
+                    style === s.value
+                      ? 'border-pink-400 bg-pink-50 ring-1 ring-pink-400'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <span className="text-sm font-semibold text-gray-800">{s.label}</span>
+                  <span className="text-[11px] text-gray-400 leading-tight">{s.desc}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-600">{error}</div>
+            <div className="rounded-xl bg-red-50 border border-red-200 px-3 py-2.5 text-sm text-red-600">{error}</div>
           )}
 
-          <Button type="submit" loading={loading} size="lg" className="w-full">
+          <Button type="submit" loading={loading} disabled={!product.trim()} size="lg" className="w-full">
             <Clapperboard className="h-4 w-4 mr-2" />
-            {loading ? 'Generating storyboards…' : 'Generate Storyboards with AI'}
+            {loading ? 'Generating storyboards…' : 'Generate Storyboard with AI'}
           </Button>
+
+          <p className="text-xs text-center text-gray-400">
+            Generates scene-by-scene image prompts, video prompts & narration
+          </p>
         </form>
       </CardContent>
     </Card>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { Wand2, ArrowRight, Loader2 } from 'lucide-react'
+import { ArrowRight, Loader2, Link2 } from 'lucide-react'
 
 export function ViralStudioCard() {
   const [url, setUrl]         = useState('')
@@ -18,7 +18,6 @@ export function ViralStudioCard() {
     e.preventDefault()
     const trimmed = url.trim()
     if (!trimmed) return
-    // Validate: must be a real https TikTok URL
     if (!trimmed.startsWith('https://') || !trimmed.includes('tiktok.com')) {
       setError('Please enter a valid TikTok video URL (https://www.tiktok.com/...)')
       return
@@ -29,45 +28,53 @@ export function ViralStudioCard() {
   }
 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-pink-50 to-violet-50 border border-pink-100 p-5 sm:p-6">
-      {/* Header */}
-      <div className="flex items-center gap-2.5 mb-1">
-        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-pink-500 to-violet-500 flex items-center justify-center shrink-0">
-          <Wand2 className="h-4 w-4 text-white" />
-        </div>
-        <div>
-          <p className="font-black text-gray-900 text-sm leading-tight">Viral Studio</p>
-          <p className="text-[11px] text-gray-500 leading-tight">Paste any TikTok URL → script in ~20s</p>
-        </div>
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 p-5 sm:p-6">
+      {/* Background glows */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-pink-500/20 blur-3xl" />
+        <div className="absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-violet-500/20 blur-3xl" />
       </div>
 
-      {/* URL input */}
-      <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
-        <input
-          type="url"
-          value={url}
-          onChange={e => setUrl(e.target.value)}
-          placeholder="https://www.tiktok.com/@creator/video/..."
-          className="flex-1 min-w-0 px-3 py-2.5 rounded-xl border border-pink-200 bg-white text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-400"
-        />
-        <button
-          type="submit"
-          disabled={loading || !url.trim()}
-          className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-500 text-white text-sm font-semibold disabled:opacity-50 hover:opacity-90 transition-opacity"
-        >
-          {loading
-            ? <Loader2 className="h-4 w-4 animate-spin" />
-            : <><ArrowRight className="h-4 w-4" /></>}
-        </button>
-      </form>
+      <div className="relative">
+        {/* Badge */}
+        <div className="inline-flex items-center gap-1.5 bg-pink-500/10 border border-pink-500/20 text-pink-400 text-[11px] px-3 py-1 rounded-full mb-3">
+          <span className="h-1.5 w-1.5 rounded-full bg-pink-400 animate-pulse" />
+          Viral Studio · ~20s to generate
+        </div>
 
-      {error && (
-        <p className="mt-2 text-[11px] text-red-500">{error}</p>
-      )}
+        {/* Headline */}
+        <h2 className="text-lg sm:text-xl font-black text-white leading-tight mb-1">
+          Decode Any TikTok Video
+        </h2>
+        <p className="text-gray-400 text-xs sm:text-sm mb-4">
+          Paste a URL → get hook structure, emotion arc & ready-to-film script
+        </p>
 
-      <p className="mt-2.5 text-[11px] text-gray-400">
-        Analyzes hook structure · emotion arc · script blueprint · ready-to-film lines
-      </p>
+        {/* Input */}
+        <form onSubmit={handleSubmit} className="flex gap-2">
+          <div className="relative flex-1">
+            <Link2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+            <input
+              type="url"
+              value={url}
+              onChange={e => { setUrl(e.target.value); setError(null) }}
+              placeholder="https://www.tiktok.com/@creator/video/..."
+              className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading || !url.trim()}
+            className="shrink-0 flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-violet-500 text-white text-sm font-semibold disabled:opacity-40 hover:opacity-90 transition-opacity shadow-lg shadow-pink-500/25"
+          >
+            {loading
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <><span className="hidden sm:inline">Analyze</span><ArrowRight className="h-4 w-4" /></>}
+          </button>
+        </form>
+
+        {error && <p className="mt-2 text-[11px] text-red-400">{error}</p>}
+      </div>
     </div>
   )
 }
