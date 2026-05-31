@@ -9,6 +9,7 @@ import { URLInputCard } from '@/components/studio/URLInputCard'
 import { AnalysisWaitScreen } from '@/components/studio/AnalysisWaitScreen'
 import { CreativeBlueprintCard } from '@/components/studio/CreativeBlueprintCard'
 import { ScriptLayerCard } from '@/components/studio/ScriptLayerCard'
+import { AntiDupHooksPanel } from '@/components/studio/AntiDupHooksPanel'
 import type { CreativeBlueprint, ScriptLayer } from '@/lib/utils/result-transform'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -289,6 +290,11 @@ function ResultView({
 
       <CreativeBlueprintCard blueprint={blueprint} />
       <ScriptLayerCard script={script} onCopy={() => triggerComplete('copy')} />
+
+      {/* Anti-duplication variants */}
+      {blueprint.hook && (
+        <AntiDupHooksPanel hookLine={blueprint.hook} />
+      )}
 
       {/* Storyboard CTA */}
       {storyboardProduct && (
