@@ -76,27 +76,6 @@ export default async function DashboardPage() {
     }
   } catch { /* ignore — show empty state */ }
 
-  // ── Ledger stats ──────────────────────────────────────────────────────────────
-  let totalGenerations = 0
-  let totalScripts     = 0
-  let weekGenerations  = 0
-  try {
-    const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString()
-    const [{ count: total }, { count: week }, { data: payloads }] = await Promise.all([
-      supabase.from('ledger_event_kernel').select('*', { count: 'exact', head: true })
-        .eq('user_id', user?.id ?? '').eq('event_type', 'COMPLETE'),
-      supabase.from('ledger_event_kernel').select('*', { count: 'exact', head: true })
-        .eq('user_id', user?.id ?? '').eq('event_type', 'COMPLETE').gte('emitted_at', weekAgo),
-      supabase.from('ledger_event_kernel').select('payload')
-        .eq('user_id', user?.id ?? '').eq('event_type', 'COMPLETE'),
-    ])
-    totalGenerations = total ?? 0
-    weekGenerations  = week  ?? 0
-    totalScripts = (payloads ?? []).reduce(
-      (acc, r) => acc + Number((r.payload as Record<string, unknown>)?.script_count ?? 1), 0,
-    )
-  } catch { /* ledger not yet seeded */ }
-
   return (
     <div className="space-y-5">
       <DashboardTracker page="dashboard" />
