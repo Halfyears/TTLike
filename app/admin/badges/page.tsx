@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
-import { BADGE_LABELS } from '@/lib/behavior/badge-engine'
-import type { BadgeType } from '@/lib/behavior/badge-engine'
+import { BADGE_LABELS } from '@/lib/behavior/badge-types'
+import type { BadgeType } from '@/lib/behavior/badge-types'
 import { fmtDateTime } from '@/lib/dateUtils'
 
 export const metadata = { title: 'Badges · Admin' }

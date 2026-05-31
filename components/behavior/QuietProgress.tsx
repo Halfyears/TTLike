@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useBehaviorStore } from '@/lib/behavior/state-machine'
-import { BADGE_LABELS } from '@/lib/behavior/badge-engine'
-import type { BadgeType } from '@/lib/behavior/badge-engine'
+import { BADGE_LABELS } from '@/lib/behavior/badge-types'
+import type { BadgeType } from '@/lib/behavior/badge-types'
 
 interface BadgeEntry {
   id:         string

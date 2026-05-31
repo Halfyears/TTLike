@@ -1,19 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import type { SessionContext } from './state-machine'
+import type { BadgeType } from './badge-types'
 
-export type BadgeType =
-  | 'FIRST_RESULT'
-  | 'NO_PERFECT_TAKE'
-  | 'STORYBOARD_EXTENDED'
-  | 'WELCOME_BACK'
-
-/** Human-readable labels for user display (QuietProgress) */
-export const BADGE_LABELS: Record<BadgeType, string> = {
-  FIRST_RESULT:       'First script captured',
-  NO_PERFECT_TAKE:    'Ran the analysis again',
-  STORYBOARD_EXTENDED:'Took it one step further',
-  WELCOME_BACK:       'Came back after a break',
-}
+export type { BadgeType }
 
 /**
  * Server-side: evaluate session facts against badge rules and insert new badges.

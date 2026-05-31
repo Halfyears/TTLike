@@ -219,11 +219,15 @@ function ResultView({
 
   const storyboardProduct = encodeURIComponent(meta.product_name ?? meta.niche ?? '')
   const { markStoryboard, markCopy, session } = useBehaviorStore()
+  // Guard: badge check fires exactly once per result view — prevent duplicate badges on repeat clicks
+  const completedRef = useRef(false)
 
   function triggerComplete(type: 'copy' | 'storyboard') {
     if (type === 'copy')       markCopy()
     if (type === 'storyboard') markStoryboard()
     handleIntent('COMPLETE_SESSION')
+    if (completedRef.current) return
+    completedRef.current = true
     // Fire-and-forget badge check — QuietProgress refetches on COMPLETE state
     void fetch('/api/behavior/check-badges', {
       method:  'POST',
@@ -405,6 +409,7 @@ export function StudioClient() {
   }, [])
 
   const handleFailed = useCallback((err: string) => {
+    handleIntent('RESET')
     setErrorMsg(err || 'Analysis failed. Please try again.')
     breakdownIdRef.current = null
     setBreakdownId(null)
