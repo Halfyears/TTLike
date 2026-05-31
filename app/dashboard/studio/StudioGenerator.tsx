@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Clapperboard, Sparkles, Copy, Check, User, Image, Video, Mic, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -154,8 +155,15 @@ function buildScript(product: string, style: string): string {
 }
 
 export function StudioGenerator() {
+  const searchParams = useSearchParams()
   const [product,  setProduct]  = useState('')
   const [style,    setStyle]    = useState('ugc')
+
+  // Pre-fill product name when arriving from Viral Studio result page
+  useEffect(() => {
+    const p = searchParams.get('product')
+    if (p) setProduct(decodeURIComponent(p).slice(0, 80))
+  }, [searchParams])
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
   const [result,   setResult]   = useState<GenerateResponse | null>(null)

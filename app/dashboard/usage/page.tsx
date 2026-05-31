@@ -13,7 +13,7 @@ export default function UsagePage() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-gray-900">Usage</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Script generation activity from your ledger</p>
+          <p className="text-xs text-gray-500 mt-0.5">Your Viral Studio quota and analysis history</p>
         </div>
       </div>
 

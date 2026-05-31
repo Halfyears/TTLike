@@ -2,6 +2,7 @@
  * POST /api/studio/analyze-video
  *
  * Dispatches the viral pipeline as a Trigger.dev background job for a logged-in user.
+ * Checks monthly quota before triggering; increments usage on success.
  * Returns { ok, breakdown_id, status: "QUEUED" } immediately.
  */
 
@@ -44,6 +45,27 @@ export async function POST(req: NextRequest) {
 
   const service = createServiceClient()
 
+  // ── Quota check ────────────────────────────────────────────────────────────
+  await service.rpc('ensure_billing_tier', { uid: user.id })
+
+  const { data: tier } = await service
+    .from('user_billing_tiers')
+    .select('tier_name, video_analysis_used, video_analysis_limit')
+    .eq('user_id', user.id)
+    .single()
+
+  if (tier && tier.video_analysis_used >= tier.video_analysis_limit) {
+    const planLabel = tier.tier_name === 'free' ? 'Free' : tier.tier_name.charAt(0).toUpperCase() + tier.tier_name.slice(1)
+    return NextResponse.json({
+      ok:      false,
+      error:   'quota_exceeded',
+      message: `You've used all ${tier.video_analysis_limit} analyses on the ${planLabel} plan. Upgrade to continue.`,
+      used:    tier.video_analysis_used,
+      limit:   tier.video_analysis_limit,
+      tier:    tier.tier_name,
+    }, { status: 402 })
+  }
+
   // Ensure breakdown row exists; update or insert
   const { data: existing } = await service
     .from('video_breakdowns').select('id').eq('video_id', video_id).maybeSingle()
@@ -53,13 +75,13 @@ export async function POST(req: NextRequest) {
   if (existing?.id) {
     breakdown_id = existing.id
     await service.from('video_breakdowns')
-      .update({ viral_status: 'PROCESSING', viral_error: null })
+      .update({ viral_status: 'PROCESSING', viral_error: null, user_id: user.id })
       .eq('id', breakdown_id)
   } else {
     const urlHash = Buffer.from(video_id).toString('base64url').slice(0, 32)
     const { data: inserted, error: insertErr } = await service
       .from('video_breakdowns')
-      .insert({ video_id, url_hash: urlHash, payload: {}, blog_status: 'NOT_SENT', viral_status: 'PROCESSING' })
+      .insert({ video_id, url_hash: urlHash, payload: {}, blog_status: 'NOT_SENT', viral_status: 'PROCESSING', user_id: user.id })
       .select('id').single()
 
     if (insertErr || !inserted?.id) {
@@ -89,7 +111,6 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[studio/analyze-video] Trigger.dev error:', msg)
-    // Revert status so the row isn't stuck in PROCESSING (best-effort, non-fatal)
     try {
       await service.from('video_breakdowns')
         .update({ viral_status: 'FAILED', viral_error: `Trigger failed: ${msg}` })
@@ -99,6 +120,12 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ ok: false, error: 'Failed to start analysis. Please try again.' }, { status: 500 })
   }
+
+  // Increment quota usage (best-effort, fire-and-forget)
+  const currentUsed = tier?.video_analysis_used ?? 0
+  void service.from('user_billing_tiers')
+    .update({ video_analysis_used: currentUsed + 1 })
+    .eq('user_id', user.id)
 
   await service.from('video_breakdowns').update({ trigger_run_id: handle.id }).eq('id', breakdown_id)
 
