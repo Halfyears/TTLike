@@ -57,45 +57,45 @@ export function URLInputCard({ onResolved, prefillUrl }: URLInputCardProps) {
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-gradient-to-br from-pink-500 to-violet-500 mb-4 shadow-lg shadow-pink-200">
-          <Link2 className="h-5 w-5 text-white" />
-        </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Viral Studio</h1>
-        <p className="text-gray-500 text-lg">Paste a TikTok URL → get a ready-to-film script</p>
+        <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tight mb-3">
+          Decode Any{' '}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-violet-400">
+            Viral Video
+          </span>
+        </h1>
+        <p className="text-gray-400 text-base sm:text-lg">
+          Paste a TikTok URL and get a ready-to-film script in ~20 seconds
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-3">
+      <form onSubmit={handleSubmit} className="flex gap-2 sm:gap-3">
         <div className="relative flex-1">
-          <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-pink-300 w-5 h-5" />
+          <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
           <input
             type="url"
             value={url}
             onChange={e => { setUrl(e.target.value); setError(null) }}
             placeholder="https://www.tiktok.com/@user/video/..."
-            className="w-full pl-11 pr-4 py-3.5 border border-pink-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent bg-white"
+            className="w-full pl-10 pr-4 py-3.5 rounded-xl text-sm bg-white/10 border border-white/20 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent backdrop-blur-sm"
             disabled={loading}
           />
         </div>
         <button
           type="submit"
           disabled={loading || !url.trim()}
-          className="px-6 py-3.5 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-opacity"
+          className="shrink-0 px-5 sm:px-6 py-3.5 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 transition-opacity shadow-lg shadow-pink-500/30"
         >
           {loading ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
+            <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden sm:inline">Analyzing...</span></>
           ) : (
-            <><span>Analyze</span><ArrowRight className="w-4 h-4" /></>
+            <><span className="hidden sm:inline">Analyze</span><ArrowRight className="w-4 h-4" /></>
           )}
         </button>
       </form>
 
       {error && (
-        <p className="mt-3 text-sm text-red-500 text-center">{error}</p>
+        <p className="mt-3 text-sm text-red-400 text-center">{error}</p>
       )}
-
-      <p className="mt-4 text-center text-xs text-gray-400">
-        Works with any public TikTok video URL · ~20s to generate
-      </p>
     </div>
   )
 }

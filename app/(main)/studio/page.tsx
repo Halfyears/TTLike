@@ -381,25 +381,61 @@ export default function StudioPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 px-4 py-16">
+    <main className="min-h-screen bg-white">
+
+      {/* ── url_input: hero background ── */}
       {stage === 'url_input' && (
-        <URLInputCard onResolved={handleResolved} prefillUrl={prefillUrl ?? undefined} />
+        <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-4 pt-20 pb-24">
+          {/* Background glows */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-pink-500/20 blur-3xl" />
+            <div className="absolute -bottom-16 -left-16 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-pink-400/10 blur-3xl" />
+          </div>
+
+          {/* Badge */}
+          <div className="relative flex justify-center mb-8">
+            <span className="inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 text-pink-400 text-xs px-4 py-1.5 rounded-full">
+              <span className="h-1.5 w-1.5 rounded-full bg-pink-400 animate-pulse" />
+              AI-Powered · ~20 seconds · Any public TikTok URL
+            </span>
+          </div>
+
+          {/* URL Input Card on dark bg */}
+          <div className="relative">
+            <URLInputCard onResolved={handleResolved} prefillUrl={prefillUrl ?? undefined} />
+          </div>
+
+          {/* Social proof strip */}
+          <div className="relative mt-12 flex flex-wrap justify-center gap-6 text-xs text-gray-500">
+            {[
+              ['🎯', 'Hook structure decoded'],
+              ['🎭', 'Emotion arc mapped'],
+              ['🎬', 'Scene-by-scene script'],
+              ['⚡', 'Ready to film'],
+            ].map(([icon, label]) => (
+              <span key={label} className="flex items-center gap-1.5">{icon} {label}</span>
+            ))}
+          </div>
+        </div>
       )}
 
       {stage === 'product_form' && videoMeta && (
-        <ProductFormStep
-          meta={videoMeta}
-          form={form}
-          setForm={setForm}
-          loading={submitLoading}
-          error={submitError}
-          onSubmit={handleSubmitForm}
-          onBack={reset}
-        />
+        <div className="px-4 py-12">
+          <ProductFormStep
+            meta={videoMeta}
+            form={form}
+            setForm={setForm}
+            loading={submitLoading}
+            error={submitError}
+            onSubmit={handleSubmitForm}
+            onBack={reset}
+          />
+        </div>
       )}
 
       {stage === 'analyzing' && breakdownId && (
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center px-4 py-12">
           <AnalysisWaitScreen
             breakdownId={breakdownId}
             onCompleted={handleCompleted}
@@ -409,17 +445,19 @@ export default function StudioPage() {
       )}
 
       {stage === 'result' && result && videoMeta && (
-        <ResultView
-          blueprint={result.blueprint}
-          script={result.script}
-          meta={videoMeta}
-          resultMeta={resultMeta}
-          onReset={reset}
-        />
+        <div className="px-4 py-12">
+          <ResultView
+            blueprint={result.blueprint}
+            script={result.script}
+            meta={videoMeta}
+            resultMeta={resultMeta}
+            onReset={reset}
+          />
+        </div>
       )}
 
       {stage === 'error' && (
-        <div className="max-w-md mx-auto text-center py-12">
+        <div className="px-4 py-12 max-w-md mx-auto text-center">
           <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
             <X className="w-5 h-5 text-red-500" />
           </div>
@@ -427,7 +465,7 @@ export default function StudioPage() {
           <p className="text-sm text-gray-500 mb-6">{errorMsg ?? 'Something went wrong'}</p>
           <button
             onClick={reset}
-            className="px-6 py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-colors"
+            className="px-6 py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl text-sm font-semibold hover:opacity-90 transition-opacity"
           >
             Try again
           </button>
