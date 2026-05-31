@@ -32,10 +32,6 @@ export function Footer() {
             <p className="text-sm leading-relaxed">
               AI-powered TikTok viral intelligence for dropshippers and UGC creators.
             </p>
-            <div className="mt-4 inline-flex items-center gap-2 bg-pink-500/10 text-pink-400 text-xs px-3 py-1.5 rounded-full">
-              <span className="h-1.5 w-1.5 rounded-full bg-pink-400 animate-pulse" />
-              Beta - 100% Free
-            </div>
           </div>
 
           {Object.entries(footerLinks).map(([group, links]) => (
