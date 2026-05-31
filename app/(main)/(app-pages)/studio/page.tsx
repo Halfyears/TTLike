@@ -8,7 +8,7 @@ export const metadata = { title: 'Viral Studio · TTLike' }
 export default async function StudioPage() {
   const sb = await createClient()
   const { data: { user } } = await sb.auth.getUser()
-  if (!user) redirect('/auth/login?next=/studio')
+  if (!user) redirect('/auth/login?redirect=/studio')
 
   return (
     <Suspense>

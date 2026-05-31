@@ -64,13 +64,16 @@ function fmtResetDate(iso: string | null) {
 // ── Analysis row ──────────────────────────────────────────────────────────────
 
 function AnalysisRow({ item }: { item: AnalysisItem }) {
+  const title = item.product_name ?? item.category
+  const sub   = item.product_name ? item.category : null
   return (
     <div className="flex items-start gap-3 py-3 border-b border-gray-50 last:border-0">
       <div className="h-8 w-8 rounded-lg bg-pink-50 flex items-center justify-center shrink-0 mt-0.5">
         <Zap className="h-3.5 w-3.5 text-pink-500" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-gray-900 truncate">{item.category}</p>
+        <p className="text-xs font-medium text-gray-900 truncate">{title}</p>
+        {sub && <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>}
         {item.hook_line && (
           <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-1 italic">
             "{item.hook_line}"

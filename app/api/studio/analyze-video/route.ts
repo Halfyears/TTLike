@@ -131,11 +131,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Failed to start analysis. Please try again.' }, { status: 500 })
   }
 
-  // Increment quota usage (best-effort, fire-and-forget)
+  // Increment quota usage — awaited so a DB failure isn't silently swallowed
   const currentUsed = tier?.video_analysis_used ?? 0
-  void service.from('user_billing_tiers')
-    .update({ video_analysis_used: currentUsed + 1 })
-    .eq('user_id', user.id)
+  try {
+    await service.from('user_billing_tiers')
+      .update({ video_analysis_used: currentUsed + 1 })
+      .eq('user_id', user.id)
+  } catch (quotaIncErr) {
+    console.error('[studio/analyze-video] quota increment failed:', quotaIncErr)
+  }
 
   await service.from('video_breakdowns').update({ trigger_run_id: handle.id }).eq('id', breakdown_id)
 
