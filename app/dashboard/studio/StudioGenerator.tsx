@@ -158,15 +158,15 @@ export function StudioGenerator() {
   const searchParams = useSearchParams()
   const [product,  setProduct]  = useState('')
   const [style,    setStyle]    = useState('ugc')
+  const [loading,  setLoading]  = useState(false)
+  const [error,    setError]    = useState('')
+  const [result,   setResult]   = useState<GenerateResponse | null>(null)
 
   // Pre-fill product name when arriving from Viral Studio result page
   useEffect(() => {
     const p = searchParams.get('product')
     if (p) setProduct(decodeURIComponent(p).slice(0, 80))
   }, [searchParams])
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
-  const [result,   setResult]   = useState<GenerateResponse | null>(null)
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault()

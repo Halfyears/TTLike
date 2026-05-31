@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       if (insertErr?.code === '23505') {
         const { data: retried, error: retryErr } = await service
           .from('video_breakdowns')
-          .insert({ video_id, url_hash: `${urlHash}-${Date.now().toString(36)}`, payload: {}, blog_status: 'NOT_SENT', viral_status: 'PROCESSING' })
+          .insert({ video_id, url_hash: `${urlHash}-${Date.now().toString(36)}`, payload: {}, blog_status: 'NOT_SENT', viral_status: 'PROCESSING', user_id: user.id })
           .select('id').single()
         if (retryErr || !retried?.id) return NextResponse.json({ ok: false, error: 'Failed to create breakdown row' }, { status: 500 })
         breakdown_id = retried.id

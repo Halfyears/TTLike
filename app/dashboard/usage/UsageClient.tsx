@@ -194,7 +194,9 @@ export function UsageClient() {
               <div className="flex items-center justify-center gap-1 mb-0.5">
                 <Calendar className="h-3.5 w-3.5 text-gray-400" />
                 <p className="text-sm font-bold text-gray-900">
-                  {resetLabel ? resetLabel.split(' ')[0] : '—'}
+                  {tier?.reset_at
+                    ? new Date(tier.reset_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                    : '—'}
                 </p>
               </div>
               <p className="text-[11px] text-gray-500">reset</p>
