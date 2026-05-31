@@ -173,7 +173,9 @@ function ProductFormStep({
                 value={form.price_point ?? ''}
                 onChange={e => {
                   const v = e.target.value
-                  setForm(f => ({ ...f, price_point: v === '' ? undefined : Number(v) }))
+                  const n = Number(v)
+                  // Reject empty, 0, negative, NaN, Infinity — Zod requires positive()
+                  setForm(f => ({ ...f, price_point: v === '' || !isFinite(n) || n <= 0 ? undefined : n }))
                 }}
                 placeholder="e.g. 29"
                 min={1}

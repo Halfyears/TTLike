@@ -54,7 +54,8 @@ async function extractContextViaLLM(title: string, productName: string | null): 
   const key = process.env.GROQ_API_KEY
   if (!key) return null
 
-  const subject = productName ?? title
+  const subject = (productName ?? title).trim()
+  if (!subject) return null  // no usable signal — skip LLM, fall through to NICHE_DEFAULTS
 
   const system = `You are a TikTok product analyst. Given a video title or product name, extract:
 1. A concise product category (2-4 words, e.g. "posture corrector", "LED face mask", "kitchen gadget")
@@ -93,7 +94,9 @@ Rules:
       return {
         category:    parsed.category.slice(0, 60),
         pain_points: (parsed.pain_points as unknown[])
-          .filter((p): p is string => typeof p === 'string' && p.length >= 5)
+          .filter((p): p is string => typeof p === 'string')
+          .map(p => p.trim())
+          .filter(p => p.length >= 5)
           .slice(0, 4),
       }
     }

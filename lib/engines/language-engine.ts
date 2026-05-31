@@ -33,7 +33,7 @@ function buildLanguagePrompt(
 
 Product context:
   Category:    ${productSchema.category}
-  Price:       $${productSchema.price_point}
+  Price:       ${productSchema.price_point != null ? `$${productSchema.price_point}` : 'not specified'}
   Pain points: ${productSchema.pain_points.join(', ')}
   Persuasion:  ${productSchema.persuasion_style ?? 'unspecified'}
   Audience:    ${productSchema.target_audience ?? 'unspecified'}

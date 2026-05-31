@@ -131,14 +131,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Failed to start analysis. Please try again.' }, { status: 500 })
   }
 
-  // Increment quota usage — awaited so a DB failure isn't silently swallowed
-  const currentUsed = tier?.video_analysis_used ?? 0
-  try {
-    await service.from('user_billing_tiers')
-      .update({ video_analysis_used: currentUsed + 1 })
+  // Increment quota usage.
+  // Supabase returns { error } — it does NOT throw. Use the returned error object.
+  // If tier is null (ensure_billing_tier race), skip increment to avoid setting usage to 1.
+  if (tier) {
+    const { error: quotaIncErr } = await service.from('user_billing_tiers')
+      .update({ video_analysis_used: tier.video_analysis_used + 1 })
       .eq('user_id', user.id)
-  } catch (quotaIncErr) {
-    console.error('[studio/analyze-video] quota increment failed:', quotaIncErr)
+    if (quotaIncErr) {
+      console.error('[studio/analyze-video] quota increment failed:', quotaIncErr.message)
+    }
   }
 
   await service.from('video_breakdowns').update({ trigger_run_id: handle.id }).eq('id', breakdown_id)

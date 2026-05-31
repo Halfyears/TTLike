@@ -31,7 +31,7 @@ function buildRouterPrompt(
 ): string {
   const productLines = [
     `Category:       ${productSchema.category}`,
-    `Price point:    $${productSchema.price_point}`,
+    productSchema.price_point != null ? `Price point:    $${productSchema.price_point}` : null,
     `Pain points:    ${productSchema.pain_points.join(', ')}`,
     productSchema.persuasion_style
       ? `Persuasion style: ${productSchema.persuasion_style}`
