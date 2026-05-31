@@ -1,9 +1,10 @@
 /**
  * GET /api/studio/context/[video_id]
  *
- * Returns pre-extracted context for auto-filling the product form:
- * category, pain_points, ref_price from niche, has_timeline.
- * Requires Supabase Auth.
+ * Returns pre-extracted context for auto-filling the product form.
+ * When the video has no prior analysis (viral_formulas empty), calls Groq
+ * to extract accurate category + pain_points from the video title.
+ * Price is no longer returned — it is optional and left for the user to fill.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -18,6 +19,8 @@ async function getUser() {
   } catch { return null }
 }
 
+// ── Regex extractor (used when viral_formulas exist) ─────────────────────────
+
 function extractPainPoint(mechanism: string): string {
   const m = mechanism.toLowerCase()
   const patterns = [
@@ -28,7 +31,6 @@ function extractPainPoint(mechanism: string): string {
     /\b(?:frustrat(?:ed|ion) (?:with|by|about))\s+([^,.;]{5,40})/,
     /\b(?:worry about|worried about)\s+([^,.;]{5,40})/,
     /\b(?:lack of|lacking)\s+([^,.;]{5,40})/,
-    /\btarget(?:ing)?\s+(?:the\s+)?(?:audience'?s?\s+)?([^,.;]{5,40})/,
   ]
   for (const pattern of patterns) {
     const match = m.match(pattern)
@@ -41,21 +43,78 @@ function extractPainPoint(mechanism: string): string {
   return cleaned.charAt(0).toUpperCase() + cleaned.slice(1)
 }
 
-const NICHE_DEFAULTS: Record<string, string[]> = {
-  Fitness:  ['low energy', 'lack of motivation', 'slow fitness results'],
-  Beauty:   ['dull skin', 'visible aging', 'uneven skin tone'],
-  Kitchen:  ['meal prep takes too long', 'food waste', 'cooking stress'],
-  Home:     ['clutter and disorganization', 'lack of storage', 'messy spaces'],
-  Tech:     ['low productivity', 'slow devices', 'poor battery life'],
-  Pets:     ['pet anxiety', 'behavioral issues', 'pet health concerns'],
-  Travel:   ['travel discomfort', 'heavy luggage', 'jet lag'],
-  Health:   ['poor sleep', 'chronic pain', 'high stress'],
-  General:  ['time scarcity', 'stress', 'not seeing results'],
+// ── LLM pre-fill (used when video has no prior analysis) ─────────────────────
+
+interface LLMContext {
+  category:    string
+  pain_points: string[]
 }
 
-const NICHE_PRICE: Record<string, number> = {
-  Fitness: 39, Beauty: 29, Kitchen: 35, Home: 25,
-  Tech: 49, Pets: 25, Travel: 35, Health: 35, General: 29,
+async function extractContextViaLLM(title: string, productName: string | null): Promise<LLMContext | null> {
+  const key = process.env.GROQ_API_KEY
+  if (!key) return null
+
+  const subject = productName ?? title
+
+  const system = `You are a TikTok product analyst. Given a video title or product name, extract:
+1. A concise product category (2-4 words, e.g. "posture corrector", "LED face mask", "kitchen gadget")
+2. 3 specific customer pain points this product solves (6-12 words each, concrete problems not abstract words)
+
+Return ONLY valid JSON: { "category": "...", "pain_points": ["...", "...", "..."] }
+Rules:
+- category must be specific to THIS product, not a generic niche like "Health" or "Beauty"
+- pain_points must be specific problems (e.g. "back pain from sitting at a desk all day"), not vague words (e.g. "discomfort")
+- If you cannot determine specific pain points, return generic ones appropriate to the product`
+
+  const user = `Video/product: "${subject.slice(0, 200)}"`
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:  'POST',
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      signal:  AbortSignal.timeout(8_000),
+      body: JSON.stringify({
+        model:           'llama-3.3-70b-versatile',
+        messages:        [{ role: 'system', content: system }, { role: 'user', content: user }],
+        response_format: { type: 'json_object' },
+        temperature:     0.4,
+        max_tokens:      256,
+      }),
+    })
+    if (!res.ok) return null
+    const data = await res.json()
+    const text = (data.choices?.[0]?.message?.content ?? '') as string
+    const parsed = JSON.parse(text) as { category?: string; pain_points?: unknown }
+    if (
+      typeof parsed.category === 'string' &&
+      Array.isArray(parsed.pain_points) &&
+      parsed.pain_points.length >= 1
+    ) {
+      return {
+        category:    parsed.category.slice(0, 60),
+        pain_points: (parsed.pain_points as unknown[])
+          .filter((p): p is string => typeof p === 'string' && p.length >= 5)
+          .slice(0, 4),
+      }
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+// ── NICHE_DEFAULTS — last-resort fallback only ────────────────────────────────
+
+const NICHE_DEFAULTS: Record<string, string[]> = {
+  Fitness:  ['back pain from sitting all day', 'low energy and no motivation to work out', 'slow progress despite working hard'],
+  Beauty:   ['dull skin that looks tired and aged', 'uneven skin tone that makeup can\'t cover', 'spending too much on products that don\'t work'],
+  Kitchen:  ['meal prep takes too long on busy days', 'wasting food before you can use it', 'cooking feels stressful and complicated'],
+  Home:     ['home feels cluttered and disorganized', 'running out of storage space', 'spending hours cleaning with poor results'],
+  Tech:     ['wasting hours on tasks that should be instant', 'devices dying too fast', 'poor focus and low daily productivity'],
+  Pets:     ['dog anxiety during storms or alone time', 'pet behavioral issues that are hard to fix', 'worrying about pet health and nutrition'],
+  Travel:   ['neck pain and poor sleep on long flights', 'heavy luggage that slows you down', 'exhaustion from jet lag ruining the trip'],
+  Health:   ['waking up still tired after a full night\'s sleep', 'chronic pain that limits daily life', 'stress that never seems to go away'],
+  General:  ['not getting results despite trying hard', 'wasting time and money on things that don\'t work', 'stress from juggling too many responsibilities'],
 }
 
 export async function GET(
@@ -81,29 +140,37 @@ export async function GET(
   const formulas    = payload?.viral_formulas ?? []
   const hasTimeline = !!(payload?.visual_timeline?.length)
 
-  let painPoints: string[] = formulas.slice(0, 5).map(f => extractPainPoint(f.mechanism)).filter(p => p.length >= 5)
-  painPoints = [...new Set(painPoints)]
+  let category:    string   = video.niche ?? 'General'
+  let painPoints:  string[] = []
 
-  if (painPoints.length === 0) {
-    const niche = String(video.niche ?? 'General')
-    const defs  = NICHE_DEFAULTS[niche] ?? NICHE_DEFAULTS['General']!
-    const title = String(video.product_name ?? video.title ?? '')
-    const titleHints = title.split(/[\s,]+/)
-      .filter(w => /pain|stress|sleep|energy|weight|fat|skin|age|hair|care|clean|organi/i.test(w))
-      .slice(0, 2).map(w => w.toLowerCase())
-    painPoints = titleHints.length >= 1 ? [...titleHints, ...defs].slice(0, 3) : defs.slice(0, 3)
+  if (formulas.length > 0) {
+    // Video has been analyzed before — extract from LLM-generated viral_formulas
+    painPoints = [...new Set(
+      formulas.slice(0, 5).map(f => extractPainPoint(f.mechanism)).filter(p => p.length >= 5)
+    )]
   }
 
-  const niche    = String(video.niche ?? 'General')
-  const refPrice = NICHE_PRICE[niche] ?? 29
+  if (painPoints.length === 0) {
+    // New video OR formulas exist but had no extractable pain points
+    // Try a fast LLM call for accurate category + pain_points
+    const llmCtx = await extractContextViaLLM(video.title ?? '', video.product_name)
+    if (llmCtx && llmCtx.pain_points.length >= 1) {
+      category   = llmCtx.category
+      painPoints = llmCtx.pain_points
+    } else {
+      // Last resort: hardcoded niche defaults
+      const niche = String(video.niche ?? 'General')
+      painPoints = (NICHE_DEFAULTS[niche] ?? NICHE_DEFAULTS['General']!).slice(0, 3)
+    }
+  }
 
   return NextResponse.json({
     ok:           true,
     product_name: video.product_name,
     niche:        video.niche,
-    category:     video.niche ?? '',
+    category,
     pain_points:  painPoints,
     has_timeline: hasTimeline,
-    ref_price:    refPrice,
+    // ref_price intentionally omitted — price is optional, let user fill or leave blank
   })
 }

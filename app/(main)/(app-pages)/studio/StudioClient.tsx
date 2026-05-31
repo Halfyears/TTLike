@@ -35,7 +35,7 @@ interface ProductForm {
   product_name: string
   category:     string
   pain_points:  string[]
-  price_point:  number
+  price_point:  number | undefined
 }
 
 interface ResultMeta {
@@ -162,13 +162,20 @@ function ProductFormStep({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Price (USD)</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Product Price (USD)
+              <span className="text-gray-400 font-normal ml-1">(optional — helps the AI tailor the script)</span>
+            </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
               <input
                 type="number"
-                value={form.price_point}
-                onChange={e => setForm(f => ({ ...f, price_point: Number(e.target.value) }))}
+                value={form.price_point ?? ''}
+                onChange={e => {
+                  const v = e.target.value
+                  setForm(f => ({ ...f, price_point: v === '' ? undefined : Number(v) }))
+                }}
+                placeholder="e.g. 29"
                 min={1}
                 step={1}
                 className="w-full pl-7 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-400"
@@ -340,7 +347,7 @@ export function StudioClient() {
   const searchParams = useSearchParams()
   const [stage, setStage]               = useState<Stage>('url_input')
   const [videoMeta, setVideoMeta]       = useState<VideoMeta | null>(null)
-  const [form, setForm]                 = useState<ProductForm>({ product_name: '', category: '', pain_points: [], price_point: 29 })
+  const [form, setForm]                 = useState<ProductForm>({ product_name: '', category: '', pain_points: [], price_point: undefined })
   const [breakdownId, setBreakdownId]   = useState<string | null>(null)
   const [submitLoading, setSubmitLoading] = useState(false)
   const [submitError, setSubmitError]   = useState<string | null>(null)
@@ -378,13 +385,13 @@ export function StudioClient() {
           product_name: data.product_name ?? productName ?? '',
           category:     data.category || niche || '',
           pain_points:  data.pain_points ?? [],
-          price_point:  data.ref_price   ?? 29,
+          price_point:  undefined,
         })
       } else {
-        setForm({ product_name: productName ?? '', category: niche ?? '', pain_points: [], price_point: 29 })
+        setForm({ product_name: productName ?? '', category: niche ?? '', pain_points: [], price_point: undefined })
       }
     } catch {
-      setForm({ product_name: productName ?? '', category: niche ?? '', pain_points: [], price_point: 29 })
+      setForm({ product_name: productName ?? '', category: niche ?? '', pain_points: [], price_point: undefined })
     }
     setStage('product_form')
   }, [])
@@ -469,7 +476,7 @@ export function StudioClient() {
     breakdownIdRef.current = null
     setBreakdownId(null)
     setVideoMeta(null)
-    setForm({ product_name: '', category: '', pain_points: [], price_point: 29 })
+    setForm({ product_name: '', category: '', pain_points: [], price_point: undefined })
     setStage('error')
   }, [])
 
@@ -477,7 +484,7 @@ export function StudioClient() {
     handleIntent('RESET')
     setStage('url_input')
     setVideoMeta(null)
-    setForm({ product_name: '', category: '', pain_points: [], price_point: 29 })
+    setForm({ product_name: '', category: '', pain_points: [], price_point: undefined })
     breakdownIdRef.current = null
     setBreakdownId(null)
     setResult(null)

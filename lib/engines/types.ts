@@ -60,7 +60,7 @@ export type IngestionSignal = z.infer<typeof IngestionSignalSchema>
 // Schema (lowercase for the Zod object) + type (uppercase, conventional)
 export const productSchemaInputSchema = z.object({
   category:          z.string(),           // e.g. "skincare", "fitness", "tech"
-  price_point:       z.number().positive(), // USD
+  price_point:       z.number().positive().optional(), // USD — optional, not required
   pain_points:       z.array(z.string()).min(1).max(5),
   /** User-supplied product name — overrides unreliable title extraction */
   product_name:      z.string().max(120).optional(),

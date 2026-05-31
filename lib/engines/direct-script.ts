@@ -79,7 +79,13 @@ RULES:
 - beat values must be from: HOOK CHAOS DEMO PAYOFF PROOF PROBLEM AGITATE SOLVE STORY RESULT REVEAL CTA SHOCK REFRAME COMPARISON WINNER TREND PIVOT
 - Use the transcript's actual timestamps for time_range — do not invent timing
 - The "say" text must be PRODUCT-SPECIFIC — mention the product by name at least once
-- Match the energy of the original: if the speaker is fast and punchy, your script must be too`
+- Match the energy of the original: if the speaker is fast and punchy, your script must be too
+
+SAY QUALITY RULES (non-negotiable):
+- Every "say" must be a complete spoken sentence with subject + verb. Minimum 6 words.
+- "Comfortable. Fast." is WRONG. "This fixes your back pain in one week." is RIGHT.
+- Always include a specific benefit, problem, or product name — never abstract filler.
+- Read every say line aloud mentally — it must sound natural as speech.`
 
 // ── User prompt builder ───────────────────────────────────────────────────────
 
@@ -94,7 +100,7 @@ function buildDirectPrompt(
   const productLines = [
     `Product name: ${productSchema.product_name ?? signal.product_name ?? signal.title}`,
     `Category:     ${productSchema.category}`,
-    `Price:        $${productSchema.price_point}`,
+    productSchema.price_point ? `Price:        $${productSchema.price_point}` : null,
     `Pain points:  ${productSchema.pain_points.join(', ')}`,
     productSchema.target_audience ? `Audience: ${productSchema.target_audience}` : null,
   ].filter(Boolean).join('\n')

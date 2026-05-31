@@ -94,7 +94,7 @@ function buildScriptPrompt(
 Product: ${signal.product_name ?? signal.title}
 Niche: ${signal.niche ?? 'general'}
 Category: ${productSchema.category}
-Price: $${productSchema.price_point}
+${productSchema.price_point ? `Price: $${productSchema.price_point}` : 'Price: not specified'}
 Pain points: ${productSchema.pain_points.join(', ')}
 Target: ${productSchema.target_audience ?? 'general TikTok audience'}
 

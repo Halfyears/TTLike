@@ -81,7 +81,7 @@ export async function buildLanguageProfile(
     parsed = JSON.parse(text)
   } catch {
     // Fallback: sensible defaults based on price point
-    const isHighTicket = productSchema.price_point > 80
+    const isHighTicket = (productSchema.price_point ?? 0) > 80
     return {
       result: {
         sentence_energy:  isHighTicket ? 0.6 : 0.85,

@@ -26,11 +26,18 @@ TRACK DEFINITIONS:
 - [EMOTION]: target viewer emotion at this moment
 
 LANGUAGE CONSTRAINTS based on language_profile:
-- If sentence_energy > 0.8: sentences ≤ 8 words. No conjunctions. Punchy.
+- If sentence_energy > 0.8: short punchy sentences ≤ 8 words. Minimal conjunctions.
 - If compression > 0.8: every word earns its place. Cut filler (literally, basically, kind of).
 - If tone == "friend_talk": use contractions, first-person, direct address ("you").
 - If tone == "authority": confident declaratives, statistics welcome, no hedging.
 - If emotion_variance > 0.8: each beat must land a different emotion — no flat stretches.
+
+SAY QUALITY RULES (non-negotiable):
+- Every "say" MUST be a complete spoken sentence with a subject and verb. "Comfortable. Fast." is WRONG. "This thing fixes your posture in 30 seconds." is RIGHT.
+- Minimum 6 words per say line, even with high sentence_energy.
+- Always mention the product or a specific customer benefit — never generic filler.
+- The hook line must be a question, bold claim, or pattern-interrupt that makes someone stop scrolling.
+- Read every say line aloud in your head — it must sound natural as speech.
 
 PHYSICAL PRODUCTION CONSTRAINTS:
 - Assume creator is solo, no production crew
