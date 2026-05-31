@@ -14,12 +14,14 @@
  */
 
 import { useState } from 'react'
-import { Loader2, ShieldAlert, ShieldCheck, Zap, AlertTriangle, Target, Wrench, Copy, Check } from 'lucide-react'
+import { Loader2, ShieldAlert, ShieldCheck, Zap, AlertTriangle, Target, Wrench, Copy, Check, Lock } from 'lucide-react'
 import type { StructuralHealthReport as ReportType } from '@/lib/types/intelligence'
 
 interface Props {
   videoId: string
 }
+
+type GateState = { kind: 'login' } | { kind: 'upgrade' } | { kind: 'quota'; used: number; limit: number }
 
 const SEVERITY_STYLES: Record<string, string> = {
   CRITICAL: 'bg-red-100 text-red-700 border border-red-300 font-bold',
@@ -66,11 +68,13 @@ export function StructuralHealthReport({ videoId }: Props) {
   const [state, setState]     = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [report, setReport]   = useState<ReportType | null>(null)
   const [errMsg, setErr]      = useState('')
+  const [gate, setGate]       = useState<GateState | null>(null)
   const [showTooltip, setTip] = useState(false)
   const { copied, copy }      = useCopy()
 
   async function generate() {
     setState('loading')
+    setGate(null)
     try {
       const res  = await fetch('/api/analyze/health-report', {
         method:  'POST',
@@ -78,12 +82,66 @@ export function StructuralHealthReport({ videoId }: Props) {
         body:    JSON.stringify({ video_id: videoId }),
       })
       const json = await res.json()
+
+      if (res.status === 401) { setGate({ kind: 'login' });   setState('idle'); return }
+      if (res.status === 403) { setGate({ kind: 'upgrade' }); setState('idle'); return }
+      if (res.status === 402) {
+        setGate({ kind: 'quota', used: json.used ?? 0, limit: json.limit ?? 0 })
+        setState('idle')
+        return
+      }
+
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`)
       setReport(json.report as ReportType)
       setState('done')
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Report generation failed')
       setState('error')
+    }
+  }
+
+  // ── Gate states (login / upgrade / quota) ────────────────────────────────────
+  if (state === 'idle' && gate) {
+    if (gate.kind === 'login') {
+      return (
+        <div className="border border-gray-200 rounded-xl p-5 text-center bg-gray-50">
+          <Lock className="h-7 w-7 mx-auto mb-2 text-gray-400" />
+          <p className="text-sm font-semibold text-gray-800 mb-1">Sign in required</p>
+          <p className="text-xs text-gray-500 mb-4">Create a free account to access this feature.</p>
+          <a href="/auth/signup" className="inline-block px-4 py-2 rounded-lg bg-gray-900 text-white text-xs font-bold hover:bg-gray-800 transition-colors">
+            Sign Up Free
+          </a>
+        </div>
+      )
+    }
+    if (gate.kind === 'upgrade') {
+      return (
+        <div className="border-2 border-dashed border-pink-200 rounded-xl p-5 text-center bg-pink-50/30">
+          <Lock className="h-7 w-7 mx-auto mb-2 text-pink-400" />
+          <p className="text-sm font-black text-gray-800 mb-1">Creator Plan Required</p>
+          <p className="text-xs text-gray-500 mb-1 max-w-xs mx-auto">
+            The AI Structural Health Report is exclusive to Creator ($29/mo) and Scale plans.
+          </p>
+          <p className="text-[11px] text-gray-400 mb-4">20 reports/month · Hook mechanics · Trust blueprint · Leak detection</p>
+          <a href="/pricing" className="inline-block px-5 py-2.5 rounded-lg bg-gradient-to-r from-pink-500 to-violet-500 text-white text-xs font-bold hover:opacity-90 transition-opacity">
+            Upgrade to Creator
+          </a>
+        </div>
+      )
+    }
+    if (gate.kind === 'quota') {
+      return (
+        <div className="border border-amber-200 rounded-xl p-5 text-center bg-amber-50">
+          <AlertTriangle className="h-7 w-7 mx-auto mb-2 text-amber-400" />
+          <p className="text-sm font-semibold text-gray-800 mb-1">Monthly quota reached</p>
+          <p className="text-xs text-gray-500 mb-4">
+            You&apos;ve used {gate.used}/{gate.limit} Structural Health Reports this month. Quota resets on the 1st.
+          </p>
+          <a href="/pricing" className="inline-block px-4 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-violet-500 text-white text-xs font-bold hover:opacity-90 transition-opacity">
+            Upgrade for More
+          </a>
+        </div>
+      )
     }
   }
 

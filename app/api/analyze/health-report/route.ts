@@ -2,6 +2,9 @@
  * POST /api/analyze/health-report
  *
  * Generates and caches the AI Structural Health Report for a video.
+ * Requires authentication + Creator/Scale tier (strategy_audit_limit > 0).
+ * Increments strategy_audit_used on uncached generation.
+ *
  * Stored in video_breakdowns with url_hash prefix "health:" to separate
  * from the main viral breakdown cache (prefix "video:").
  *
@@ -9,7 +12,7 @@
  */
 
 import { NextResponse }        from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
+import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { callHealthReport }    from '@/lib/ai/healthReportPrompt'
 import { createHash }          from 'crypto'
 
@@ -18,6 +21,15 @@ function healthHash(videoId: string): string {
 }
 
 export async function POST(req: Request) {
+  // ── 0. Auth check ───────────────────────────────────────────────────────────
+  const auth = await createClient()
+  const { data: { user } } = await auth.auth.getUser()
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Sign in to generate the Structural Health Report.' },
+      { status: 401 },
+    )
+  }
 
   let body: { video_id?: string }
   try {
@@ -34,7 +46,7 @@ export async function POST(req: Request) {
   const service  = createServiceClient()
   const cacheKey = healthHash(video_id)
 
-  // ── 1. Cache check ──────────────────────────────────────────────────────────
+  // ── 1. Cache check (no quota consumed for cached results) ──────────────────
   const { data: cached } = await service
     .from('video_breakdowns')
     .select('payload')
@@ -49,7 +61,33 @@ export async function POST(req: Request) {
     })
   }
 
-  // ── 2. Fetch video metadata ─────────────────────────────────────────────────
+  // ── 2. Tier + quota gate ────────────────────────────────────────────────────
+  await service.rpc('ensure_billing_tier', { uid: user.id })
+
+  const { data: tierRow } = await service
+    .from('user_billing_tiers')
+    .select('tier_name, strategy_audit_used, strategy_audit_limit')
+    .eq('user_id', user.id)
+    .single()
+
+  const limit = tierRow?.strategy_audit_limit ?? 0
+  const used  = tierRow?.strategy_audit_used  ?? 0
+
+  if (limit === 0) {
+    return NextResponse.json(
+      { error: 'upgrade_required', tier: tierRow?.tier_name ?? 'free' },
+      { status: 403 },
+    )
+  }
+
+  if (used >= limit) {
+    return NextResponse.json(
+      { error: 'quota_exceeded', used, limit },
+      { status: 402 },
+    )
+  }
+
+  // ── 3. Fetch video metadata ─────────────────────────────────────────────────
   const { data: meta } = await service
     .from('tiktok_videos')
     .select('id, title, product_name, niche, views, likes, shares, author')
@@ -61,7 +99,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Video not found' }, { status: 404 })
   }
 
-  // ── 3. Generate health report via AI waterfall ──────────────────────────────
+  // ── 4. Generate health report via AI waterfall ──────────────────────────────
   let healthResult: Awaited<ReturnType<typeof callHealthReport>>
   try {
     healthResult = await callHealthReport({
@@ -80,7 +118,7 @@ export async function POST(req: Request) {
 
   const { report, ai_provider } = healthResult
 
-  // ── 4. Persist to DB ────────────────────────────────────────────────────────
+  // ── 5. Persist to DB ────────────────────────────────────────────────────────
   const { data: insertedRow, error: insertError } = await service
     .from('video_breakdowns')
     .insert({ url_hash: cacheKey, video_id: meta.id, payload: { health_report: report, ai_provider } })
@@ -98,6 +136,16 @@ export async function POST(req: Request) {
     }
   } else {
     console.log('[health-report] report saved OK — db_id:', insertedRow?.id)
+  }
+
+  // ── 6. Increment quota (non-fatal) ──────────────────────────────────────────
+  const { error: quotaErr } = await service
+    .from('user_billing_tiers')
+    .update({ strategy_audit_used: used + 1 })
+    .eq('user_id', user.id)
+
+  if (quotaErr) {
+    console.warn('[health-report] quota increment failed (non-fatal):', quotaErr.message)
   }
 
   return NextResponse.json({ report, ai_provider, fromCache: false })
