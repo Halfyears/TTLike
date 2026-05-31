@@ -42,9 +42,11 @@ export function QuietProgress() {
   // Initial load
   useEffect(() => { void load() }, [load])
 
-  // Refetch when session completes so new badges appear without page reload
+  // Refetch when session completes — delayed 1500ms so check-badges POST has time to commit
   useEffect(() => {
-    if (behaviorState === 'COMPLETE') void load()
+    if (behaviorState !== 'COMPLETE') return
+    const id = setTimeout(() => void load(), 1500)
+    return () => clearTimeout(id)
   }, [behaviorState, load])
 
   if (badges.length === 0) return null

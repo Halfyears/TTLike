@@ -1,3 +1,5 @@
+'use client'
+
 import { useBehaviorStore } from './state-machine'
 import type { BehaviorEvent } from './state-machine'
 
