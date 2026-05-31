@@ -20,10 +20,12 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
+      // Fetch user once and reuse across upsert + affiliate blocks.
+      const { data: { user } } = await supabase.auth.getUser()
+
       // ── Upsert Prisma User — awaited so the record exists before redirect ──────
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user?.email) {
+      if (user?.email) {
+        try {
           const meta = user.user_metadata ?? {}
           await prisma.user.upsert({
             where: { email: user.email },
@@ -38,8 +40,8 @@ export async function GET(request: NextRequest) {
               avatarUrl: meta.avatar_url ?? meta.picture ?? undefined,
             },
           })
-        }
-      } catch { /* non-fatal — user can still access the app */ }
+        } catch { /* non-fatal — user can still access the app */ }
+      }
 
       // ── REQ-A1: Affiliate attribution (inlined — no internal fetch) ──────────
       // Read the `ref` cookie set when the user followed an affiliate link
@@ -51,7 +53,6 @@ export async function GET(request: NextRequest) {
         // Fire-and-forget in a detached try/catch — never blocks redirect
         ;(async () => {
           try {
-            const { data: { user } } = await supabase.auth.getUser()
             if (!user?.email) return
 
             const affiliateLink = await prisma.affiliateLink.findUnique({ where: { code: refCode } })

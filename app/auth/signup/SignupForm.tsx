@@ -15,6 +15,8 @@ export function SignupForm() {
   const [googleLoading, setGoogleLoading] = useState(false)
   const supabase = createClient()
 
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ttlike.com'
+
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
@@ -29,7 +31,7 @@ export function SignupForm() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name }, emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin}/auth/callback?next=/dashboard` },
+      options: { data: { name }, emailRedirectTo: `${siteUrl}/auth/callback?next=/dashboard` },
     })
 
     if (error) {
@@ -44,7 +46,7 @@ export function SignupForm() {
     setGoogleLoading(true)
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin}/auth/callback?next=/dashboard` },
+      options: { redirectTo: `${siteUrl}/auth/callback?next=/dashboard` },
     })
   }
 
