@@ -61,7 +61,7 @@ OUTPUT — strict JSON, no other text:
   "beats": [                         // 3–6 emotional beats mapping the arc
     { "beat": string, "emotions": [string, string], "duration_hint": string }
   ],
-  "lines": [                         // one line per beat minimum, 4–8 lines total
+  "lines": [                         // one line per beat minimum, 3–8 lines total
     {
       "sequence":   number,          // 0-indexed integer starting at 0
       "time_range": string,          // "MM:SS-MM:SS" using actual transcript timecodes

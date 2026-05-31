@@ -87,11 +87,14 @@ export async function transcribeVideoUrl(
     })
     if (!res.ok) return null
 
+    // TikTok CDN usually omits Content-Length, so the pre-check only applies
+    // when the header is actually present (> 0). The post-download check is
+    // the real safety net and always runs.
     const contentLength = Number(res.headers.get('content-length') ?? 0)
-    if (contentLength > MAX_BYTES) return null  // size check before buffering
+    if (contentLength > 0 && contentLength > MAX_BYTES) return null
 
     buffer = await res.arrayBuffer()
-    if (buffer.byteLength > MAX_BYTES) return null
+    if (buffer.byteLength > MAX_BYTES) return null  // actual size guard
   } catch {
     return null
   }
@@ -100,11 +103,11 @@ export async function transcribeVideoUrl(
   try {
     const blob     = new Blob([buffer], { type: 'video/mp4' })
     const formData = new FormData()
-    formData.append('file',                     blob, 'video.mp4')
-    formData.append('model',                    'whisper-large-v3-turbo')
-    formData.append('response_format',          'verbose_json')
+    formData.append('file',                      blob, 'video.mp4')
+    formData.append('model',                     'whisper-large-v3-turbo')
+    formData.append('response_format',           'verbose_json')
     formData.append('timestamp_granularities[]', 'segment')
-    formData.append('language',                 'en')
+    // No 'language' param — let Whisper auto-detect (TikTok is multilingual)
 
     const res = await fetch(GROQ_WHISPER_URL, {
       method:  'POST',
