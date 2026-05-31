@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
 import { TIER_LIMITS } from '@/lib/constants'
+import { createClient } from '@/lib/supabase/server'
+import { PricingCheckoutButton } from '@/components/pricing/PricingCheckoutButton'
 
 export const metadata = { title: 'Pricing · TTLike' }
 
@@ -16,7 +18,7 @@ const PLANS = [
     iconColor:   'text-gray-400',
     highlight:   false,
     cta:         'Get Started Free',
-    href:        '/auth/signup',
+    planSlug:    null as null | 'creator' | 'scale',
     features: [
       `${TIER_LIMITS.free.video_analysis} video analyses / month`,
       'AI Viral Breakdown (viral formulas + timeline)',
@@ -42,7 +44,7 @@ const PLANS = [
     iconColor:   'text-pink-500',
     highlight:   true,
     cta:         'Start Creator',
-    href:        '/auth/signup',
+    planSlug:    'creator' as 'creator' | 'scale',
     features: [
       `${TIER_LIMITS.creator.video_analysis} video analyses / month`,
       `${TIER_LIMITS.creator.strategy_audit} AI Structural Health Reports / month`,
@@ -67,8 +69,8 @@ const PLANS = [
     icon:        Shield,
     iconColor:   'text-violet-500',
     highlight:   false,
-    cta:         'Contact Sales',
-    href:        '/auth/signup',
+    cta:         'Get Scale',
+    planSlug:    'scale' as 'creator' | 'scale',
     features: [
       `${TIER_LIMITS.scale.video_analysis} video analyses / month`,
       `${TIER_LIMITS.scale.strategy_audit} AI Structural Health Reports / month`,
@@ -84,7 +86,11 @@ const PLANS = [
   },
 ]
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  const isLoggedIn = !!user
+
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16">
 
@@ -123,11 +129,22 @@ export default function PricingPage() {
                   </div>
                 </div>
 
-                <Link href={plan.href}>
-                  <Button className={`w-full mb-6 ${!plan.highlight ? 'bg-gray-900 hover:bg-gray-800' : ''}`}>
-                    {plan.cta}
-                  </Button>
-                </Link>
+                <div className="mb-6">
+                  {plan.planSlug ? (
+                    <PricingCheckoutButton
+                      plan={plan.planSlug}
+                      label={plan.cta}
+                      highlight={plan.highlight}
+                      isLoggedIn={isLoggedIn}
+                    />
+                  ) : (
+                    <Link href={isLoggedIn ? '/dashboard' : '/auth/signup'}>
+                      <Button className="w-full bg-gray-900 hover:bg-gray-800">
+                        {plan.cta}
+                      </Button>
+                    </Link>
+                  )}
+                </div>
 
                 <ul className="space-y-2.5">
                   {plan.features.map(feature => (

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Zap, RefreshCw, ExternalLink, TrendingUp, Calendar, Shield } from 'lucide-react'
+import { Zap, RefreshCw, ExternalLink, TrendingUp, Calendar, Shield, CreditCard } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { timeAgo } from '@/lib/dateUtils'
 import type { TierResponse } from '@/app/api/user/tier/route'
@@ -105,6 +105,42 @@ function EmptyAnalyses() {
   )
 }
 
+// ── Billing portal button ─────────────────────────────────────────────────────
+
+function BillingPortalButton() {
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState<string | null>(null)
+
+  async function handleClick() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res  = await fetch('/api/billing/portal', { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) { setError(data.error ?? 'Could not open billing portal'); return }
+      if (data.url) window.location.href = data.url
+    } catch {
+      setError('Network error. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div>
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:border-gray-300 hover:text-gray-800 transition-colors disabled:opacity-50"
+      >
+        <CreditCard className="h-3 w-3" />
+        {loading ? 'Opening…' : 'Manage Billing'}
+      </button>
+      {error && <p className="mt-1 text-[11px] text-red-500">{error}</p>}
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function UsageClient() {
@@ -168,12 +204,15 @@ export function UsageClient() {
               <h3 className="text-sm font-semibold text-gray-900">Monthly Quota</h3>
               {tier && <PlanBadge tier={tier.tier_name} />}
             </div>
-            <button
-              onClick={load}
-              className="text-xs text-gray-400 hover:text-pink-500 flex items-center gap-1 transition-colors"
-            >
-              <RefreshCw className="h-3 w-3" /> Refresh
-            </button>
+            <div className="flex items-center gap-2">
+              {!isFree && <BillingPortalButton />}
+              <button
+                onClick={load}
+                className="text-xs text-gray-400 hover:text-pink-500 flex items-center gap-1 transition-colors"
+              >
+                <RefreshCw className="h-3 w-3" /> Refresh
+              </button>
+            </div>
           </div>
 
           {/* 3 stat chips */}
