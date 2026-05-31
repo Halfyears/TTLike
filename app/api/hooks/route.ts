@@ -265,11 +265,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'text must be under 500 characters' }, { status: 400 })
   }
 
-  // Studio source requires Creator+ tier — public Hook Machine skips this gate
+  // Studio anti-dup variants require auth + Creator+ tier.
+  // We detect this server-side by checking the session: if the user is authenticated
+  // and the request carries source=studio, enforce the tier gate.
+  // Unauthenticated requests (public Hook Machine) are allowed through.
   if (body.source === 'studio') {
     const { createClient, createServiceClient } = await import('@/lib/supabase/server')
     const auth = await createClient()
     const { data: { user } } = await auth.auth.getUser()
+
+    // source=studio always requires a valid session — clients cannot bypass by forging the source
     if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
 
     const service = createServiceClient()
@@ -283,6 +288,9 @@ export async function POST(req: Request) {
     if ((tierRow?.custom_hook_limit ?? 0) === 0) {
       return NextResponse.json({ error: 'upgrade_required', tier: tierRow?.tier_name ?? 'free' }, { status: 403 })
     }
+  } else if (body.source !== undefined && body.source !== null && body.source !== 'public') {
+    // Reject unknown source values to prevent future bypass via unrecognised strings
+    return NextResponse.json({ error: 'Invalid source' }, { status: 400 })
   }
 
   try {

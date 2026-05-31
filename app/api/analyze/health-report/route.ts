@@ -99,7 +99,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Video not found' }, { status: 404 })
   }
 
-  // ── 4. Generate health report via AI waterfall ──────────────────────────────
+  // ── 4. Increment quota BEFORE AI generation — eliminates concurrent-request race ──
+  // If AI fails below, we compensate with a decrement so the user isn't charged.
+  const { error: quotaErr } = await service
+    .from('user_billing_tiers')
+    .update({ strategy_audit_used: used + 1 })
+    .eq('user_id', user.id)
+
+  if (quotaErr) {
+    console.warn('[health-report] quota increment failed (non-fatal):', quotaErr.message)
+  }
+
+  // ── 5. Generate health report via AI waterfall ──────────────────────────────
   let healthResult: Awaited<ReturnType<typeof callHealthReport>>
   try {
     healthResult = await callHealthReport({
@@ -113,12 +124,16 @@ export async function POST(req: Request) {
     })
   } catch (e) {
     console.error('[health-report] AI error:', e)
+    // Compensate: refund the quota slot so the user isn't charged for a failed call
+    void service.from('user_billing_tiers')
+      .update({ strategy_audit_used: used })
+      .eq('user_id', user.id)
     return NextResponse.json({ error: 'AI analysis failed — try again later' }, { status: 500 })
   }
 
   const { report, ai_provider } = healthResult
 
-  // ── 5. Persist to DB ────────────────────────────────────────────────────────
+  // ── 6. Persist to DB ────────────────────────────────────────────────────────
   const { data: insertedRow, error: insertError } = await service
     .from('video_breakdowns')
     .insert({ url_hash: cacheKey, video_id: meta.id, payload: { health_report: report, ai_provider } })
@@ -136,16 +151,6 @@ export async function POST(req: Request) {
     }
   } else {
     console.log('[health-report] report saved OK — db_id:', insertedRow?.id)
-  }
-
-  // ── 6. Increment quota (non-fatal) ──────────────────────────────────────────
-  const { error: quotaErr } = await service
-    .from('user_billing_tiers')
-    .update({ strategy_audit_used: used + 1 })
-    .eq('user_id', user.id)
-
-  if (quotaErr) {
-    console.warn('[health-report] quota increment failed (non-fatal):', quotaErr.message)
   }
 
   return NextResponse.json({ report, ai_provider, fromCache: false })

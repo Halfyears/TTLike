@@ -31,7 +31,7 @@ async function syncSubscription(sub: Stripe.Subscription, userId: string) {
     incomplete_expired: 'CANCELED',
     paused:             'CANCELED',
   }
-  const status    = statusMap[sub.status] ?? 'ACTIVE'
+  const status    = statusMap[sub.status] ?? 'PAST_DUE'   // unknown status → conservative fallback
   const periodEnd = sub.items.data[0]?.current_period_end
     ? new Date(sub.items.data[0].current_period_end * 1000).toISOString()
     : null
@@ -47,12 +47,14 @@ async function syncSubscription(sub: Stripe.Subscription, userId: string) {
   }, { onConflict: 'user_id' })
 
   if (subErr) {
-    console.error('[webhook] user_subscriptions upsert failed:', subErr.message)
-    return
+    // Throw so the outer catch returns 500 and Stripe retries the event
+    throw new Error(`user_subscriptions upsert failed: ${subErr.message}`)
   }
 
   const { error: tierErr } = await service.rpc('set_user_tier', { uid: userId, new_tier: tierName })
-  if (tierErr) console.error('[webhook] set_user_tier failed:', tierErr.message)
+  if (tierErr) {
+    throw new Error(`set_user_tier failed: ${tierErr.message}`)
+  }
 }
 
 async function downgradeToFree(userId: string) {

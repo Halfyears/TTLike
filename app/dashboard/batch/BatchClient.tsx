@@ -66,7 +66,6 @@ function StatusBadge({ status, error }: { status: ItemStatus; error?: string }) 
 export function BatchClient({ tier, remaining: remainingInit, limit }: Props) {
   const [items,     setItems]     = useState<BatchItem[]>([{ id: '1', url: '', status: 'idle' }])
   const [running,   setRunning]   = useState(false)
-  const [input,     setInput]     = useState('')
   const [remaining, setRemaining] = useState(remainingInit)
   const abortRef = useRef(false)
 
@@ -88,24 +87,28 @@ export function BatchClient({ tier, remaining: remainingInit, limit }: Props) {
     setItems(prev => prev.filter(it => it.id !== id))
   }
 
-  function handlePaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+  function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
     const text  = e.clipboardData.getData('text')
     const lines = text.split(/[\n,]+/).map(s => s.trim()).filter(Boolean)
     if (lines.length <= 1) return   // single URL: let normal input handle it
 
     e.preventDefault()
-    const newItems: BatchItem[] = lines.slice(0, MAX_BATCH).map((url, i) => ({
-      id:     String(Date.now() + i),
-      url,
-      status: 'idle' as ItemStatus,
-    }))
-    setItems(newItems)
+    setItems(prev => {
+      // Keep existing filled rows; replace only empty ones, then append remainder
+      const filled  = prev.filter(it => it.url.trim())
+      const merged  = [...filled, ...lines.map((url, i) => ({
+        id:     String(Date.now() + i),
+        url,
+        status: 'idle' as ItemStatus,
+      }))]
+      return merged.slice(0, MAX_BATCH)
+    })
   }
 
   // ── Pipeline per item ─────────────────────────────────────────────────────────
 
-  async function processItem(item: BatchItem): Promise<void> {
-    if (abortRef.current) return
+  async function processItem(item: BatchItem): Promise<boolean> {
+    if (abortRef.current) return false
 
     // Step 1: resolve URL
     updateItem(item.id, { status: 'resolving' })
@@ -134,10 +137,10 @@ export function BatchClient({ tier, remaining: remainingInit, limit }: Props) {
       updateItem(item.id, { video_id, product_name, category, status: 'queued' })
     } catch (e) {
       updateItem(item.id, { status: 'failed', error: e instanceof Error ? e.message : 'Resolve failed' })
-      return
+      return false   // quota was NOT spent — resolve failed before analyze-video
     }
 
-    if (abortRef.current) return
+    if (abortRef.current) return false
 
     // Step 3: trigger analysis
     let breakdown_id: string
@@ -161,15 +164,16 @@ export function BatchClient({ tier, remaining: remainingInit, limit }: Props) {
       updateItem(item.id, { breakdown_id, status: 'analyzing' })
     } catch (e) {
       updateItem(item.id, { status: 'failed', error: e instanceof Error ? e.message : 'Queue failed' })
-      return
+      return false   // analyze-video rejected (e.g. 402); quota was NOT spent
     }
 
-    if (abortRef.current) return
+    // Quota was spent — poll for result
+    if (abortRef.current) return true
 
     // Step 4: poll status
     let polls = 0
     while (polls < MAX_POLLS) {
-      if (abortRef.current) return
+      if (abortRef.current) return true
       await new Promise(r => setTimeout(r, POLL_MS))
       polls++
 
@@ -180,16 +184,17 @@ export function BatchClient({ tier, remaining: remainingInit, limit }: Props) {
 
         if (vs === 'COMPLETED') {
           updateItem(item.id, { status: 'done' })
-          return
+          return true
         }
         if (vs === 'FAILED') {
           updateItem(item.id, { status: 'failed', error: json.viral_error ?? 'Pipeline failed' })
-          return
+          return true
         }
       } catch { /* network blip — keep polling */ }
     }
 
     updateItem(item.id, { status: 'failed', error: 'Timed out after 3 minutes' })
+    return true
   }
 
   // ── Run batch ─────────────────────────────────────────────────────────────────
@@ -211,11 +216,11 @@ export function BatchClient({ tier, remaining: remainingInit, limit }: Props) {
     let consumed = 0
     for (const item of toProcess) {
       if (abortRef.current) break
-      await processItem(item)
-      consumed++
+      const quotaSpent = await processItem(item)
+      if (quotaSpent) consumed++
     }
 
-    // Update remaining so the next batch in the same session is accurate
+    // Decrement only by analyses that actually hit the server
     setRemaining(r => Math.max(0, r - consumed))
     setRunning(false)
   }
@@ -286,7 +291,7 @@ export function BatchClient({ tier, remaining: remainingInit, limit }: Props) {
                 disabled={running}
                 placeholder="https://www.tiktok.com/@user/video/..."
                 className="flex-1 text-sm text-gray-800 placeholder-gray-300 bg-transparent outline-none min-w-0"
-                onPaste={idx === 0 ? handlePaste as unknown as React.ClipboardEventHandler<HTMLInputElement> : undefined}
+                onPaste={idx === 0 ? handlePaste : undefined}
               />
 
               <div className="shrink-0 min-w-[100px] flex items-center justify-end gap-2">
