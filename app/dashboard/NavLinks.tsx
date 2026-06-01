@@ -14,7 +14,7 @@ const GROUPS = [
       { href: '/studio',           icon: Wand2,        label: 'Viral Studio', badge: 'NEW' },
       { href: '/dashboard/batch',  icon: Layers,       label: 'Batch Analysis' },
       { href: '/dashboard/studio', icon: Clapperboard, label: 'Storyboard' },
-      { href: '/studio#prep',      icon: Camera,       label: 'Filming Prep' },
+      { href: '/dashboard/filming-prep', icon: Camera, label: 'Filming Prep' },
     ],
   },
   {

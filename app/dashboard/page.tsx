@@ -8,7 +8,7 @@ import { ViralStudioCard } from '@/components/dashboard/ViralStudioCard'
 import { Greeting }  from '@/components/ui/Greeting'
 import { DashboardTracker } from '@/components/DashboardTracker'
 
-export const metadata = { title: 'Dashboard · TTLike' }
+export const metadata = { title: 'Overview · TTLike' }
 
 // ── Viral score bar ───────────────────────────────────────────────────────────
 function ScoreBar({ score }: { score: number }) {
