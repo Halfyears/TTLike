@@ -48,7 +48,7 @@ export function ProductCard({
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
       {/* Thumbnail — clicking goes to internal detail page */}
-      <Link href={`/products/${id}`} className="relative h-52 w-full bg-gray-100 overflow-hidden block group">
+      <Link href={`/products/${id}`} className="relative h-44 sm:h-52 w-full bg-gray-100 overflow-hidden block group">
         {activeCover && !imgFailed ? (
           <img
             src={activeCover}
@@ -98,24 +98,24 @@ export function ProductCard({
         </Link>
 
         {/* Stats */}
-        <div className="flex items-center gap-3 text-xs text-gray-500 mt-auto">
-          <span className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 mt-auto">
+          <span className="flex items-center gap-1 shrink-0">
             <Eye className="h-3 w-3" />
             {formatNumber(viewCount)}
           </span>
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 shrink-0">
             <Heart className="h-3 w-3" />
             {formatNumber(likeCount)}
           </span>
           {shareCount !== undefined && (
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 shrink-0">
               <Share2 className="h-3 w-3" />
               {formatNumber(shareCount)}
             </span>
           )}
         </div>
 
-        <p className="text-xs text-gray-400">{authorHandle}</p>
+        <p className="text-xs text-gray-400 truncate">{authorHandle}</p>
       </div>
     </div>
   )

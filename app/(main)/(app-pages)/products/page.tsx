@@ -149,7 +149,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           </div>
           <div className="flex gap-2">
             <select name="sort" defaultValue={sort ?? 'featured'}
-              className="flex-1 sm:flex-none rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
+              className="flex-1 min-w-0 sm:flex-none rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
               <option value="featured">Featured</option>
               <option value="viral">Viral Score</option>
               <option value="views">Views</option>
@@ -163,7 +163,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       </div>
 
       {/* Niche Pills */}
-      <div className="flex gap-2 mb-5 sm:mb-6 overflow-x-auto pb-1 scrollbar-hide">
+      <div className="w-full flex gap-2 mb-5 sm:mb-6 overflow-x-auto pb-1 scrollbar-hide">
         {NICHES.map(n => (
           <Link key={n} href={pageUrl({ q, sort, niche: n === 'All' ? undefined : n }, 1)} className="shrink-0">
             <span className={`inline-block px-3 py-1.5 rounded-full text-xs font-medium border cursor-pointer transition-colors whitespace-nowrap ${

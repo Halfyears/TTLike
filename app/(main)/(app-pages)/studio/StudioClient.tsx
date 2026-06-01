@@ -19,6 +19,7 @@ import type { CreativeBlueprint, ScriptLayer } from '@/lib/utils/result-transfor
 
 type Stage =
   | 'url_input'
+  | 'transcribing'   // pre-transcribes audio before form is shown
   | 'product_form'
   | 'analyzing'
   | 'result'
@@ -42,6 +43,39 @@ interface ResultMeta {
   generated_at: string | null
   pipeline_ms:  number | null
   has_audio:    boolean
+}
+
+// ── Transcribing Screen ───────────────────────────────────────────────────────
+
+function TranscribingScreen({ title }: { title: string | null }) {
+  return (
+    <div className="flex flex-col items-center justify-center px-4 py-24 text-center">
+      <div className="w-16 h-16 rounded-full bg-pink-50 flex items-center justify-center mb-5">
+        <Mic className="w-8 h-8 text-pink-500 animate-pulse" />
+      </div>
+      <h2 className="text-lg font-semibold text-gray-900 mb-1">Transcribing Audio</h2>
+      <p className="text-sm text-gray-500 mb-3 max-w-xs">
+        Analysing the actual spoken words so the AI can generate accurate insights…
+      </p>
+      {title && (
+        <p className="text-xs text-gray-400 max-w-xs italic line-clamp-2">"{title}"</p>
+      )}
+      <p className="mt-4 text-xs text-gray-400">~10–20 seconds</p>
+      {/* Indeterminate progress bar */}
+      <div className="mt-5 w-48 h-1 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full w-1/3 bg-gradient-to-r from-pink-500 to-violet-500 rounded-full"
+          style={{ animation: 'slide 1.6s ease-in-out infinite' }}
+        />
+      </div>
+      <style>{`
+        @keyframes slide {
+          0%   { transform: translateX(-100%); }
+          100% { transform: translateX(400%); }
+        }
+      `}</style>
+    </div>
+  )
 }
 
 // ── Product Form Component ────────────────────────────────────────────────────
@@ -370,7 +404,7 @@ export function StudioClient() {
     }
   }, [searchParams])
 
-  // Step 1: URL resolved → fetch context → fill form
+  // Step 1: URL resolved → pre-transcribe audio → fill form
   const handleResolved = useCallback(async (
     videoId: string,
     title: string | null,
@@ -379,22 +413,56 @@ export function StudioClient() {
   ): Promise<void> => {
     handleIntent('URL_RESOLVED')
     setVideoMeta({ video_id: videoId, title, product_name: productName, niche })
+
+    // Show transcribing screen immediately while we process audio
+    setStage('transcribing')
+
+    // ── Step 1a: Pre-transcribe audio (best-effort, 25 s hard timeout) ────────
+    // The endpoint also persists transcript into video_breakdowns.payload so the
+    // main pipeline can skip re-transcription automatically.
+    let transcribeData: { category?: string; pain_points?: string[]; transcript_available?: boolean } = {}
     try {
-      const res  = await fetch(`/api/studio/context/${videoId}`)
-      const data = await res.json()
-      if (data.ok) {
+      const res = await fetch(`/api/studio/transcribe/${videoId}`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(25_000),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.ok) transcribeData = data
+      }
+    } catch {
+      // Timeout or network error — fall through to title-based pre-fill
+    }
+
+    // ── Step 1b: Fill form from transcript or fall back to title-based LLM ───
+    try {
+      if (transcribeData.category && (transcribeData.pain_points?.length ?? 0) > 0) {
+        // Transcript-based pre-fill (highest quality)
         setForm({
-          product_name: data.product_name ?? productName ?? '',
-          category:     data.category || niche || '',
-          pain_points:  data.pain_points ?? [],
+          product_name: productName ?? '',
+          category:     transcribeData.category,
+          pain_points:  transcribeData.pain_points!,
           price_point:  undefined,
         })
       } else {
-        setForm({ product_name: productName ?? '', category: niche ?? '', pain_points: [], price_point: undefined })
+        // Fallback: existing context endpoint (title-based LLM)
+        const res  = await fetch(`/api/studio/context/${videoId}`)
+        const data = await res.json()
+        if (data.ok) {
+          setForm({
+            product_name: data.product_name ?? productName ?? '',
+            category:     data.category || niche || '',
+            pain_points:  data.pain_points ?? [],
+            price_point:  undefined,
+          })
+        } else {
+          setForm({ product_name: productName ?? '', category: niche ?? '', pain_points: [], price_point: undefined })
+        }
       }
     } catch {
       setForm({ product_name: productName ?? '', category: niche ?? '', pain_points: [], price_point: undefined })
     }
+
     setStage('product_form')
   }, [])
 
@@ -529,6 +597,10 @@ export function StudioClient() {
             ))}
           </div>
         </div>
+      )}
+
+      {stage === 'transcribing' && (
+        <TranscribingScreen title={videoMeta?.title ?? null} />
       )}
 
       {stage === 'product_form' && videoMeta && (
