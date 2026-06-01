@@ -397,8 +397,12 @@ export function StudioClient() {
   const [errorMsg, setErrorMsg]         = useState<string | null>(null)
   const [prefillUrl, setPrefillUrl]     = useState<string | null>(null)
 
-  const breakdownIdRef = useRef<string | null>(null)
-  const handledUrlRef  = useRef<string | null>(null)
+  const breakdownIdRef  = useRef<string | null>(null)
+  const handledUrlRef   = useRef<string | null>(null)
+  const videoMetaRef    = useRef<VideoMeta | null>(null)
+
+  // Keep ref in sync so useCallback closures can read current videoMeta without stale captures
+  useEffect(() => { videoMetaRef.current = videoMeta }, [videoMeta])
 
   useEffect(() => {
     const urlParam = searchParams.get('url')
@@ -580,8 +584,9 @@ export function StudioClient() {
       setResult({ blueprint: data.creative_blueprint, script: data.script_layer })
       setResultMeta({ generated_at: data.generated_at ?? null, pipeline_ms: data.pipeline_ms ?? null, has_audio: Boolean(data.has_audio) })
       setTranscript(Array.isArray(data.transcript_segments) ? data.transcript_segments : [])
-      // If we jumped here via ?bd= param, videoMeta is null — restore from result response
-      if (!videoMeta && data.video_meta) {
+      // If we jumped here via ?bd= param, videoMeta is null — restore from result response.
+      // Read from ref (not closure) to get current state and avoid stale-closure false-positive.
+      if (!videoMetaRef.current && data.video_meta) {
         setVideoMeta({
           video_id:     data.video_id ?? '',
           title:        data.video_meta.title        ?? null,
