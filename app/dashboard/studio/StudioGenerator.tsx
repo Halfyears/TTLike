@@ -91,7 +91,7 @@ function CharacterChip({ c }: { c: CharacterRow }) {
 }
 
 // ── Results panel ─────────────────────────────────────────────────────────────
-function ResultsPanel({ result, onReset }: { result: GenerateResponse; onReset: () => void }) {
+function ResultsPanel({ result, productInput, onReset }: { result: GenerateResponse; productInput: string; onReset: () => void }) {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -133,7 +133,10 @@ function ResultsPanel({ result, onReset }: { result: GenerateResponse; onReset: 
       </div>
 
       {/* Pre-shoot checklist — helps creator go from script to camera */}
-      <FilmingPrepCard productName={result.title} />
+      <FilmingPrepCard
+        productName={productInput || result.title}
+        scriptLines={result.storyboards.slice(0, 3).map(b => b.audio_narration).filter(Boolean)}
+      />
     </div>
   )
 }
@@ -196,7 +199,7 @@ export function StudioGenerator() {
     }
   }
 
-  if (result) return <ResultsPanel result={result} onReset={() => setResult(null)} />
+  if (result) return <ResultsPanel result={result} productInput={product} onReset={() => setResult(null)} />
 
   return (
     <Card>
