@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import {
   Zap, RefreshCw, ExternalLink, TrendingUp, Calendar,
-  Shield, CreditCard, Eye, Clapperboard, RotateCcw, Lock,
+  Eye, Clapperboard, RotateCcw, Lock, Settings,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { timeAgo } from '@/lib/dateUtils'
@@ -32,24 +32,6 @@ function QuotaBar({ used, limit }: { used: number; limit: number }) {
         />
       </div>
     </div>
-  )
-}
-
-// ── Plan badge ────────────────────────────────────────────────────────────────
-
-function PlanBadge({ tier }: { tier: string }) {
-  const config: Record<string, { label: string; color: string }> = {
-    free:       { label: 'Free',       color: 'bg-gray-100 text-gray-600 border-gray-200' },
-    creator:    { label: 'Creator',    color: 'bg-pink-50 text-pink-700 border-pink-200' },
-    scale:      { label: 'Scale',      color: 'bg-violet-50 text-violet-700 border-violet-200' },
-    enterprise: { label: 'Enterprise', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-  }
-  const { label, color } = config[tier] ?? config.free!
-  return (
-    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${color}`}>
-      <Shield className="h-3 w-3" />
-      {label}
-    </span>
   )
 }
 
@@ -189,42 +171,6 @@ function EmptyAnalyses() {
   )
 }
 
-// ── Billing portal button ─────────────────────────────────────────────────────
-
-function BillingPortalButton() {
-  const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState<string | null>(null)
-
-  async function handleClick() {
-    setLoading(true)
-    setError(null)
-    try {
-      const res  = await fetch('/api/billing/portal', { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Could not open billing portal'); return }
-      if (data.url) window.location.href = data.url
-    } catch {
-      setError('Network error. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div>
-      <button
-        onClick={handleClick}
-        disabled={loading}
-        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:border-gray-300 hover:text-gray-800 transition-colors disabled:opacity-50"
-      >
-        <CreditCard className="h-3 w-3" />
-        {loading ? 'Opening…' : 'Manage Billing'}
-      </button>
-      {error && <p className="mt-1 text-[11px] text-red-500">{error}</p>}
-    </div>
-  )
-}
-
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function UsageClient() {
@@ -279,18 +225,20 @@ export function UsageClient() {
   return (
     <div className="space-y-5">
 
-      {/* ── Plan + Quota card ── */}
+      {/* ── Quota card ── */}
       <Card>
         <CardContent className="p-4 sm:p-5">
 
-          {/* Header row: plan badge + actions */}
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-gray-900">Monthly Quota</h3>
-              {tier && <PlanBadge tier={tier.tier_name} />}
-            </div>
-            <div className="flex items-center gap-2">
-              {!isFree && <BillingPortalButton />}
+          {/* Header row */}
+          <div className="flex items-center justify-between gap-2 mb-4">
+            <h3 className="text-sm font-semibold text-gray-900">Monthly Quota</h3>
+            <div className="flex items-center gap-3">
+              <a
+                href="/dashboard/account"
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-pink-500 transition-colors"
+              >
+                <Settings className="h-3 w-3" /> Plan &amp; Billing
+              </a>
               <button
                 onClick={load}
                 className="text-xs text-gray-400 hover:text-pink-500 flex items-center gap-1 transition-colors"
