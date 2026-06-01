@@ -456,11 +456,12 @@ export function StudioClient() {
             price_point:  undefined,
           })
         } else {
-          setForm({ product_name: productName ?? '', category: niche ?? '', pain_points: [], price_point: undefined })
+          // context endpoint also failed — salvage category from transcribeData if available
+          setForm({ product_name: productName ?? '', category: transcribeData.category || niche || '', pain_points: [], price_point: undefined })
         }
       }
     } catch {
-      setForm({ product_name: productName ?? '', category: niche ?? '', pain_points: [], price_point: undefined })
+      setForm({ product_name: productName ?? '', category: transcribeData.category || niche || '', pain_points: [], price_point: undefined })
     }
 
     setStage('product_form')

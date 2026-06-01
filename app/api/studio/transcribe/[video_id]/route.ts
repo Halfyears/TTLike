@@ -176,10 +176,12 @@ export async function POST(
         (existingPayload['visual_timeline'] as unknown[]).length > 0
 
       if (!alreadyDone) {
+        // Guard: don't overwrite payload if pipeline is already running (PROCESSING/COMPLETED)
         const { error: updateErr } = await service
           .from('video_breakdowns')
           .update({ payload: { ...existingPayload, ...newPayload } })
           .eq('id', existing.id)
+          .not('viral_status', 'in', '("PROCESSING","COMPLETED")')
         if (updateErr) {
           console.error('[transcribe] Failed to update breakdown payload:', updateErr.message)
         }
