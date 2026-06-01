@@ -130,10 +130,10 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   const base       = { q, niche, sort }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-      <div className="mb-5 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Product Database</h1>
-        <p className="text-gray-500 text-sm sm:text-base">AI-curated viral products updated twice daily</p>
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Product Database</h1>
+        <p className="text-gray-600">AI-curated viral products updated twice daily</p>
       </div>
 
       {/* Filters */}

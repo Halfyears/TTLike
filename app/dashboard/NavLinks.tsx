@@ -94,7 +94,16 @@ export function MobileTabBar() {
     href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(href)
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex"
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        // Force GPU compositing layer — prevents iOS Safari from scrolling
+        // position:fixed elements when the URL bar hides/shows
+        transform: 'translateZ(0)',
+        WebkitTransform: 'translateZ(0)',
+      }}
+    >
       {MOBILE_TABS.map(({ href, icon: Icon, label }) => {
         const active = isActive(href)
         return (

@@ -1,20 +1,43 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Camera, CheckCircle2, Circle } from 'lucide-react'
+import { ChevronDown, Camera, CheckCircle2, Circle, Zap } from 'lucide-react'
 
-const CHECKLIST = [
-  { id: 'script',   label: 'Script memorized (or printed as cue card)' },
-  { id: 'light',    label: 'Natural light or ring light — no harsh shadows' },
-  { id: 'frame',    label: 'Framing checked: subject centered, clean background' },
-  { id: 'audio',    label: 'Quiet environment — test record 5 seconds' },
-  { id: 'hook',     label: 'Hook line ready — first 2 seconds planned' },
-  { id: 'b-roll',   label: 'B-roll or product shot prepared for cutaways' },
-]
+interface FilmingPrepCardProps {
+  hookLine?:    string | null   // generated hook line from the script
+  productName?: string | null   // product name the user confirmed
+  scriptLines?: string[]        // key SAY lines from the script (first 3)
+}
 
-export function FilmingPrepCard() {
+export function FilmingPrepCard({ hookLine, productName, scriptLines = [] }: FilmingPrepCardProps) {
   const [open,    setOpen]    = useState(false)
   const [checked, setChecked] = useState<Set<string>>(new Set())
+
+  // Build script-aware checklist items
+  const CHECKLIST = [
+    {
+      id: 'hook',
+      label: hookLine
+        ? `Hook line memorised — open with: "${hookLine.length > 70 ? hookLine.slice(0, 70) + '…' : hookLine}"`
+        : 'Hook line ready — first 2 seconds planned',
+    },
+    {
+      id: 'product',
+      label: productName
+        ? `Can say "${productName}" clearly and confidently`
+        : 'Product name pronounced clearly and confidently',
+    },
+    {
+      id: 'script',
+      label: scriptLines.length > 0
+        ? `Script reviewed — ${scriptLines.length} key lines to deliver`
+        : 'Script memorised (or use as on-screen cue card)',
+    },
+    { id: 'light',  label: 'Lighting set — natural light or ring light, no harsh shadows' },
+    { id: 'frame',  label: 'Framing checked — subject centred, clean background' },
+    { id: 'audio',  label: 'Quiet environment — test-record 5 seconds before starting' },
+    { id: 'b-roll', label: 'B-roll or product shot ready for cutaways' },
+  ]
 
   function toggle(id: string) {
     setChecked(prev => {
@@ -24,12 +47,13 @@ export function FilmingPrepCard() {
     })
   }
 
-  const done = checked.size
-  const total = CHECKLIST.length
+  const done    = checked.size
+  const total   = CHECKLIST.length
   const allDone = done === total
 
   return (
     <div className={`rounded-2xl border transition-colors ${allDone ? 'border-emerald-200 bg-emerald-50/50' : 'border-gray-200 bg-white'}`}>
+
       {/* Header — toggle */}
       <button
         type="button"
@@ -43,7 +67,7 @@ export function FilmingPrepCard() {
           <div>
             <p className="text-sm font-semibold text-gray-900">Pre-shoot Checklist</p>
             <p className="text-xs text-gray-400 mt-0.5">
-              {allDone ? 'All set — time to film!' : `${done} / ${total} ready`}
+              {allDone ? '🎬 All set — time to film!' : `${done} / ${total} ready`}
             </p>
           </div>
         </div>
@@ -52,9 +76,9 @@ export function FilmingPrepCard() {
         />
       </button>
 
-      {/* Checklist items + progress bar — both inside the animated div so neither shows when collapsed */}
+      {/* Animated body — progress + checklist */}
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${open ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}
       >
         {/* Progress bar */}
         <div className="px-5 pt-1 pb-3">
@@ -66,6 +90,26 @@ export function FilmingPrepCard() {
           </div>
         </div>
 
+        {/* Script quick-reference (only when data available) */}
+        {(hookLine || (scriptLines.length > 0)) && (
+          <div className="mx-5 mb-4 p-3 bg-gray-50 rounded-xl border border-gray-100">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1">
+              <Zap className="w-3 h-3" /> Script Reference
+            </p>
+            {hookLine && (
+              <p className="text-xs text-gray-700 font-medium leading-snug mb-1.5">
+                <span className="text-pink-500 font-bold">HOOK:</span> {hookLine}
+              </p>
+            )}
+            {scriptLines.slice(0, 2).map((line, i) => (
+              <p key={i} className="text-xs text-gray-500 leading-snug mt-1">
+                {line}
+              </p>
+            ))}
+          </div>
+        )}
+
+        {/* Checklist items */}
         <ul className="px-5 pb-5 space-y-3">
           {CHECKLIST.map(item => (
             <li key={item.id}>
@@ -76,9 +120,9 @@ export function FilmingPrepCard() {
               >
                 {checked.has(item.id)
                   ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                  : <Circle className="w-4 h-4 text-gray-300 shrink-0 mt-0.5 group-hover:text-gray-400 transition-colors" />
+                  : <Circle       className="w-4 h-4 text-gray-300 shrink-0 mt-0.5 group-hover:text-gray-400 transition-colors" />
                 }
-                <span className={`text-sm transition-colors ${checked.has(item.id) ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                <span className={`text-sm transition-colors leading-snug ${checked.has(item.id) ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
                   {item.label}
                 </span>
               </button>

@@ -12,9 +12,21 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  /* Prevent iOS Safari from changing 100vh when URL bar hides/shows,
+     which would cause position:fixed elements to jump or scroll. */
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
+  /* Body scrolls instead of html — required for iOS fixed tab bar stability */
+  height: 100%;
+  overflow-y: auto;
+  /* Prevent rubber-band overscroll from displacing fixed elements */
+  overscroll-behavior-y: contain;
 }
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }

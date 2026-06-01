@@ -357,8 +357,12 @@ function ResultView({
         <AntiDupHooksPanel hookLine={blueprint.hook} />
       )}
 
-      {/* Pre-shoot checklist */}
-      <FilmingPrepCard />
+      {/* Pre-shoot checklist — script-aware */}
+      <FilmingPrepCard
+        hookLine={blueprint.hook}
+        productName={meta.product_name}
+        scriptLines={script.lines.slice(0, 3).map(l => `${l.say}`).filter(Boolean)}
+      />
 
       {/* Storyboard CTA */}
       {storyboardProduct && (
