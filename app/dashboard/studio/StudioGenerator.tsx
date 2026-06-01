@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Clapperboard, Sparkles, Copy, Check, User, Image, Video, Mic, ChevronDown, ChevronUp, Trash2 } from 'lucide-react'
+import { Clapperboard, Sparkles, Copy, Check, User, Image, Video, Mic, ChevronDown, ChevronUp } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
+import { FilmingPrepCard } from '@/components/studio/FilmingPrepCard'
 import type { GenerateResponse, CharacterRow, StoryboardRow } from '@/lib/studio/types'
 
 // ── Copy button ───────────────────────────────────────────────────────────────
@@ -57,7 +58,7 @@ function StoryboardCard({ board, index }: { board: StoryboardRow; index: number 
               {board.character_name}
             </span>
           )}
-          <span className="text-xs text-gray-500 truncate max-w-[200px]">{board.audio_narration.slice(0, 60)}{board.audio_narration.length > 60 ? '…' : ''}</span>
+          <span className="text-xs text-gray-500 truncate max-w-[120px] sm:max-w-[200px]">{board.audio_narration.slice(0, 60)}{board.audio_narration.length > 60 ? '…' : ''}</span>
         </div>
         {open ? <ChevronUp className="h-3.5 w-3.5 text-gray-400" /> : <ChevronDown className="h-3.5 w-3.5 text-gray-400" />}
       </button>
@@ -130,6 +131,9 @@ function ResultsPanel({ result, onReset }: { result: GenerateResponse; onReset: 
           ))}
         </div>
       </div>
+
+      {/* Pre-shoot checklist — helps creator go from script to camera */}
+      <FilmingPrepCard productName={result.title} />
     </div>
   )
 }
@@ -196,7 +200,7 @@ export function StudioGenerator() {
 
   return (
     <Card>
-      <CardContent className="p-6">
+      <CardContent className="p-4 sm:p-6">
         <form onSubmit={handleGenerate} className="space-y-5">
 
           {/* Product name */}
@@ -222,20 +226,20 @@ export function StudioGenerator() {
           {/* Video style */}
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-gray-700">Video Style</label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {STYLES.map(s => (
                 <button
                   key={s.value}
                   type="button"
                   onClick={() => setStyle(s.value)}
-                  className={`flex flex-col items-start gap-0.5 rounded-xl border px-3 py-2.5 text-left transition-all ${
+                  className={`flex flex-col items-start gap-0.5 rounded-xl border px-2 sm:px-3 py-2 sm:py-2.5 text-left transition-all ${
                     style === s.value
                       ? 'border-pink-400 bg-pink-50 ring-1 ring-pink-400'
                       : 'border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  <span className="text-sm font-semibold text-gray-800">{s.label}</span>
-                  <span className="text-[11px] text-gray-400 leading-tight">{s.desc}</span>
+                  <span className="text-xs sm:text-sm font-semibold text-gray-800">{s.label}</span>
+                  <span className="text-[10px] sm:text-[11px] text-gray-400 leading-tight">{s.desc}</span>
                 </button>
               ))}
             </div>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import {
   Zap, RefreshCw, ExternalLink, TrendingUp, Calendar,
-  Shield, CreditCard, Eye, Clapperboard, RotateCcw,
+  Shield, CreditCard, Eye, Clapperboard, RotateCcw, Lock,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { timeAgo } from '@/lib/dateUtils'
@@ -86,7 +86,7 @@ function TypeBadge({ structure }: { structure: string | null }) {
 
 // ── Analysis row ──────────────────────────────────────────────────────────────
 
-function AnalysisRow({ item }: { item: AnalysisItem }) {
+function AnalysisRow({ item, isPaid }: { item: AnalysisItem; isPaid: boolean }) {
   const title       = item.product_name ?? item.category
   const sub         = item.product_name ? item.category : null
   const storyboard  = encodeURIComponent(item.product_name ?? item.category)
@@ -127,7 +127,7 @@ function AnalysisRow({ item }: { item: AnalysisItem }) {
       </div>
 
       {/* Action buttons row */}
-      <div className="flex items-center gap-2 mt-3 ml-11">
+      <div className="flex flex-wrap items-center gap-2 mt-3 ml-11">
         {/* View — reopens result in Studio via ?bd= */}
         <a
           href={`/studio?bd=${item.id}`}
@@ -137,14 +137,26 @@ function AnalysisRow({ item }: { item: AnalysisItem }) {
           View
         </a>
 
-        {/* Re-analyse — go to Studio and re-run with same video */}
-        <a
-          href={`/studio?video_id=${item.video_id}`}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 text-xs font-semibold transition-colors"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          Re-analyse
-        </a>
+        {/* Re-analyse — paid only; free users see locked upsell */}
+        {isPaid ? (
+          <a
+            href={`/studio?video_id=${item.video_id}`}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 text-xs font-semibold transition-colors"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            Re-analyse
+          </a>
+        ) : (
+          <a
+            href="/pricing"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-300 text-xs font-semibold transition-colors border border-dashed border-gray-200 hover:border-pink-300 hover:text-pink-400 group"
+            title="Upgrade to re-analyse videos"
+          >
+            <Lock className="h-3 w-3 group-hover:hidden" />
+            <RotateCcw className="h-3 w-3 hidden group-hover:block text-pink-400" />
+            <span className="group-hover:text-pink-500">Re-analyse</span>
+          </a>
+        )}
 
         {/* Storyboard next step */}
         <a
@@ -353,7 +365,7 @@ export function UsageClient() {
 
           {analyses.length === 0 ? <EmptyAnalyses /> : (
             <div>
-              {analyses.map(item => <AnalysisRow key={item.id} item={item} />)}
+              {analyses.map(item => <AnalysisRow key={item.id} item={item} isPaid={!isFree} />)}
             </div>
           )}
         </CardContent>
