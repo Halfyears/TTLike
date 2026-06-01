@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Clapperboard, Search,
-  TrendingUp, BookOpen, BarChart2, Wand2, Layers, User, Camera,
+  TrendingUp, BookOpen, BarChart2, Wand2, Layers, User, Camera, Settings,
 } from 'lucide-react'
 
 const GROUPS = [
@@ -28,8 +28,9 @@ const GROUPS = [
   {
     label: 'Account',
     links: [
-      { href: '/dashboard',       icon: LayoutDashboard, label: 'Overview' },
-      { href: '/dashboard/usage', icon: BarChart2,       label: 'Usage' },
+      { href: '/dashboard',         icon: LayoutDashboard, label: 'Overview' },
+      { href: '/dashboard/usage',   icon: BarChart2,       label: 'Usage' },
+      { href: '/dashboard/account', icon: Settings,        label: 'Settings' },
     ],
   },
 ]
@@ -86,7 +87,7 @@ const MOBILE_TABS = [
   { href: '/studio',           icon: Wand2,           label: 'Studio' },
   { href: '/products',         icon: Search,          label: 'Products' },
   { href: '/trending',         icon: TrendingUp,      label: 'Trending' },
-  { href: '/dashboard/usage',  icon: User,            label: 'Account' },
+  { href: '/dashboard/account', icon: User,            label: 'Account' },
 ]
 
 export function MobileTabBar() {

@@ -44,12 +44,12 @@ export function UserMenu({ email, initials }: UserMenuProps) {
             <p className="text-[11px] text-slate-500 truncate">{email}</p>
           </div>
           <Link
-            href="/dashboard/usage"
+            href="/dashboard/account"
             onClick={() => setOpen(false)}
             className="flex items-center gap-3 px-4 py-3 text-sm text-slate-300 hover:bg-slate-700 transition-colors"
           >
             <Settings className="h-4 w-4 shrink-0" />
-            Settings &amp; Usage
+            Account Settings
           </Link>
           <Link
             href="/pricing"
