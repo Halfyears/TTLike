@@ -2,9 +2,14 @@ import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { ProductCard } from '@/components/ProductCard'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { SITE_URL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Product Database · TTLike' }
+export const metadata = {
+  title:       'Product Database · TTLike',
+  description: 'AI-curated viral TikTok products updated twice daily. Browse 500+ trending products with viral scores, engagement data, and AI-powered breakdown analysis.',
+  alternates:  { canonical: `${SITE_URL}/products` },
+}
 
 const NICHES   = ['All', 'Health', 'Beauty', 'Home', 'Kitchen', 'Tech', 'Fitness', 'Pets', 'Travel']
 const PER_PAGE = 24

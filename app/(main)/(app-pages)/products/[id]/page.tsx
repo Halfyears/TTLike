@@ -14,8 +14,40 @@ import { LocalDate } from '@/components/ui/LocalDate'
 import { VideoBreakdownWithTier } from '@/components/VideoBreakdownWithTier'
 import { StructuralHealthReport } from '@/components/StructuralHealthReport'
 import { formatNumber } from '@/lib/utils'
+import type { Metadata } from 'next'
+import { SITE_URL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
+
+// ─── generateMetadata ─────────────────────────────────────────────────────────
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params
+  const v = await getVideo(id)
+  if (!v) return { title: 'Product Not Found · TTLike' }
+
+  const rawTitle  = String(v.title ?? v.product_name ?? '')
+  const cleanName = v.product_name
+    ? String(v.product_name)
+    : rawTitle.replace(/#[\w一-龥＀-￯]+\s*/g, '').replace(/\s{2,}/g, ' ').trim() || rawTitle
+  const niche       = String(v.niche ?? 'General')
+  const viralScore  = Number(v.viral_score ?? 0)
+  const views       = Number(v.views ?? 0)
+  const viewsStr    = views >= 1_000_000 ? `${(views / 1_000_000).toFixed(1)}M` : views >= 1000 ? `${Math.round(views / 1000)}K` : String(views)
+  const description = `${cleanName} — viral TikTok ${niche.toLowerCase()} product with ${viewsStr} views and a ${viralScore}/100 viral score. AI breakdown, hook analysis, and script ideas.`
+
+  return {
+    title: `${cleanName} · TTLike`,
+    description,
+    alternates: { canonical: `${SITE_URL}/products/${id}` },
+    openGraph: {
+      title:       `${cleanName} — TikTok Viral Product`,
+      description,
+      url:         `${SITE_URL}/products/${id}`,
+      images:      v.cover_url ? [{ url: String(v.cover_url), width: 720, height: 1280, alt: cleanName }] : [],
+    },
+  }
+}
 
 interface Props {
   params:       Promise<{ id: string }>

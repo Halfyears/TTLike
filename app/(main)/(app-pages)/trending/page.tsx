@@ -4,9 +4,14 @@ import { Badge } from '@/components/ui/Badge'
 import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { SITE_URL } from '@/lib/constants'
 
 export const dynamic = 'force-dynamic'
-export const metadata = { title: 'Trending · TTLike' }
+export const metadata = {
+  title:       'Trending TikTok Products · TTLike',
+  description: 'Real-time trending TikTok products ranked by viral score. Find the hottest dropshipping opportunities before your competitors.',
+  alternates:  { canonical: `${SITE_URL}/trending` },
+}
 
 export default async function TrendingPage() {
   const supabase = await createClient()

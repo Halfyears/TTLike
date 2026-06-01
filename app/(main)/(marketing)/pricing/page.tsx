@@ -2,11 +2,15 @@ import { Check, Zap, Sparkles, Shield } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
-import { TIER_LIMITS } from '@/lib/constants'
+import { TIER_LIMITS, SITE_URL } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/server'
 import { PricingCheckoutButton } from '@/components/pricing/PricingCheckoutButton'
 
-export const metadata = { title: 'Pricing · TTLike' }
+export const metadata = {
+  title:       'Pricing · TTLike',
+  description: 'Start free — 5 viral analyses per month. Upgrade to Creator ($29/mo) for 50 analyses, or Scale ($99/mo) for unlimited TikTok viral intelligence.',
+  alternates:  { canonical: `${SITE_URL}/pricing` },
+}
 
 const PLANS = [
   {
