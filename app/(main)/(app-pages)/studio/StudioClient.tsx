@@ -408,6 +408,48 @@ export function StudioClient() {
     }
   }, [searchParams])
 
+  // Re-analyse: ?video_id=uuid skips URL resolution — goes straight to the context/form stage
+  const handledVidRef = useRef<string | null>(null)
+  useEffect(() => {
+    const vid = searchParams.get('video_id')
+    if (!vid || vid === handledVidRef.current) return
+    handledVidRef.current = vid
+    // Fetch video meta from existing DB row, then go to transcribing → form
+    void (async () => {
+      try {
+        const res = await fetch(`/api/studio/context/${vid}`)
+        const data = await res.json()
+        setVideoMeta({
+          video_id:     vid,
+          title:        null,
+          product_name: data.product_name ?? null,
+          niche:        data.niche        ?? null,
+        })
+        setForm({
+          product_name: data.product_name ?? '',
+          category:     data.category     ?? data.niche ?? '',
+          pain_points:  data.pain_points  ?? [],
+          price_point:  undefined,
+        })
+        setStage('product_form')
+      } catch {
+        // If context fetch fails just go to url_input
+      }
+    })()
+  }, [searchParams])
+
+  // Direct result load: ?bd=breakdown_id jumps straight to the result view
+  // (used by /dashboard/usage "View" action on past analyses)
+  const handledBdRef = useRef<string | null>(null)
+  useEffect(() => {
+    const bd = searchParams.get('bd')
+    if (!bd || bd === handledBdRef.current) return
+    handledBdRef.current = bd
+    breakdownIdRef.current = bd
+    setBreakdownId(bd)
+    setStage('analyzing')   // AnalysisWaitScreen will poll, find COMPLETED instantly
+  }, [searchParams])
+
   // Step 1: URL resolved → pre-transcribe audio → fill form
   const handleResolved = useCallback(async (
     videoId: string,
@@ -538,6 +580,15 @@ export function StudioClient() {
       setResult({ blueprint: data.creative_blueprint, script: data.script_layer })
       setResultMeta({ generated_at: data.generated_at ?? null, pipeline_ms: data.pipeline_ms ?? null, has_audio: Boolean(data.has_audio) })
       setTranscript(Array.isArray(data.transcript_segments) ? data.transcript_segments : [])
+      // If we jumped here via ?bd= param, videoMeta is null — restore from result response
+      if (!videoMeta && data.video_meta) {
+        setVideoMeta({
+          video_id:     data.video_id ?? '',
+          title:        data.video_meta.title        ?? null,
+          product_name: data.video_meta.product_name ?? null,
+          niche:        data.video_meta.niche         ?? null,
+        })
+      }
       setStage('result')
     } catch {
       setErrorMsg('Failed to load result. Please try again.')

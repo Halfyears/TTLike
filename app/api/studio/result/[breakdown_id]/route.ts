@@ -32,7 +32,7 @@ export async function GET(
 
   const { data, error } = await service
     .from('video_breakdowns')
-    .select('id, viral_status, viral_error, payload')
+    .select('id, viral_status, viral_error, payload, video_id')
     .eq('id', breakdown_id)
     .maybeSingle()
 
@@ -52,6 +52,17 @@ export async function GET(
 
   const result = viralPipelineToStudioResult(vp)
 
+  // Fetch video metadata for the result header (best-effort, null on failure)
+  let videoMeta: { title: string | null; product_name: string | null; niche: string | null } | null = null
+  if (data.video_id) {
+    const { data: vid } = await service
+      .from('tiktok_videos')
+      .select('title, product_name, niche')
+      .eq('id', data.video_id)
+      .maybeSingle()
+    if (vid) videoMeta = { title: vid.title ?? null, product_name: vid.product_name ?? null, niche: vid.niche ?? null }
+  }
+
   // Transcript: only the fields the UI needs (timecode + spoken text)
   const rawTimeline = Array.isArray(payload?.visual_timeline) ? payload.visual_timeline : []
   const transcriptSegments = rawTimeline
@@ -68,6 +79,8 @@ export async function GET(
     pipeline_ms:         vp.pipeline_ms  ?? null,
     has_audio:           hasAudio,
     transcript_segments: transcriptSegments,   // [{timecode, text}]
+    video_id:            data.video_id ?? null,
+    video_meta:          videoMeta,            // {title, product_name, niche}
     ...result,
   })
 }

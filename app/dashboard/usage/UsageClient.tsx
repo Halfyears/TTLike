@@ -1,7 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Zap, RefreshCw, ExternalLink, TrendingUp, Calendar, Shield, CreditCard } from 'lucide-react'
+import {
+  Zap, RefreshCw, ExternalLink, TrendingUp, Calendar,
+  Shield, CreditCard, Eye, Clapperboard, RotateCcw,
+} from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { timeAgo } from '@/lib/dateUtils'
 import type { TierResponse } from '@/app/api/user/tier/route'
@@ -50,41 +53,107 @@ function PlanBadge({ tier }: { tier: string }) {
   )
 }
 
-// ── Reset date helper ────────────────────────────────────────────────────────
+// ── Structure type badge ──────────────────────────────────────────────────────
 
-function fmtResetDate(iso: string | null) {
-  if (!iso) return null
-  const d = new Date(iso)
-  const now = new Date()
-  const diffDays = Math.ceil((d.getTime() - now.getTime()) / 86400_000)
-  const label = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-  return `${label} (${diffDays > 0 ? `${diffDays}d` : 'today'})`
+// Normalise internal structure IDs to short user-friendly labels
+function structureLabel(id: string | null): string | null {
+  if (!id) return null
+  const map: Record<string, string> = {
+    AGITATE_SOLVE:    'Problem → Solution',
+    STORY_SELL:       'Story Sell',
+    COMPARISON:       'Comparison',
+    TESTIMONIAL:      'Testimonial',
+    DEMO_REVEAL:      'Demo Reveal',
+    SHOCK_REVEAL:     'Shock Reveal',
+    EDUCATIONAL:      'Educational',
+    FOMO_URGENCY:     'FOMO',
+    TRANSFORMATION:   'Transformation',
+    SOCIAL_PROOF:     'Social Proof',
+  }
+  return map[id.toUpperCase()] ?? id.replace(/_/g, ' ')
+}
+
+function TypeBadge({ structure }: { structure: string | null }) {
+  if (!structure) return null
+  const label = structureLabel(structure)
+  if (!label) return null
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-violet-50 text-violet-600 text-[10px] font-semibold border border-violet-100">
+      {label}
+    </span>
+  )
 }
 
 // ── Analysis row ──────────────────────────────────────────────────────────────
 
 function AnalysisRow({ item }: { item: AnalysisItem }) {
-  const title = item.product_name ?? item.category
-  const sub   = item.product_name ? item.category : null
+  const title       = item.product_name ?? item.category
+  const sub         = item.product_name ? item.category : null
+  const storyboard  = encodeURIComponent(item.product_name ?? item.category)
+
   return (
-    <div className="flex items-start gap-3 py-3 border-b border-gray-50 last:border-0">
-      <div className="h-8 w-8 rounded-lg bg-pink-50 flex items-center justify-center shrink-0 mt-0.5">
-        <Zap className="h-3.5 w-3.5 text-pink-500" />
+    <div className="py-4 border-b border-gray-50 last:border-0">
+
+      {/* Top row: icon + name + time */}
+      <div className="flex items-start gap-3">
+        <div className="h-8 w-8 rounded-lg bg-pink-50 flex items-center justify-center shrink-0 mt-0.5">
+          <Zap className="h-3.5 w-3.5 text-pink-500" />
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-sm font-semibold text-gray-900 leading-tight truncate">{title}</p>
+            <p className="text-[11px] text-gray-400 shrink-0 pt-0.5">{timeAgo(item.created_at)}</p>
+          </div>
+
+          {/* Category + type tags */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+            {sub && (
+              <span className="text-[11px] text-gray-400">{sub}</span>
+            )}
+            <TypeBadge structure={item.structure_type} />
+            {item.pipeline_ms && (
+              <span className="text-[10px] text-gray-300">{(item.pipeline_ms / 1000).toFixed(1)}s</span>
+            )}
+          </div>
+
+          {/* Hook line preview */}
+          {item.hook_line && (
+            <p className="text-[11px] text-gray-400 mt-1.5 line-clamp-2 italic leading-snug">
+              &ldquo;{item.hook_line}&rdquo;
+            </p>
+          )}
+        </div>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-gray-900 truncate">{title}</p>
-        {sub && <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>}
-        {item.hook_line && (
-          <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-1 italic">
-            "{item.hook_line}"
-          </p>
-        )}
-      </div>
-      <div className="text-right shrink-0">
-        <p className="text-[11px] text-gray-400">{timeAgo(item.created_at)}</p>
-        {item.pipeline_ms && (
-          <p className="text-[10px] text-gray-300">{(item.pipeline_ms / 1000).toFixed(1)}s</p>
-        )}
+
+      {/* Action buttons row */}
+      <div className="flex items-center gap-2 mt-3 ml-11">
+        {/* View — reopens result in Studio via ?bd= */}
+        <a
+          href={`/studio?bd=${item.id}`}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pink-50 text-pink-600 hover:bg-pink-100 text-xs font-semibold transition-colors"
+        >
+          <Eye className="h-3.5 w-3.5" />
+          View
+        </a>
+
+        {/* Re-analyse — go to Studio and re-run with same video */}
+        <a
+          href={`/studio?video_id=${item.video_id}`}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 text-xs font-semibold transition-colors"
+        >
+          <RotateCcw className="h-3.5 w-3.5" />
+          Re-analyse
+        </a>
+
+        {/* Storyboard next step */}
+        <a
+          href={`/dashboard/studio?product=${storyboard}`}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 text-violet-600 hover:bg-violet-100 text-xs font-semibold transition-colors"
+        >
+          <Clapperboard className="h-3.5 w-3.5" />
+          Storyboard
+        </a>
       </div>
     </div>
   )
@@ -178,7 +247,7 @@ export function UsageClient() {
   useEffect(() => { load() }, [])
 
   if (loading) return (
-    <div className="space-y-4 animate-pulse max-w-2xl">
+    <div className="space-y-4 animate-pulse">
       <div className="bg-white rounded-xl border border-gray-100 p-5 h-36" />
       <div className="bg-white rounded-xl border border-gray-100 p-5 h-48" />
     </div>
@@ -190,19 +259,20 @@ export function UsageClient() {
     </div>
   )
 
-  const resetLabel = fmtResetDate(tier?.reset_at ?? null)
-  const isFree     = !tier || tier.tier_name === 'free'
-  const pctUsed    = tier && tier.video_analysis_limit > 0
+  const isFree  = !tier || tier.tier_name === 'free'
+  const pctUsed = tier && tier.video_analysis_limit > 0
     ? Math.round((tier.video_analysis_used / tier.video_analysis_limit) * 100)
     : 0
 
   return (
-    <div className="space-y-5 max-w-2xl">
+    <div className="space-y-5">
 
       {/* ── Plan + Quota card ── */}
       <Card>
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-4">
+        <CardContent className="p-4 sm:p-5">
+
+          {/* Header row: plan badge + actions */}
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
             <div className="flex items-center gap-2">
               <h3 className="text-sm font-semibold text-gray-900">Monthly Quota</h3>
               {tier && <PlanBadge tier={tier.tier_name} />}
@@ -218,30 +288,30 @@ export function UsageClient() {
             </div>
           </div>
 
-          {/* 3 stat chips */}
-          <div className="grid grid-cols-3 gap-3 mb-5">
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-black text-gray-900 tabular-nums">
+          {/* 3 stat chips — responsive font sizes */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
+            <div className="bg-gray-50 rounded-xl p-2.5 sm:p-3 text-center">
+              <p className="text-xl sm:text-2xl font-black text-gray-900 tabular-nums">
                 {tier?.video_analysis_used ?? 0}
               </p>
-              <p className="text-[11px] text-gray-500 mt-0.5">used</p>
+              <p className="text-[10px] sm:text-[11px] text-gray-500 mt-0.5">used</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-2xl font-black text-gray-900 tabular-nums">
+            <div className="bg-gray-50 rounded-xl p-2.5 sm:p-3 text-center">
+              <p className="text-xl sm:text-2xl font-black text-gray-900 tabular-nums">
                 {tier?.video_analysis_limit ?? 0}
               </p>
-              <p className="text-[11px] text-gray-500 mt-0.5">limit</p>
+              <p className="text-[10px] sm:text-[11px] text-gray-500 mt-0.5">limit</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
+            <div className="bg-gray-50 rounded-xl p-2.5 sm:p-3 text-center">
               <div className="flex items-center justify-center gap-1 mb-0.5">
-                <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                <p className="text-sm font-bold text-gray-900">
+                <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-400" />
+                <p className="text-xs sm:text-sm font-bold text-gray-900">
                   {tier?.reset_at
                     ? new Date(tier.reset_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
                     : '—'}
                 </p>
               </div>
-              <p className="text-[11px] text-gray-500">reset</p>
+              <p className="text-[10px] sm:text-[11px] text-gray-500">reset</p>
             </div>
           </div>
 
@@ -250,9 +320,9 @@ export function UsageClient() {
             limit={tier?.video_analysis_limit ?? 0}
           />
 
-          {/* Upgrade nudge when free + > 60% used */}
+          {/* Upgrade nudge */}
           {isFree && pctUsed >= 60 && (
-            <div className="mt-4 flex items-center justify-between bg-gradient-to-r from-pink-50 to-violet-50 border border-pink-100 rounded-xl px-4 py-3">
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 bg-gradient-to-r from-pink-50 to-violet-50 border border-pink-100 rounded-xl px-4 py-3">
               <div>
                 <p className="text-xs font-semibold text-gray-800">
                   {pctUsed >= 100 ? 'Quota full — upgrade to continue' : 'Running low on analyses'}
@@ -272,7 +342,7 @@ export function UsageClient() {
 
       {/* ── Recent analyses ── */}
       <Card>
-        <CardContent className="p-5">
+        <CardContent className="p-4 sm:p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="h-4 w-4 text-pink-500" />
             <h3 className="text-sm font-semibold text-gray-900">Recent Analyses</h3>

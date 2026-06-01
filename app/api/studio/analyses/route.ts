@@ -10,13 +10,14 @@ import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 
 export interface AnalysisItem {
-  id:           string
-  video_id:     string
-  product_name: string | null
-  category:     string
-  hook_line:    string | null
-  pipeline_ms:  number | null
-  created_at:   string
+  id:             string
+  video_id:       string
+  product_name:   string | null
+  category:       string
+  structure_type: string | null   // e.g. "AGITATE_SOLVE", "STORY_SELL"
+  hook_line:      string | null
+  pipeline_ms:    number | null
+  created_at:     string
 }
 
 export async function GET() {
@@ -40,14 +41,22 @@ export async function GET() {
     const vp            = (row.payload as Record<string, unknown>)?.viral_pipeline as Record<string, unknown> | undefined
     const productSchema = (vp?.input as Record<string, unknown>)?.product_schema   as Record<string, unknown> | undefined
     const finalScript   = vp?.final_script                                          as Record<string, unknown> | undefined
+    const reasoning     = vp?.reasoning                                             as Record<string, unknown> | undefined
+    // structure_id lives in final_script OR reasoning.structure_match
+    const structureId   =
+      (finalScript?.structure_id ? String(finalScript.structure_id) : null) ??
+      ((reasoning?.structure_match as Record<string, unknown> | undefined)?.structure_id
+        ? String((reasoning!.structure_match as Record<string, unknown>).structure_id)
+        : null)
     return {
-      id:           row.id,
-      video_id:     row.video_id,
-      product_name: productSchema?.product_name ? String(productSchema.product_name) : null,
-      category:     String(productSchema?.category ?? 'General'),
-      hook_line:    finalScript?.hook_line ? String(finalScript.hook_line) : null,
-      pipeline_ms:  vp?.pipeline_ms ? Number(vp.pipeline_ms) : null,
-      created_at:   row.created_at as string,
+      id:             row.id,
+      video_id:       row.video_id,
+      product_name:   productSchema?.product_name ? String(productSchema.product_name) : null,
+      category:       String(productSchema?.category ?? 'General'),
+      structure_type: structureId,
+      hook_line:      finalScript?.hook_line ? String(finalScript.hook_line) : null,
+      pipeline_ms:    vp?.pipeline_ms ? Number(vp.pipeline_ms) : null,
+      created_at:     row.created_at as string,
     }
   })
 
