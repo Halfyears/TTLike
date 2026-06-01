@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   User, Mail, CreditCard, LogOut, Check, Loader2,
-  ExternalLink, Shield, ChevronRight, AlertTriangle,
+  ExternalLink, Shield, ChevronRight, AlertTriangle, BarChart2,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { createClient } from '@/lib/supabase/client'
@@ -212,14 +212,9 @@ export default function AccountPage() {
                 <Shield className="h-4 w-4 text-gray-400" />
                 <span className="text-sm font-semibold text-gray-700">Current Plan</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${planCfg.color} ${planCfg.bg} ${planCfg.border}`}>
-                  {planCfg.label}
-                </span>
-                <a href="/dashboard/usage" className="text-xs text-gray-400 hover:text-pink-500 transition-colors">
-                  Usage →
-                </a>
-              </div>
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${planCfg.color} ${planCfg.bg} ${planCfg.border}`}>
+                {planCfg.label}
+              </span>
             </div>
 
             {/* Actions */}
@@ -269,6 +264,18 @@ export default function AccountPage() {
                 </>
               )}
             </div>
+
+            {/* Usage quick-link — prominent */}
+            <a
+              href="/dashboard/usage"
+              className="flex items-center justify-between w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-100 text-sm font-semibold text-gray-600 hover:bg-gray-100 hover:border-gray-200 transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <BarChart2 className="h-4 w-4 text-gray-400" />
+                View Quota &amp; Analysis History
+              </span>
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            </a>
           </CardContent>
         </Card>
       </Section>

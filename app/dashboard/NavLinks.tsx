@@ -80,14 +80,14 @@ export function NavLinks() {
   )
 }
 
-// ── Mobile bottom tab bar (5 items) ──────────────────────────────────────────
-// Storyboard omitted — accessible from Studio page; replaced with Account entry
+// ── Mobile bottom tab bar (6 items, equal-width) ─────────────────────────────
 const MOBILE_TABS = [
-  { href: '/dashboard',        icon: LayoutDashboard, label: 'Overview' },
-  { href: '/studio',           icon: Wand2,           label: 'Studio' },
-  { href: '/products',         icon: Search,          label: 'Products' },
-  { href: '/trending',         icon: TrendingUp,      label: 'Trending' },
-  { href: '/dashboard/account', icon: User,            label: 'Account' },
+  { href: '/dashboard',              icon: LayoutDashboard, label: 'Home'     },
+  { href: '/studio',                 icon: Wand2,           label: 'Studio'   },
+  { href: '/products',               icon: Search,          label: 'Products' },
+  { href: '/trending',               icon: TrendingUp,      label: 'Trending' },
+  { href: '/dashboard/filming-prep', icon: Camera,          label: 'Film'     },
+  { href: '/dashboard/account',      icon: User,            label: 'Account'  },
 ]
 
 export function MobileTabBar() {
@@ -112,19 +112,19 @@ export function MobileTabBar() {
           <Link
             key={href}
             href={href}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors min-w-0 ${
               active ? 'text-pink-500' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            <div className={`relative flex items-center justify-center rounded-lg w-8 h-8 transition-all ${
+            <div className={`relative flex items-center justify-center rounded-lg w-7 h-7 transition-all ${
               active ? 'bg-pink-50' : ''
             }`}>
-              <Icon className="h-5 w-5" />
+              <Icon className="h-4 w-4" />
               {active && (
-                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-pink-500 border-2 border-white" />
+                <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-pink-500 border-2 border-white" />
               )}
             </div>
-            <span className={`text-[10px] font-semibold leading-none ${active ? 'text-pink-500' : ''}`}>
+            <span className={`text-[9px] font-semibold leading-none truncate w-full text-center px-0.5 ${active ? 'text-pink-500' : ''}`}>
               {label}
             </span>
           </Link>
