@@ -10,7 +10,7 @@ interface FilmingPrepCardProps {
 }
 
 export function FilmingPrepCard({ hookLine, productName, scriptLines = [] }: FilmingPrepCardProps) {
-  const [open,    setOpen]    = useState(false)
+  const [open,    setOpen]    = useState(true)   // auto-open so users don't miss it
   const [checked, setChecked] = useState<Set<string>>(new Set())
 
   // Build script-aware checklist items

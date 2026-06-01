@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, Clapperboard, Search,
-  TrendingUp, BookOpen, BarChart2, Wand2, Layers, User,
+  TrendingUp, BookOpen, BarChart2, Wand2, Layers, User, Camera,
 } from 'lucide-react'
 
 const GROUPS = [
@@ -14,6 +14,7 @@ const GROUPS = [
       { href: '/studio',           icon: Wand2,        label: 'Viral Studio', badge: 'NEW' },
       { href: '/dashboard/batch',  icon: Layers,       label: 'Batch Analysis' },
       { href: '/dashboard/studio', icon: Clapperboard, label: 'Storyboard' },
+      { href: '/studio#prep',      icon: Camera,       label: 'Filming Prep' },
     ],
   },
   {
@@ -81,7 +82,7 @@ export function NavLinks() {
 // ── Mobile bottom tab bar (5 items) ──────────────────────────────────────────
 // Storyboard omitted — accessible from Studio page; replaced with Account entry
 const MOBILE_TABS = [
-  { href: '/dashboard',        icon: LayoutDashboard, label: 'Home' },
+  { href: '/dashboard',        icon: LayoutDashboard, label: 'Overview' },
   { href: '/studio',           icon: Wand2,           label: 'Studio' },
   { href: '/products',         icon: Search,          label: 'Products' },
   { href: '/trending',         icon: TrendingUp,      label: 'Trending' },
