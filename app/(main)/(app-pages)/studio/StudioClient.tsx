@@ -117,9 +117,9 @@ function ProductFormStep({
     <div className="w-full max-w-xl mx-auto">
       <button
         onClick={onBack}
-        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
+        className="flex items-center gap-2 min-h-[44px] -ml-2 pl-2 pr-4 text-sm font-medium text-gray-500 hover:text-gray-700 mb-4 transition-colors"
       >
-        <ChevronLeft className="w-4 h-4" /> Back
+        <ChevronLeft className="w-5 h-5" /> Back
       </button>
 
       <div className="bg-white border border-gray-200 rounded-2xl p-6">
@@ -340,9 +340,9 @@ function ResultView({
         </div>
         <button
           onClick={onReset}
-          className="shrink-0 text-sm text-pink-500 hover:text-pink-600 flex items-center gap-1 whitespace-nowrap"
+          className="shrink-0 flex items-center gap-2 min-h-[44px] px-3 -mr-2 text-sm font-medium text-pink-500 hover:text-pink-600 whitespace-nowrap transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" /> New video
+          <ChevronLeft className="w-5 h-5" /> New video
         </button>
       </div>
 

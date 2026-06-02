@@ -8,12 +8,12 @@ export const metadata = { title: 'Quota & History · TTLike' }
 export default function UsagePage() {
   return (
     <div>
-      {/* Back to Account — visible on mobile */}
+      {/* Back to Account — mobile only, 44px touch target */}
       <Link
         href="/dashboard/account"
-        className="md:hidden inline-flex items-center gap-1 text-xs text-gray-400 hover:text-pink-500 transition-colors mb-4"
+        className="md:hidden inline-flex items-center gap-2 min-h-[44px] px-1 -mx-1 text-sm font-medium text-gray-500 hover:text-pink-500 transition-colors mb-2"
       >
-        <ChevronLeft className="h-3.5 w-3.5" /> Account
+        <ChevronLeft className="h-5 w-5 shrink-0" /> Account
       </Link>
 
       <div className="flex items-center gap-3 mb-6">

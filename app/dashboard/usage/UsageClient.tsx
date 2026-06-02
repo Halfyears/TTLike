@@ -219,21 +219,21 @@ export function UsageClient() {
       <Card>
         <CardContent className="p-4 sm:p-5">
 
-          {/* Header row — stacks on very small screens */}
+          {/* Header row */}
           <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
             <h3 className="text-sm font-semibold text-gray-900">Monthly Quota</h3>
-            <div className="flex items-center gap-3 ml-auto">
+            <div className="flex items-center gap-1 ml-auto">
               <a
                 href="/dashboard/account"
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-pink-500 transition-colors whitespace-nowrap"
+                className="flex items-center gap-1.5 min-h-[44px] px-3 text-sm text-gray-500 hover:text-pink-500 transition-colors whitespace-nowrap"
               >
-                <Settings className="h-3 w-3" /> Plan &amp; Billing
+                <Settings className="h-4 w-4" /> Plan &amp; Billing
               </a>
               <button
                 onClick={load}
-                className="text-xs text-gray-400 hover:text-pink-500 flex items-center gap-1 transition-colors whitespace-nowrap"
+                className="flex items-center gap-1.5 min-h-[44px] px-3 text-sm text-gray-500 hover:text-pink-500 transition-colors whitespace-nowrap"
               >
-                <RefreshCw className="h-3 w-3" /> Refresh
+                <RefreshCw className="h-4 w-4" /> Refresh
               </button>
             </div>
           </div>
@@ -279,9 +279,9 @@ export function UsageClient() {
               </div>
               <a
                 href="/pricing"
-                className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-pink-500 to-violet-500 text-white text-xs font-semibold rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap"
+                className="flex items-center gap-1.5 min-h-[44px] px-4 bg-gradient-to-r from-pink-500 to-violet-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity whitespace-nowrap"
               >
-                Upgrade <ExternalLink className="h-3 w-3" />
+                Upgrade <ExternalLink className="h-4 w-4" />
               </a>
             </div>
           )}

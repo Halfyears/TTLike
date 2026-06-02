@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { timeAgo } from '@/lib/dateUtils'
 import {
   Camera, Lightbulb, Brain, CheckCircle2, Circle,
   ChevronDown, Wand2, ArrowRight, Zap, Package, Monitor, Mic, Wind,
@@ -227,7 +228,7 @@ export default function FilmingPrepPage() {
         {totalDone > 0 && (
           <button
             onClick={() => setChecked(new Set())}
-            className="text-xs text-gray-400 hover:text-pink-500 transition-colors px-2 py-1"
+            className="text-sm text-gray-400 hover:text-pink-500 transition-colors min-h-[44px] px-3 flex items-center"
           >
             Reset
           </button>
@@ -279,9 +280,12 @@ export default function FilmingPrepPage() {
                 <div className="px-5 py-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Zap className="h-4 w-4 text-pink-500 shrink-0" />
-                    <p className="text-sm font-bold text-gray-900 truncate">
+                    <p className="text-sm font-bold text-gray-900 truncate flex-1">
                       {latestAnalysis.product_name ?? latestAnalysis.category}
                     </p>
+                    <span className="text-[11px] text-gray-400 shrink-0 whitespace-nowrap">
+                      {timeAgo(latestAnalysis.created_at)}
+                    </span>
                   </div>
 
                   {latestAnalysis.hook_line && (
