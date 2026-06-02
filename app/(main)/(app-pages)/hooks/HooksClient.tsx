@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Zap, Sparkles, Loader2 } from 'lucide-react'
@@ -75,19 +75,24 @@ function HookMachine() {
   const [isLoggedIn,  setIsLoggedIn] = useState(false)
   // authChecked prevents false-positive modal fires before session resolves
   const [authChecked, setAuthChecked] = useState(false)
+  // Refs mirror state so async analyse() always reads the latest value without stale closure
+  const isLoggedInRef  = useRef(false)
+  const authCheckedRef = useRef(false)
 
   // Check auth status once on mount
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getSession().then(({ data: { session } }) => {
+      isLoggedInRef.current  = !!session
+      authCheckedRef.current = true
       setIsLoggedIn(!!session)
       setAuthChecked(true)
-    }).catch(() => { setAuthChecked(true) })
+    }).catch(() => { authCheckedRef.current = true; setAuthChecked(true) })
   }, [])
 
   const maybeShowModal = useCallback((count: number) => {
-    // Don't show until auth check resolves — avoids false-positive for logged-in users
-    if (!authChecked || isLoggedIn) return
+    // Read refs — always current even inside a stale async closure
+    if (!authCheckedRef.current || isLoggedInRef.current) return
     const threshold =
       count >= HARD_THRESHOLD && !wasDismissedAt(HARD_THRESHOLD) ? HARD_THRESHOLD :
       count >= SOFT_THRESHOLD && !wasDismissedAt(SOFT_THRESHOLD) ? SOFT_THRESHOLD :
@@ -115,8 +120,8 @@ function HookMachine() {
         throw new Error(data.error ?? `Server error ${res.status}`)
       }
       setResult(data)
-      // Track generation count (anonymous only)
-      if (!isLoggedIn) {
+      // Track generation count — read ref so we get the latest auth state, not a stale closure
+      if (!isLoggedInRef.current) {
         const newCount = incStoredCount()
         maybeShowModal(newCount)
       }

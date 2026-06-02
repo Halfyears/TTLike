@@ -62,8 +62,11 @@ export default function AccountPage() {
 
   // ── Load user + tier ──────────────────────────────────────────────────────
   useEffect(() => {
+    let mounted = true
+
     void (async () => {
       const { data: { user } } = await supabase.auth.getUser()
+      if (!mounted) return                          // component unmounted (e.g. sign-out navigated away)
       if (!user) { router.push('/auth/login'); return }
 
       const displayName = (user.user_metadata?.name as string | undefined) ?? ''
@@ -80,12 +83,14 @@ export default function AccountPage() {
 
     void fetch('/api/user/tier')
       .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then((d: TierResponse) => setTier(d))
+      .then((d: TierResponse) => { if (mounted) setTier(d) })
       .catch(() => {})
-      .finally(() => setTierLoading(false))
+      .finally(() => { if (mounted) setTierLoading(false) })
 
-    // Clear saved-name timer on unmount to prevent setState on unmounted component
-    return () => { if (savedTimer.current) clearTimeout(savedTimer.current) }
+    return () => {
+      mounted = false
+      if (savedTimer.current) clearTimeout(savedTimer.current)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -133,9 +138,13 @@ export default function AccountPage() {
 
   async function handleSignOut() {
     setSigningOut(true)
-    await supabase.auth.signOut()
-    router.push('/')
-    setTimeout(() => router.refresh(), 100)
+    try {
+      await supabase.auth.signOut()
+      router.push('/')
+      setTimeout(() => router.refresh(), 100)
+    } catch {
+      setSigningOut(false)
+    }
   }
 
   // Only compute isFree after tier has loaded — prevents paid users seeing "Upgrade" flash
