@@ -19,8 +19,8 @@ interface ProductCardProps {
   likeCount: number
   shareCount?: number
   authorHandle: string
-  thumbnailUrl?: string | null       // TikTok CDN URL (may expire)
-  coverStorageUrl?: string | null    // Supabase Storage URL (permanent, preferred)
+  thumbnailUrl?: string | null
+  coverStorageUrl?: string | null
   videoUrl?: string | null
 }
 
@@ -42,39 +42,37 @@ export function ProductCard({
   const activeCover = coverStorageUrl ?? thumbnailUrl ?? null
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-      {/*
-        Mobile  (< sm): horizontal card — thumbnail left (fixed w), content right
-        Desktop (sm+) : vertical card  — thumbnail top (full w), content below
-      */}
-      <div className="flex sm:flex-col">
+    <Link href={`/products/${id}`} className="block group">
+      <div className="bg-white rounded-xl border border-gray-100 shadow-sm group-hover:shadow-md transition-shadow overflow-hidden h-full">
+        {/*
+          Mobile  (< sm): horizontal — fixed-width thumbnail left, content right
+          Desktop (sm+) : vertical   — full-width thumbnail top, content below
+          The inner container uses min-h so the card is never shorter than the thumbnail.
+        */}
+        <div className="flex sm:flex-col min-h-[112px] sm:min-h-0">
 
-        {/* ── Thumbnail ── */}
-        <Link
-          href={`/products/${id}`}
-          className="relative shrink-0 w-[116px] sm:w-full bg-gray-100 overflow-hidden block group"
-        >
-          {/* Fixed square on mobile; fixed height on sm+ */}
-          <div className="h-[116px] sm:h-52 relative">
+          {/* ── Thumbnail ───────────────────────────────────────────────── */}
+          {/* Mobile: 112px fixed; sm+: full width 208px */}
+          <div className="relative shrink-0 w-[112px] sm:w-full sm:h-52 bg-gray-100 overflow-hidden self-stretch sm:self-auto">
             {activeCover && !imgFailed ? (
               <img
                 src={activeCover}
                 alt={productName.slice(0, 80)}
-                className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
+                className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                 onError={() => setImgFailed(true)}
               />
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">
+              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50">
                 <Play className="h-8 w-8 text-pink-300" />
               </div>
             )}
 
-            {/* Viral score badge */}
+            {/* Viral score */}
             <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2">
               <ViralScoreBadge score={viralScore} showLabel={false} />
             </div>
 
-            {/* TikTok external link */}
+            {/* TikTok icon — stop propagation so it doesn't trigger the outer Link */}
             {videoUrl && (
               <a
                 href={videoUrl}
@@ -90,40 +88,34 @@ export function ProductCard({
 
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
           </div>
-        </Link>
 
-        {/* ── Card body ── */}
-        <div className="flex-1 p-2.5 sm:p-4 flex flex-col gap-1 sm:gap-2 min-w-0">
-          <Badge>{niche}</Badge>
+          {/* ── Card body ─────────────────────────────────────────────────── */}
+          <div className="flex-1 p-3 sm:p-4 flex flex-col gap-1 sm:gap-2 min-w-0">
+            <Badge>{niche}</Badge>
 
-          <Link href={`/products/${id}`}>
-            <h3 className="font-semibold text-gray-900 text-xs sm:text-sm leading-snug hover:text-pink-600 transition-colors line-clamp-3 sm:line-clamp-2">
+            <h3 className="font-semibold text-gray-900 text-xs sm:text-sm leading-snug group-hover:text-pink-600 transition-colors line-clamp-3 sm:line-clamp-2">
               {displayName}
             </h3>
-          </Link>
 
-          {/* Stats */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] sm:text-xs text-gray-500 mt-auto">
-            <span className="flex items-center gap-1 shrink-0">
-              <Eye className="h-3 w-3" />
-              {formatNumber(viewCount)}
-            </span>
-            <span className="flex items-center gap-1 shrink-0">
-              <Heart className="h-3 w-3" />
-              {formatNumber(likeCount)}
-            </span>
-            {shareCount !== undefined && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] sm:text-xs text-gray-500 mt-auto pt-1">
               <span className="flex items-center gap-1 shrink-0">
-                <Share2 className="h-3 w-3" />
-                {formatNumber(shareCount)}
+                <Eye className="h-3 w-3" />{formatNumber(viewCount)}
               </span>
-            )}
+              <span className="flex items-center gap-1 shrink-0">
+                <Heart className="h-3 w-3" />{formatNumber(likeCount)}
+              </span>
+              {shareCount !== undefined && (
+                <span className="flex items-center gap-1 shrink-0">
+                  <Share2 className="h-3 w-3" />{formatNumber(shareCount)}
+                </span>
+              )}
+            </div>
+
+            <p className="text-[11px] sm:text-xs text-gray-400 truncate">{authorHandle}</p>
           </div>
 
-          <p className="text-[11px] sm:text-xs text-gray-400 truncate">{authorHandle}</p>
         </div>
-
       </div>
-    </div>
+    </Link>
   )
 }
