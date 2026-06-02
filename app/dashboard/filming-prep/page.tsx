@@ -14,7 +14,7 @@ interface CheckItem { id: string; text: string; tip?: string }
 
 interface Section {
   id: string; icon: React.ElementType; color: string; bg: string
-  ring: string; title: string; subtitle: string; items: CheckItem[]
+  title: string; subtitle: string; items: CheckItem[]
 }
 
 // ── Checklist data ─────────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ interface Section {
 const SECTIONS: Section[] = [
   {
     id: 'environment', icon: Lightbulb,
-    color: 'text-amber-600', bg: 'bg-amber-50', ring: 'ring-amber-200',
+    color: 'text-amber-600', bg: 'bg-amber-50',
     title: 'Environment', subtitle: 'Set the scene',
     items: [
       { id: 'e1', text: 'Lighting set up — window light or ring light, no harsh shadows' },
@@ -35,7 +35,7 @@ const SECTIONS: Section[] = [
   },
   {
     id: 'equipment', icon: Camera,
-    color: 'text-blue-600', bg: 'bg-blue-50', ring: 'ring-blue-200',
+    color: 'text-blue-600', bg: 'bg-blue-50',
     title: 'Equipment', subtitle: 'Gear ready',
     items: [
       { id: 'q1', text: 'Battery above 50% and enough storage space' },
@@ -50,7 +50,7 @@ const SECTIONS: Section[] = [
   },
   {
     id: 'mental', icon: Brain,
-    color: 'text-violet-600', bg: 'bg-violet-50', ring: 'ring-violet-200',
+    color: 'text-violet-600', bg: 'bg-violet-50',
     title: 'Mental Prep', subtitle: 'Mindset & energy',
     items: [
       { id: 'm1', text: 'Hook line memorised — say it naturally, not read it' },

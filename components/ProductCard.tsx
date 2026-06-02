@@ -47,13 +47,15 @@ export function ProductCard({
         {/*
           Mobile  (< sm): horizontal — fixed-width thumbnail left, content right
           Desktop (sm+) : vertical   — full-width thumbnail top, content below
-          The inner container uses min-h so the card is never shorter than the thumbnail.
+          min-h matches the fixed thumbnail width so the card is never shorter
+          than the thumbnail; max-h on the thumbnail div caps the mobile height
+          so the image doesn't stretch non-square if the text column grows taller.
         */}
-        <div className="flex sm:flex-col min-h-[112px] sm:min-h-0">
+        <div className="flex sm:flex-col">
 
           {/* ── Thumbnail ───────────────────────────────────────────────── */}
-          {/* Mobile: 112px fixed; sm+: full width 208px */}
-          <div className="relative shrink-0 w-[112px] sm:w-full sm:h-52 bg-gray-100 overflow-hidden self-stretch sm:self-auto">
+          {/* Mobile: 112×112px fixed square; sm+: full width 208px tall */}
+          <div className="relative shrink-0 w-[112px] h-[112px] sm:w-full sm:h-52 bg-gray-100 overflow-hidden">
             {activeCover && !imgFailed ? (
               <img
                 src={activeCover}
@@ -72,18 +74,22 @@ export function ProductCard({
               <ViralScoreBadge score={viralScore} showLabel={false} />
             </div>
 
-            {/* TikTok icon — stop propagation so it doesn't trigger the outer Link */}
+            {/*
+              TikTok watch icon.
+              FIX (audit16): was <a> inside <Link> (= <a> inside <a>) — invalid HTML.
+              Browsers close the outer <a> before opening the inner one, which breaks
+              the group-hover cascade (thumbnail zoom, overlay) for all cards with videoUrl.
+              Replaced with <button onClick=window.open(...)> so the outer Link stays valid.
+            */}
             {videoUrl && (
-              <a
-                href={videoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={e => e.stopPropagation()}
-                title="Watch on TikTok"
+              <button
+                type="button"
+                aria-label="Watch on TikTok"
+                onClick={e => { e.preventDefault(); e.stopPropagation(); window.open(videoUrl, '_blank', 'noopener,noreferrer') }}
                 className="absolute bottom-1.5 right-1.5 sm:bottom-2 sm:right-2 flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-black/60 text-white hover:bg-black/90 transition-colors"
               >
                 <ExternalLink className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              </a>
+              </button>
             )}
 
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
@@ -93,7 +99,9 @@ export function ProductCard({
           <div className="flex-1 p-3 sm:p-4 flex flex-col gap-1 sm:gap-2 min-w-0">
             <Badge>{niche}</Badge>
 
-            <h3 className="font-semibold text-gray-900 text-xs sm:text-sm leading-snug group-hover:text-pink-600 transition-colors line-clamp-3 sm:line-clamp-2">
+            {/* FIX (audit16): line-clamp-2 on mobile — prevents body from growing
+                taller than the 112px thumbnail and distorting the square aspect ratio */}
+            <h3 className="font-semibold text-gray-900 text-xs sm:text-sm leading-snug group-hover:text-pink-600 transition-colors line-clamp-2">
               {displayName}
             </h3>
 

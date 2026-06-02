@@ -84,7 +84,7 @@ function AnalysisRow({ item, isPaid }: { item: AnalysisItem; isPaid: boolean }) 
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-bold text-gray-900 leading-tight">{title}</p>
+            <p className="text-sm font-bold text-gray-900 leading-tight truncate">{title}</p>
             <p className="text-[11px] text-gray-400 shrink-0 pt-0.5 whitespace-nowrap">{timeAgo(item.created_at)}</p>
           </div>
 

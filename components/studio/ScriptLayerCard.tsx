@@ -150,6 +150,7 @@ export function ScriptLayerCard({ script, onCopy }: ScriptLayerCardProps) {
           {/* Copy all — icon + text on sm+, icon-only on mobile */}
           <button
             onClick={handleCopy}
+            aria-label={copied ? 'Copied' : 'Copy script'}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
           >
             {copied
