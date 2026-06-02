@@ -629,7 +629,8 @@ export function StudioClient() {
     <div className="min-h-screen bg-white">
 
       {stage === 'url_input' && (
-        <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 px-4 pt-20 pb-24">
+        /* min-h-screen: hero fills full viewport so there's no white gap below */
+        <div className="relative overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 min-h-screen flex flex-col justify-center px-4 py-16">
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
             <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-pink-500/20 blur-3xl" />
             <div className="absolute -bottom-16 -left-16 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />

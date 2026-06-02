@@ -74,7 +74,13 @@ export function URLInputCard({ onResolved, prefillUrl }: URLInputCardProps) {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex gap-2 sm:gap-3">
+      {/*
+        Mobile: stacked (input full-width, then button full-width) — prevents
+        the pasted URL from visually covering the submit button, and gives a
+        large, easy-to-tap target. Desktop: side-by-side as before.
+        text-base on input: iOS Safari auto-zooms on text-sm (14px) inputs.
+      */}
+      <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <div className="relative flex-1">
           <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
           <input
@@ -82,19 +88,19 @@ export function URLInputCard({ onResolved, prefillUrl }: URLInputCardProps) {
             value={url}
             onChange={e => { setUrl(e.target.value); setError(null) }}
             placeholder="https://www.tiktok.com/@user/video/..."
-            className="w-full pl-10 pr-4 py-3.5 rounded-xl text-sm bg-white/10 border border-white/20 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent backdrop-blur-sm"
+            className="w-full pl-10 pr-4 py-3.5 rounded-xl text-base sm:text-sm bg-white/10 border border-white/20 text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-400 focus:border-transparent backdrop-blur-sm"
             disabled={loading}
           />
         </div>
         <button
           type="submit"
           disabled={loading || !url.trim()}
-          className="shrink-0 px-5 sm:px-6 py-3.5 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 transition-opacity shadow-lg shadow-pink-500/30"
+          className="w-full sm:w-auto sm:shrink-0 min-h-[48px] px-6 bg-gradient-to-r from-pink-500 to-violet-500 text-white rounded-xl font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-opacity shadow-lg shadow-pink-500/30"
         >
           {loading ? (
-            <><Loader2 className="w-4 h-4 animate-spin" /><span className="hidden sm:inline">Analyzing...</span></>
+            <><Loader2 className="w-4 h-4 animate-spin" /><span>Analyzing…</span></>
           ) : (
-            <><span className="hidden sm:inline">Analyze</span><ArrowRight className="w-4 h-4" /></>
+            <><span>Analyze</span><ArrowRight className="w-4 h-4" /></>
           )}
         </button>
       </form>
