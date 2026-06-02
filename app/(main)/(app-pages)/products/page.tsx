@@ -144,23 +144,31 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
       {/* Filters */}
       <div className="mb-4 sm:mb-6">
         <form className="flex flex-col sm:flex-row gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              name="q" defaultValue={q}
-              placeholder="Search products..."
-              className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
-            />
+          <div className="flex gap-2 sm:contents">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              {/* text-base on mobile prevents iOS Safari auto-zoom on input focus */}
+              <input
+                name="q" defaultValue={q}
+                placeholder="Search products..."
+                className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
+              />
+            </div>
+            <button type="submit" aria-label="Search"
+              className="sm:hidden shrink-0 w-11 flex items-center justify-center bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors">
+              <Search className="h-4 w-4" />
+            </button>
           </div>
           <div className="flex gap-2">
+            {/* text-base prevents iOS Safari auto-zoom on select focus */}
             <select name="sort" defaultValue={sort ?? 'featured'}
-              className="flex-1 min-w-0 sm:flex-none rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500">
+              className="flex-1 sm:flex-none rounded-lg border border-gray-200 px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 bg-white">
               <option value="featured">Featured</option>
               <option value="viral">Viral Score</option>
-              <option value="views">Views</option>
+              <option value="views">Most Views</option>
             </select>
             <button type="submit"
-              className="shrink-0 px-4 py-2.5 bg-pink-500 text-white text-sm font-medium rounded-lg hover:bg-pink-600 transition-colors">
+              className="hidden sm:block shrink-0 px-4 py-2.5 bg-pink-500 text-white text-sm font-medium rounded-lg hover:bg-pink-600 transition-colors">
               Search
             </button>
           </div>

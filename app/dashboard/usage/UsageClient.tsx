@@ -103,39 +103,39 @@ function AnalysisRow({ item, isPaid }: { item: AnalysisItem; isPaid: boolean }) 
         </div>
       </div>
 
-      {/* Action buttons — larger touch targets */}
-      <div className="flex flex-wrap items-center gap-2 mt-3">
+      {/* Action buttons — 2-up on mobile, all inline on wider screens */}
+      <div className="grid grid-cols-2 min-[420px]:flex min-[420px]:flex-wrap items-center gap-2 mt-3">
         <a
           href={`/studio?bd=${item.id}`}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-pink-50 text-pink-600 hover:bg-pink-100 text-xs font-semibold transition-colors"
+          className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-pink-50 text-pink-600 hover:bg-pink-100 text-xs font-semibold transition-colors"
         >
-          <Eye className="h-3.5 w-3.5" />
+          <Eye className="h-3.5 w-3.5 shrink-0" />
           View Script
         </a>
 
         {isPaid ? (
           <a
             href={`/studio?video_id=${item.video_id}`}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 text-xs font-semibold transition-colors"
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 text-xs font-semibold transition-colors"
           >
-            <RotateCcw className="h-3.5 w-3.5" />
+            <RotateCcw className="h-3.5 w-3.5 shrink-0" />
             Re-analyse
           </a>
         ) : (
           <a
             href="/pricing"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-gray-200 text-gray-400 text-xs font-semibold transition-colors hover:border-pink-300 hover:text-pink-500"
+            className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-dashed border-gray-200 text-gray-400 text-xs font-semibold transition-colors hover:border-pink-300 hover:text-pink-500"
           >
-            <Lock className="h-3.5 w-3.5" />
+            <Lock className="h-3.5 w-3.5 shrink-0" />
             Re-analyse
           </a>
         )}
 
         <a
           href={`/dashboard/studio?product=${storyboard}`}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-violet-50 text-violet-600 hover:bg-violet-100 text-xs font-semibold transition-colors"
+          className="col-span-2 min-[420px]:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-violet-50 text-violet-600 hover:bg-violet-100 text-xs font-semibold transition-colors"
         >
-          <Clapperboard className="h-3.5 w-3.5" />
+          <Clapperboard className="h-3.5 w-3.5 shrink-0" />
           Storyboard
         </a>
       </div>
@@ -219,19 +219,19 @@ export function UsageClient() {
       <Card>
         <CardContent className="p-4 sm:p-5">
 
-          {/* Header row */}
-          <div className="flex items-center justify-between gap-2 mb-4">
+          {/* Header row — stacks on very small screens */}
+          <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
             <h3 className="text-sm font-semibold text-gray-900">Monthly Quota</h3>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 ml-auto">
               <a
                 href="/dashboard/account"
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-pink-500 transition-colors"
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-pink-500 transition-colors whitespace-nowrap"
               >
                 <Settings className="h-3 w-3" /> Plan &amp; Billing
               </a>
               <button
                 onClick={load}
-                className="text-xs text-gray-400 hover:text-pink-500 flex items-center gap-1 transition-colors"
+                className="text-xs text-gray-400 hover:text-pink-500 flex items-center gap-1 transition-colors whitespace-nowrap"
               >
                 <RefreshCw className="h-3 w-3" /> Refresh
               </button>
@@ -253,8 +253,8 @@ export function UsageClient() {
               <p className="text-[11px] text-gray-500 mt-0.5">Limit</p>
             </div>
             <div className="bg-gray-50 rounded-xl p-3 sm:p-4 text-center">
-              <p className="text-sm sm:text-base font-bold text-gray-900 flex items-center justify-center gap-1">
-                <Calendar className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+              <Calendar className="h-4 w-4 text-gray-400 mx-auto mb-0.5" />
+              <p className="text-sm font-bold text-gray-900 tabular-nums leading-tight">
                 {tier?.reset_at
                   ? new Date(tier.reset_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
                   : '—'}

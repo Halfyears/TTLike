@@ -213,7 +213,7 @@ export default function FilmingPrepPage() {
   const pct        = totalItems > 0 ? Math.round((totalDone / totalItems) * 100) : 0
 
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-4 pb-4 max-w-full overflow-x-hidden">
 
       {/* ── Header ────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
@@ -289,13 +289,13 @@ export default function FilmingPrepPage() {
                       <p className="text-[10px] font-bold uppercase tracking-wider text-pink-400 mb-1.5">
                         Hook Line — say this first
                       </p>
-                      <p className="text-sm font-semibold text-gray-900 leading-snug">
+                      <p className="text-sm font-semibold text-gray-900 leading-snug break-words">
                         &ldquo;{latestAnalysis.hook_line}&rdquo;
                       </p>
                     </div>
                   )}
 
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="flex flex-col min-[360px]:grid min-[360px]:grid-cols-2 gap-2">
                     <a
                       href={`/studio?bd=${latestAnalysis.id}`}
                       className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl bg-white border border-pink-200 text-pink-600 text-sm font-semibold transition-colors hover:bg-pink-50"
