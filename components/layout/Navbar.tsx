@@ -2,7 +2,8 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Menu, X, Zap } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { Menu, X, Zap, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -22,7 +23,8 @@ const navLinks = [
 
 export function Navbar({ user }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const router = useRouter()
+  const router   = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
 
   async function handleSignOut() {
@@ -53,7 +55,7 @@ export function Navbar({ user }: NavbarProps) {
             {user ? (
               <>
                 <Link href="/dashboard">
-                  <Button variant="secondary" size="sm">Dashboard</Button>
+                  <Button variant="secondary" size="sm">Open App</Button>
                 </Link>
                 <Button variant="ghost" size="sm" onClick={handleSignOut}>Sign Out</Button>
               </>
@@ -80,39 +82,50 @@ export function Navbar({ user }: NavbarProps) {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white">
-          {/* Nav links — 48px touch targets, clear typography */}
-          <div className="px-5 pt-1 pb-2">
-            {navLinks.map(link => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="flex items-center min-h-[48px] text-base font-medium text-gray-700 hover:text-pink-500 transition-colors border-b border-gray-50 last:border-0"
-                onClick={() => setMobileOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+        <div className="md:hidden border-t border-gray-100 bg-white shadow-xl shadow-gray-200/60">
+          {/* Nav links — centered, pill hover, active highlight */}
+          <div className="px-4 pt-3 pb-2 flex flex-col items-center gap-0.5">
+            {navLinks.map(link => {
+              const active = pathname === link.href || pathname.startsWith(link.href + '/')
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={`w-full flex items-center justify-center min-h-[52px] px-6 rounded-2xl text-base font-semibold transition-all duration-150 ${
+                    active
+                      ? 'bg-pink-50 text-pink-600'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-pink-500'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              )
+            })}
           </div>
 
-          {/* CTA section */}
-          <div className="px-5 pt-3 pb-8 border-t border-gray-100 flex flex-col gap-3">
+          {/* CTA buttons */}
+          <div className="px-5 pt-3 pb-8 border-t border-gray-100 flex flex-col gap-3 items-center">
             {user ? (
               <>
-                <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
-                  <Button className="w-full">Open App</Button>
+                <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="w-full">
+                  <Button className="w-full flex items-center justify-center gap-2">
+                    Open App <ArrowRight className="h-4 w-4" />
+                  </Button>
                 </Link>
-                <Button variant="ghost" onClick={handleSignOut}
-                  className="w-full text-gray-500 hover:text-gray-700">
+                <button
+                  onClick={handleSignOut}
+                  className="min-h-[44px] px-4 text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
+                >
                   Sign Out
-                </Button>
+                </button>
               </>
             ) : (
               <>
-                <Link href="/auth/signup" onClick={() => setMobileOpen(false)}>
+                <Link href="/auth/signup" onClick={() => setMobileOpen(false)} className="w-full">
                   <Button className="w-full">Get Started Free</Button>
                 </Link>
-                <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
+                <Link href="/auth/login" onClick={() => setMobileOpen(false)} className="w-full">
                   <Button variant="secondary" className="w-full">Sign In</Button>
                 </Link>
               </>
