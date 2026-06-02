@@ -248,30 +248,28 @@ export function UsageClient() {
             </div>
           </div>
 
-          {/* 3 stat chips — responsive font sizes */}
+          {/* 3 stat chips */}
           <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
-            <div className="bg-gray-50 rounded-xl p-2.5 sm:p-3 text-center">
-              <p className="text-xl sm:text-2xl font-black text-gray-900 tabular-nums">
+            <div className="bg-gray-50 rounded-xl p-3 sm:p-4 text-center">
+              <p className="text-2xl sm:text-3xl font-black text-gray-900 tabular-nums">
                 {tier?.video_analysis_used ?? 0}
               </p>
-              <p className="text-[10px] sm:text-[11px] text-gray-500 mt-0.5">used</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Used</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-2.5 sm:p-3 text-center">
-              <p className="text-xl sm:text-2xl font-black text-gray-900 tabular-nums">
+            <div className="bg-gray-50 rounded-xl p-3 sm:p-4 text-center">
+              <p className="text-2xl sm:text-3xl font-black text-gray-900 tabular-nums">
                 {tier?.video_analysis_limit ?? 0}
               </p>
-              <p className="text-[10px] sm:text-[11px] text-gray-500 mt-0.5">limit</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Limit</p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-2.5 sm:p-3 text-center">
-              <div className="flex items-center justify-center gap-1 mb-0.5">
-                <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-gray-400" />
-                <p className="text-xs sm:text-sm font-bold text-gray-900">
-                  {tier?.reset_at
-                    ? new Date(tier.reset_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-                    : '—'}
-                </p>
-              </div>
-              <p className="text-[10px] sm:text-[11px] text-gray-500">reset</p>
+            <div className="bg-gray-50 rounded-xl p-3 sm:p-4 text-center">
+              <p className="text-sm sm:text-base font-bold text-gray-900 flex items-center justify-center gap-1">
+                <Calendar className="h-3.5 w-3.5 text-gray-400 shrink-0" />
+                {tier?.reset_at
+                  ? new Date(tier.reset_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                  : '—'}
+              </p>
+              <p className="text-[11px] text-gray-500 mt-0.5">Resets</p>
             </div>
           </div>
 

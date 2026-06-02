@@ -29,7 +29,7 @@ const GROUPS = [
     label: 'Account',
     links: [
       { href: '/dashboard',         icon: LayoutDashboard, label: 'Overview' },
-      { href: '/dashboard/usage',   icon: BarChart2,       label: 'Usage' },
+      { href: '/dashboard/usage',   icon: BarChart2,       label: 'Quota' },
       { href: '/dashboard/account', icon: Settings,        label: 'Settings' },
     ],
   },
@@ -112,19 +112,19 @@ export function MobileTabBar() {
           <Link
             key={href}
             href={href}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 transition-colors ${
+            className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-colors ${
               active ? 'text-pink-500' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
-            <div className={`relative flex items-center justify-center rounded-lg w-8 h-8 transition-all ${
+            <div className={`relative flex items-center justify-center rounded-xl w-11 h-11 transition-all ${
               active ? 'bg-pink-50' : ''
             }`}>
-              <Icon className="h-5 w-5" />
+              <Icon className="h-6 w-6" />
               {active && (
-                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-pink-500 border-2 border-white" />
+                <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-pink-500 border-2 border-white" />
               )}
             </div>
-            <span className={`text-[10px] font-semibold leading-none ${active ? 'text-pink-500' : ''}`}>
+            <span className={`text-[11px] font-semibold leading-none ${active ? 'text-pink-500' : ''}`}>
               {label}
             </span>
           </Link>

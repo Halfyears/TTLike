@@ -286,9 +286,9 @@ export default function FilmingPrepPage() {
   const allDone    = totalDone === totalItems
   const pct        = totalItems > 0 ? Math.round((totalDone / totalItems) * 100) : 0
 
-  const TABS: { key: Tab; label: string }[] = [
+  const TABS: { key: Tab; label: string; badge?: string }[] = [
     { key: 'script',    label: 'Script' },
-    { key: 'checklist', label: totalDone > 0 ? `Checklist · ${pct}%` : 'Checklist' },
+    { key: 'checklist', label: 'Checklist', badge: totalDone > 0 ? `${pct}%` : undefined },
     { key: 'tips',      label: 'Tips' },
   ]
 
@@ -323,13 +323,22 @@ export default function FilmingPrepPage() {
             key={tab.key}
             type="button"
             onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-colors ${
+            className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1 ${
               activeTab === tab.key
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             {tab.label}
+            {tab.badge && (
+              <span className={`text-[10px] font-bold px-1 py-0.5 rounded-full leading-none ${
+                activeTab === tab.key
+                  ? (allDone ? 'bg-emerald-100 text-emerald-600' : 'bg-pink-100 text-pink-600')
+                  : 'bg-gray-200 text-gray-500'
+              }`}>
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>

@@ -50,9 +50,9 @@ export function AppShell({ children, email, initials, contentClass }: AppShellPr
       </aside>
 
       {/* ── Main content ── */}
-      {/* Mobile: pb-20 (80px) clears the ~66px tab bar + safe-area buffer */}
+      {/* Mobile: pb-28 (112px) clears the ~80px tab bar + safe-area buffer */}
       {/* Desktop: ml-64 clears the sidebar, no extra top padding needed */}
-      <main className={`flex-1 md:ml-64 pb-20 md:pb-0 min-h-screen ${contentClass ?? ''}`}>
+      <main className={`flex-1 md:ml-64 pb-28 md:pb-0 min-h-screen ${contentClass ?? ''}`}>
         {children}
 
         {/* Badge trace on mobile — sits just above the tab bar */}
