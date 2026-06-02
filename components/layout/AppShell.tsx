@@ -11,7 +11,6 @@
 import Link from 'next/link'
 import { Zap } from 'lucide-react'
 import { NavLinks, MobileTabBar } from '@/app/dashboard/NavLinks'
-import { QuietProgress } from '@/components/behavior/QuietProgress'
 import { UserMenu } from '@/components/layout/UserMenu'
 
 interface AppShellProps {
@@ -42,9 +41,6 @@ export function AppShell({ children, email, initials, contentClass }: AppShellPr
         {/* Nav links */}
         <NavLinks />
 
-        {/* Courage badge trace */}
-        <QuietProgress />
-
         {/* User menu with dropdown */}
         <UserMenu email={email} initials={initials} />
       </aside>
@@ -57,11 +53,6 @@ export function AppShell({ children, email, initials, contentClass }: AppShellPr
           These two classes fix all pages inside AppShell at once. */}
       <main className={`flex-1 min-w-0 overflow-x-hidden md:ml-64 pb-28 md:pb-0 min-h-screen ${contentClass ?? ''}`}>
         {children}
-
-        {/* Badge trace on mobile — sits just above the tab bar */}
-        <div className="md:hidden px-4 pb-2">
-          <QuietProgress variant="inline" />
-        </div>
       </main>
 
       {/* ── Mobile bottom tab bar ── */}
