@@ -282,7 +282,7 @@ export default function AccountPage() {
             >
               <span className="flex items-center gap-2">
                 <BarChart2 className="h-4 w-4 text-gray-400" />
-                View Quota &amp; Analysis History
+                Quota &amp; History
               </span>
               <ChevronRight className="h-4 w-4 text-gray-400" />
             </a>

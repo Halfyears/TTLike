@@ -48,7 +48,7 @@ export function ProductCard({
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
       {/* Thumbnail — clicking goes to internal detail page */}
-      <Link href={`/products/${id}`} className="relative h-48 min-[480px]:h-44 sm:h-52 w-full bg-gray-100 overflow-hidden block group">
+      <Link href={`/products/${id}`} className="relative h-44 sm:h-52 w-full bg-gray-100 overflow-hidden block group">
         {activeCover && !imgFailed ? (
           <img
             src={activeCover}

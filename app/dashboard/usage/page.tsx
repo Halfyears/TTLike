@@ -3,7 +3,7 @@ import { BarChart2, ChevronLeft } from 'lucide-react'
 import Link from 'next/link'
 import { UsageClient } from './UsageClient'
 
-export const metadata = { title: 'Usage · TTLike' }
+export const metadata = { title: 'Quota & History · TTLike' }
 
 export default function UsagePage() {
   return (
@@ -21,7 +21,7 @@ export default function UsagePage() {
           <BarChart2 className="h-5 w-5 text-pink-500" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Usage</h1>
+          <h1 className="text-xl font-bold text-gray-900">Quota & History</h1>
           <p className="text-xs text-gray-500 mt-0.5">Your Viral Studio quota and analysis history</p>
         </div>
       </div>

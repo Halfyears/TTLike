@@ -109,7 +109,7 @@ function AnalysisRow({ item, isPaid }: { item: AnalysisItem; isPaid: boolean }) 
       </div>
 
       {/* Action buttons row */}
-      <div className="flex flex-wrap items-center gap-2 mt-3 ml-11">
+      <div className="flex flex-wrap items-center gap-2 mt-3">
         {/* View — reopens result in Studio via ?bd= */}
         <a
           href={`/studio?bd=${item.id}`}

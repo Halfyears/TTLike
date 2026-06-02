@@ -39,12 +39,12 @@ const SECTIONS: Section[] = [
     title:    'Environment',
     subtitle: 'Set the scene before you hit record',
     items: [
-      { id: 'e1', text: 'Lighting is set up — natural window light or ring light, no harsh shadows on face',       tip: 'Position light source at 45° to your face, not directly behind you' },
-      { id: 'e2', text: 'Background is clean and intentional — no clutter, no distracting movement',               tip: 'A plain wall, shelf with books, or branded backdrop all work well' },
-      { id: 'e3', text: 'Room is quiet — phone on silent, fans off, doors closed, pets secured',                   tip: 'Record a 5-second silent clip first to check for background hum or echo' },
-      { id: 'e4', text: 'No echo — soft furnishings absorb sound (carpet, curtains, cushions present)',            tip: 'Hard rooms echo. Hang a blanket behind camera if needed' },
-      { id: 'e5', text: 'Temperature is comfortable — you won\'t need to adjust clothing mid-take',               tip: 'Cold or sweating shows on camera' },
-      { id: 'e6', text: 'Notifications off — Do Not Disturb enabled on all devices in the room',                   tip: 'A banner on screen is an instant retake trigger' },
+      { id: 'e1', text: 'Lighting set up — window light or ring light, no harsh shadows',      tip: 'Position light at 45° to your face, not directly behind you' },
+      { id: 'e2', text: 'Background clean — no clutter, no distracting movement',              tip: 'A plain wall, shelf, or branded backdrop all work well' },
+      { id: 'e3', text: 'Room quiet — phone silent, fans off, doors closed, pets secured',      tip: 'Record a 5-second silent clip first to check for background hum' },
+      { id: 'e4', text: 'No echo — soft furnishings absorb sound (carpet, curtains, cushions)', tip: 'Hard rooms echo. Hang a blanket behind camera if needed' },
+      { id: 'e5', text: 'Temperature comfortable — won\'t need to adjust clothing mid-take',   tip: 'Cold or sweating shows on camera' },
+      { id: 'e6', text: 'Notifications off — Do Not Disturb on all devices in the room',       tip: 'A banner on screen is an instant retake trigger' },
     ],
   },
   {
@@ -56,14 +56,14 @@ const SECTIONS: Section[] = [
     title:    'Equipment & Tools',
     subtitle: 'Everything you need before pressing record',
     items: [
-      { id: 'q1', text: 'Camera / phone battery above 50% and enough storage space',                              tip: 'Nothing worse than stopping mid-take for a low battery warning' },
-      { id: 'q2', text: 'Camera lens is clean — wipe with a microfibre cloth',                                    tip: 'Fingerprints cause hazy footage even in good lighting' },
-      { id: 'q3', text: 'Phone or camera is stable — tripod, ring light stand, or propped securely',              tip: 'Shaky handheld footage loses viewers in the first 2 seconds' },
-      { id: 'q4', text: 'Microphone is ready — lavalier clipped, shotgun mounted, or phone mic tested',           tip: 'Audio quality matters more than video quality on TikTok' },
-      { id: 'q5', text: 'Product / props are clean, charged, and within arm\'s reach',                           tip: 'Set out everything before you start — don\'t improvise mid-shoot' },
-      { id: 'q6', text: 'B-roll shots planned — close-ups, detail shots, hands-on demo angles identified',        tip: 'Plan at least 3 cutaway angles to cover edits' },
-      { id: 'q7', text: 'Script or hook line is visible if needed — cue card or phone taped near camera',         tip: 'Looking slightly off-lens for a cue card reads better than looking down' },
-      { id: 'q8', text: 'Frame and crop checked — face in upper third, product visible, 9:16 ratio set',          tip: 'Leave space at top/bottom for TikTok captions and UI overlays' },
+      { id: 'q1', text: 'Battery above 50% and enough storage space',                           tip: 'Nothing worse than stopping mid-take for a low battery warning' },
+      { id: 'q2', text: 'Camera lens clean — wipe with a microfibre cloth',                     tip: 'Fingerprints cause hazy footage even in good lighting' },
+      { id: 'q3', text: 'Camera stable — tripod, ring light stand, or propped securely',        tip: 'Shaky footage loses viewers in the first 2 seconds' },
+      { id: 'q4', text: 'Microphone ready — lavalier clipped or phone mic tested',              tip: 'Audio quality matters more than video quality on TikTok' },
+      { id: 'q5', text: 'Product/props clean, charged, and within arm\'s reach',               tip: 'Set out everything before you start — don\'t improvise mid-shoot' },
+      { id: 'q6', text: 'B-roll shots planned — close-ups, detail shots, demo angles',          tip: 'Plan at least 3 cutaway angles to cover edits' },
+      { id: 'q7', text: 'Script visible if needed — cue card or phone near camera',             tip: 'Looking slightly off-lens for cue reads better than looking down' },
+      { id: 'q8', text: 'Frame checked — face in upper third, 9:16 ratio set',                 tip: 'Leave space at top/bottom for TikTok captions and UI overlays' },
     ],
   },
   {
@@ -72,20 +72,20 @@ const SECTIONS: Section[] = [
     color:    'text-violet-500',
     bg:       'bg-violet-50',
     border:   'border-violet-100',
-    title:    'Mental Preparation',
+    title:    'Mental Prep',
     subtitle: 'Mindset, energy, and delivery confidence',
     items: [
-      { id: 'm1', text: 'Hook line is memorised — you can say it naturally, not read it',                          tip: 'Practice the hook 5 times before recording. First 2 seconds are everything' },
-      { id: 'm2', text: 'Key message is clear — you know the ONE thing viewers must take away',                    tip: 'If you can\'t say it in one sentence, you\'re not ready to film' },
-      { id: 'm3', text: 'Energy level is high — you\'ve moved, stretched, or had water',                          tip: 'Do 10 jumping jacks before recording if needed. Energy is contagious' },
-      { id: 'm4', text: 'Delivery speed is planned — slightly faster than normal conversation',                    tip: 'Slow delivery loses viewers. Energetic but clear, not rushed' },
-      { id: 'm5', text: 'You\'ve done at least one practice run out loud (not just in your head)',                 tip: 'Saying it aloud exposes stumbles. Fix them before the camera is on' },
-      { id: 'm6', text: 'Mindset is ready — mistakes are expected, retakes are normal',                           tip: 'Top creators do 10–20 takes. Perfectionism kills momentum. Just start' },
+      { id: 'm1', text: 'Hook line memorised — say it naturally, not read it',                  tip: 'Practice the hook 5 times before recording. First 2 seconds are everything' },
+      { id: 'm2', text: 'Key message clear — know the ONE thing viewers must take away',        tip: 'If you can\'t say it in one sentence, you\'re not ready to film' },
+      { id: 'm3', text: 'Energy level high — moved, stretched, or had water',                   tip: 'Do 10 jumping jacks if needed. Energy is contagious' },
+      { id: 'm4', text: 'Delivery speed planned — slightly faster than normal conversation',     tip: 'Slow delivery loses viewers. Energetic but clear, not rushed' },
+      { id: 'm5', text: 'At least one practice run out loud (not just in your head)',            tip: 'Saying it aloud exposes stumbles. Fix them before camera is on' },
+      { id: 'm6', text: 'Mindset ready — mistakes are expected, retakes are normal',            tip: 'Top creators do 10–20 takes. Perfectionism kills momentum' },
     ],
   },
 ]
 
-// ── Script reference panel (latest analysis) ───────────────────────────────────
+// ── Script reference panel ──────────────────────────────────────────────────────
 
 function ScriptReference({ analysis }: { analysis: AnalysisItem }) {
   const [open, setOpen] = useState(true)
@@ -183,7 +183,7 @@ function SectionCard({ section, checked, onToggle }: {
   checked:  Set<string>
   onToggle: (id: string) => void
 }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const done    = section.items.filter(i => checked.has(i.id)).length
   const total   = section.items.length
   const allDone = done === total
@@ -249,17 +249,19 @@ function SectionCard({ section, checked, onToggle }: {
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 
-export default function FilmingPrepPage() {
-  const [checked,       setChecked]       = useState<Set<string>>(new Set())
-  const [latestAnalysis, setLatestAnalysis] = useState<AnalysisItem | null>(null)
-  const [loadingScript, setLoadingScript] = useState(true)
+type Tab = 'script' | 'checklist' | 'tips'
 
-  // Fetch latest completed analysis for PRO script reference
+export default function FilmingPrepPage() {
+  const [checked,        setChecked]        = useState<Set<string>>(new Set())
+  const [latestAnalysis, setLatestAnalysis] = useState<AnalysisItem | null>(null)
+  const [loadingScript,  setLoadingScript]  = useState(true)
+  const [activeTab,      setActiveTab]      = useState<Tab>('checklist')
+
   useEffect(() => {
     void (async () => {
       try {
         const res  = await fetch('/api/studio/analyses')
-        if (!res.ok) { setLoadingScript(false); return }   // 401/5xx — show no-script state
+        if (!res.ok) { setLoadingScript(false); return }
         const data = await res.json()
         const items: AnalysisItem[] = data.items ?? []
         setLatestAnalysis(items[0] ?? null)
@@ -284,8 +286,14 @@ export default function FilmingPrepPage() {
   const allDone    = totalDone === totalItems
   const pct        = totalItems > 0 ? Math.round((totalDone / totalItems) * 100) : 0
 
+  const TABS: { key: Tab; label: string }[] = [
+    { key: 'script',    label: 'Script' },
+    { key: 'checklist', label: totalDone > 0 ? `Checklist · ${pct}%` : 'Checklist' },
+    { key: 'tips',      label: 'Tips' },
+  ]
+
   return (
-    <div className="space-y-5 pb-4">
+    <div className="space-y-4 pb-4">
 
       {/* Header */}
       <div className="flex items-start gap-3">
@@ -295,7 +303,7 @@ export default function FilmingPrepPage() {
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold text-gray-900">Filming Prep</h1>
           <p className="text-xs text-gray-500 mt-0.5">
-            Run through this before every shoot — environment, gear, and mindset
+            Run through this before every shoot
           </p>
         </div>
         {totalDone > 0 && (
@@ -308,120 +316,190 @@ export default function FilmingPrepPage() {
         )}
       </div>
 
-      {/* Script reference — PRO: shows latest analysis; guest: shows CTA */}
-      {loadingScript ? (
-        <div className="h-16 rounded-2xl bg-gray-50 border border-gray-100 animate-pulse" />
-      ) : latestAnalysis ? (
-        <ScriptReference analysis={latestAnalysis} />
-      ) : (
-        <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-5 py-4 flex items-center gap-3">
-          <Wand2 className="h-5 w-5 text-gray-300 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-600">No script yet</p>
-            <p className="text-xs text-gray-400">Analyse a TikTok video first to get your hook and script</p>
-          </div>
-          <a href="/studio" className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-pink-50 text-pink-600 text-xs font-semibold hover:bg-pink-100 transition-colors">
-            Analyse <ArrowRight className="h-3 w-3" />
-          </a>
+      {/* Tab bar */}
+      <div className="flex rounded-xl bg-gray-100 p-1 gap-1">
+        {TABS.map(tab => (
+          <button
+            key={tab.key}
+            type="button"
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-colors ${
+              activeTab === tab.key
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Script tab ─────────────────────────────────────────────────────── */}
+      {activeTab === 'script' && (
+        <div className="space-y-4">
+          {loadingScript ? (
+            <div className="h-16 rounded-2xl bg-gray-50 border border-gray-100 animate-pulse" />
+          ) : latestAnalysis ? (
+            <ScriptReference analysis={latestAnalysis} />
+          ) : (
+            <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-5 py-10 flex flex-col items-center text-center gap-4">
+              <Wand2 className="h-10 w-10 text-gray-300" />
+              <div>
+                <p className="text-sm font-semibold text-gray-600">No script yet</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Analyse a TikTok video first to get your hook and script
+                </p>
+              </div>
+              <a
+                href="/studio"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-violet-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity"
+              >
+                <Wand2 className="h-4 w-4" />
+                Open Viral Studio
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            </div>
+          )}
+
+          {/* Checklist progress summary if items checked */}
+          {totalDone > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('checklist')}
+              className={`w-full flex items-center justify-between px-5 py-3 rounded-2xl border text-left transition-colors ${
+                allDone ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+              }`}
+            >
+              <p className="text-sm font-semibold text-gray-800">
+                {allDone ? '🎬 Ready to film!' : `Checklist: ${totalDone} / ${totalItems} done`}
+              </p>
+              <span className="text-xs font-bold text-pink-500">
+                {allDone ? 'Review →' : 'Continue →'}
+              </span>
+            </button>
+          )}
         </div>
       )}
 
-      {/* Overall progress */}
-      <div className={`rounded-2xl px-5 py-4 border transition-colors ${allDone ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-100'}`}>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-semibold text-gray-800">
-            {allDone ? '🎬 You\'re ready to film!' : `${totalDone} of ${totalItems} items checked`}
-          </p>
-          <span className={`text-sm font-black tabular-nums ${allDone ? 'text-emerald-600' : pct >= 70 ? 'text-amber-500' : 'text-gray-400'}`}>
-            {pct}%
-          </span>
-        </div>
-        <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${allDone ? 'bg-emerald-400' : 'bg-gradient-to-r from-pink-500 to-violet-500'}`}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-        {allDone && latestAnalysis && (
-          <div className="mt-3 flex items-center gap-2">
-            <p className="text-xs text-emerald-600 font-medium flex-1">
-              All {totalItems} checks done. Open your script one last time, then hit record.
-            </p>
-            <a
-              href={`/studio?bd=${latestAnalysis.id}`}
-              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold hover:bg-emerald-200 transition-colors"
-            >
-              <Eye className="h-3.5 w-3.5" /> View Script
-            </a>
-          </div>
-        )}
-        {allDone && !latestAnalysis && (
-          <p className="text-xs text-emerald-600 mt-2 font-medium">
-            All {totalItems} checks done — hit record! 🚀
-          </p>
-        )}
-      </div>
+      {/* ── Checklist tab ──────────────────────────────────────────────────── */}
+      {activeTab === 'checklist' && (
+        <div className="space-y-4">
 
-      {/* Section checklists */}
-      {SECTIONS.map(section => (
-        <SectionCard key={section.id} section={section} checked={checked} onToggle={toggle} />
-      ))}
-
-      {/* Pro Tips */}
-      <div className="rounded-2xl border border-pink-100 bg-gradient-to-br from-pink-50 to-violet-50 p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Zap className="h-4 w-4 text-pink-500" />
-          <p className="text-sm font-bold text-gray-900">Pro Tips</p>
-        </div>
-        <ul className="space-y-2">
-          {[
-            { icon: Clock,   text: 'Record your first take within 60 seconds of being ready — overthinking kills energy' },
-            { icon: Monitor, text: 'Watch back your take with sound OFF first — check body language before audio' },
-            { icon: Package, text: 'Film 3–5 takes minimum. Your best take is rarely the first one' },
-            { icon: Mic,     text: 'Speak 20% louder than feels natural — cameras compress volume' },
-            { icon: Wind,    text: 'Shake out your hands and roll your shoulders between takes to stay loose' },
-          ].map(({ icon: Icon, text }, i) => (
-            <li key={i} className="flex items-start gap-2.5">
-              <Icon className="h-3.5 w-3.5 text-pink-400 shrink-0 mt-0.5" />
-              <span className="text-xs text-gray-600 leading-snug">{text}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Bottom CTA — context-aware */}
-      <div className="rounded-2xl bg-gradient-to-r from-gray-900 to-gray-800 p-5">
-        {latestAnalysis ? (
-          <>
-            <p className="text-sm font-bold text-white mb-0.5">Need a new angle?</p>
-            <p className="text-xs text-gray-400 mb-4">
-              Analyse another viral video to get a fresh hook and script for your next shoot.
-            </p>
-            <div className="flex gap-2 flex-wrap">
-              <a href="/studio" className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-violet-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity">
-                <Wand2 className="h-4 w-4" />
-                New Analysis
-              </a>
-              <a href={`/studio?bd=${latestAnalysis.id}`} className="inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 text-white text-sm font-semibold rounded-xl hover:bg-white/20 transition-colors">
-                <Eye className="h-4 w-4" />
-                View Current Script
-              </a>
+          {/* Overall progress */}
+          <div className={`rounded-2xl px-5 py-4 border transition-colors ${allDone ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-100'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm font-semibold text-gray-800">
+                {allDone ? '🎬 You\'re ready to film!' : `${totalDone} of ${totalItems} items checked`}
+              </p>
+              <span className={`text-sm font-black tabular-nums ${allDone ? 'text-emerald-600' : pct >= 70 ? 'text-amber-500' : 'text-gray-400'}`}>
+                {pct}%
+              </span>
             </div>
-          </>
-        ) : (
-          <>
-            <p className="text-sm font-bold text-white mb-0.5">Don&apos;t have a script yet?</p>
-            <p className="text-xs text-gray-400 mb-4">
-              Analyse a viral TikTok first — you&apos;ll get a hook, emotion arc, and ready-to-film script.
-            </p>
-            <a href="/studio" className="inline-flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-pink-500 to-violet-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity">
-              <Wand2 className="h-4 w-4" />
-              Open Viral Studio
-              <ArrowRight className="h-4 w-4" />
-            </a>
-          </>
-        )}
-      </div>
+            <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${allDone ? 'bg-emerald-400' : 'bg-gradient-to-r from-pink-500 to-violet-500'}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+            {allDone && latestAnalysis && (
+              <div className="mt-3 flex items-center gap-2">
+                <p className="text-xs text-emerald-600 font-medium flex-1">
+                  All done — open your script, then hit record.
+                </p>
+                <a
+                  href={`/studio?bd=${latestAnalysis.id}`}
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold hover:bg-emerald-200 transition-colors"
+                >
+                  <Eye className="h-3.5 w-3.5" /> View Script
+                </a>
+              </div>
+            )}
+            {allDone && !latestAnalysis && (
+              <p className="text-xs text-emerald-600 mt-2 font-medium">
+                All {totalItems} checks done — hit record! 🚀
+              </p>
+            )}
+          </div>
+
+          {/* Section checklists — collapsed by default */}
+          {SECTIONS.map(section => (
+            <SectionCard key={section.id} section={section} checked={checked} onToggle={toggle} />
+          ))}
+        </div>
+      )}
+
+      {/* ── Tips tab ───────────────────────────────────────────────────────── */}
+      {activeTab === 'tips' && (
+        <div className="space-y-4">
+
+          {/* Pro Tips */}
+          <div className="rounded-2xl border border-pink-100 bg-gradient-to-br from-pink-50 to-violet-50 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Zap className="h-4 w-4 text-pink-500" />
+              <p className="text-sm font-bold text-gray-900">Pro Tips</p>
+            </div>
+            <ul className="space-y-3">
+              {[
+                { icon: Clock,   text: 'Record your first take within 60 seconds of being ready — overthinking kills energy' },
+                { icon: Monitor, text: 'Watch back your take with sound OFF first — check body language before audio' },
+                { icon: Package, text: 'Film 3–5 takes minimum. Your best take is rarely the first one' },
+                { icon: Mic,     text: 'Speak 20% louder than feels natural — cameras compress volume' },
+                { icon: Wind,    text: 'Shake out your hands and roll your shoulders between takes to stay loose' },
+              ].map(({ icon: Icon, text }, i) => (
+                <li key={i} className="flex items-start gap-3">
+                  <div className="h-7 w-7 rounded-lg bg-white flex items-center justify-center shrink-0 shadow-sm">
+                    <Icon className="h-3.5 w-3.5 text-pink-400" />
+                  </div>
+                  <span className="text-sm text-gray-600 leading-snug pt-0.5">{text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Bottom CTA */}
+          <div className="rounded-2xl bg-gradient-to-r from-gray-900 to-gray-800 p-5">
+            {latestAnalysis ? (
+              <>
+                <p className="text-sm font-bold text-white mb-0.5">Need a new angle?</p>
+                <p className="text-xs text-gray-400 mb-4">
+                  Analyse another viral video to get a fresh hook for your next shoot.
+                </p>
+                <div className="flex flex-col gap-2">
+                  <a
+                    href="/studio"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity"
+                  >
+                    <Wand2 className="h-4 w-4" />
+                    New Analysis
+                  </a>
+                  <a
+                    href={`/studio?bd=${latestAnalysis.id}`}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-white/10 text-white text-sm font-semibold rounded-xl hover:bg-white/20 transition-colors"
+                  >
+                    <Eye className="h-4 w-4" />
+                    View Current Script
+                  </a>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-bold text-white mb-0.5">Don&apos;t have a script yet?</p>
+                <p className="text-xs text-gray-400 mb-4">
+                  Analyse a viral TikTok first — you&apos;ll get a hook, emotion arc, and ready-to-film script.
+                </p>
+                <a
+                  href="/studio"
+                  className="inline-flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-pink-500 to-violet-500 text-white text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity w-full"
+                >
+                  <Wand2 className="h-4 w-4" />
+                  Open Viral Studio
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   )
