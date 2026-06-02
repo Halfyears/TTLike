@@ -52,7 +52,10 @@ export function AppShell({ children, email, initials, contentClass }: AppShellPr
       {/* ── Main content ── */}
       {/* Mobile: pb-28 (112px) clears the ~80px tab bar + safe-area buffer */}
       {/* Desktop: ml-64 clears the sidebar, no extra top padding needed */}
-      <main className={`flex-1 md:ml-64 pb-28 md:pb-0 min-h-screen ${contentClass ?? ''}`}>
+      {/* min-w-0 + overflow-x-hidden: flex items default to min-width:auto which
+          prevents shrinking below content width — causes page-wide overflow on mobile.
+          These two classes fix all pages inside AppShell at once. */}
+      <main className={`flex-1 min-w-0 overflow-x-hidden md:ml-64 pb-28 md:pb-0 min-h-screen ${contentClass ?? ''}`}>
         {children}
 
         {/* Badge trace on mobile — sits just above the tab bar */}
