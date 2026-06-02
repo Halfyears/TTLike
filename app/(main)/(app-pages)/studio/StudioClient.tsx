@@ -626,7 +626,9 @@ export function StudioClient() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    {/* url_input stage renders its own min-h-screen dark hero — outer wrapper
+        must NOT also be min-h-screen or the two stack to 200vh of scrollable space */}
+    <div className={stage === 'url_input' ? '' : 'min-h-screen bg-white'}>
 
       {stage === 'url_input' && (
         /* min-h-screen: hero fills full viewport so there's no white gap below */
