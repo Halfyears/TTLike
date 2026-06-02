@@ -69,31 +69,52 @@ export function Navbar({ user }: NavbarProps) {
             )}
           </div>
 
-          <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
-            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <button
+            className="md:hidden flex items-center justify-center w-11 h-11 -mr-2 rounded-lg hover:bg-gray-100 transition-colors"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white px-4 py-4 space-y-3">
-          {navLinks.map(link => (
-            <Link key={link.href} href={link.href}
-              className="block text-sm font-medium text-gray-700 py-1"
-              onClick={() => setMobileOpen(false)}>
-              {link.label}
-            </Link>
-          ))}
-          <div className="pt-2 flex flex-col gap-2">
+        <div className="md:hidden border-t border-gray-100 bg-white">
+          {/* Nav links — 48px touch targets, clear typography */}
+          <div className="px-5 pt-1 pb-2">
+            {navLinks.map(link => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex items-center min-h-[48px] text-base font-medium text-gray-700 hover:text-pink-500 transition-colors border-b border-gray-50 last:border-0"
+                onClick={() => setMobileOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+
+          {/* CTA section */}
+          <div className="px-5 pt-3 pb-8 border-t border-gray-100 flex flex-col gap-3">
             {user ? (
               <>
-                <Link href="/dashboard"><Button className="w-full" size="sm">Dashboard</Button></Link>
-                <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full">Sign Out</Button>
+                <Link href="/dashboard" onClick={() => setMobileOpen(false)}>
+                  <Button className="w-full">Open App</Button>
+                </Link>
+                <Button variant="ghost" onClick={handleSignOut}
+                  className="w-full text-gray-500 hover:text-gray-700">
+                  Sign Out
+                </Button>
               </>
             ) : (
               <>
-                <Link href="/auth/login"><Button variant="secondary" className="w-full" size="sm">Sign In</Button></Link>
-                <Link href="/auth/signup"><Button className="w-full" size="sm">Get Started Free</Button></Link>
+                <Link href="/auth/signup" onClick={() => setMobileOpen(false)}>
+                  <Button className="w-full">Get Started Free</Button>
+                </Link>
+                <Link href="/auth/login" onClick={() => setMobileOpen(false)}>
+                  <Button variant="secondary" className="w-full">Sign In</Button>
+                </Link>
               </>
             )}
           </div>
