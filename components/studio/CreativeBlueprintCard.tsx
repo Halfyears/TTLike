@@ -41,18 +41,18 @@ interface CreativeBlueprintCardProps {
 export function CreativeBlueprintCard({ blueprint }: CreativeBlueprintCardProps) {
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+      <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center gap-2">
         <Sparkles className="w-5 h-5 text-indigo-600" />
         <h2 className="font-semibold text-gray-900">Creative Blueprint</h2>
       </div>
 
-      <div className="p-6 space-y-5">
+      <div className="p-4 sm:p-6 space-y-4 sm:space-y-5">
         {/* Hook */}
         <div>
           <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2 flex items-center gap-1.5">
             <Zap className="w-3.5 h-3.5" /> Opening Hook
           </p>
-          <blockquote className="text-gray-900 font-medium text-lg leading-snug border-l-4 border-indigo-400 pl-4 italic">
+          <blockquote className="text-gray-900 font-medium text-base sm:text-lg leading-snug border-l-4 border-indigo-400 pl-4 italic">
             &ldquo;{blueprint.hook}&rdquo;
           </blockquote>
         </div>

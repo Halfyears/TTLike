@@ -689,7 +689,7 @@ export function StudioClient() {
       )}
 
       {stage === 'result' && result && videoMeta && (
-        <div className="px-4 py-12">
+        <div className="px-4 py-6 sm:py-10">
           <ResultView
             blueprint={result.blueprint}
             script={result.script}

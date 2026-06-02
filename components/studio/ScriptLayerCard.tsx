@@ -137,29 +137,38 @@ export function ScriptLayerCard({ script, onCopy }: ScriptLayerCardProps) {
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-indigo-600" />
-          <h2 className="font-semibold text-gray-900">Script</h2>
-          {script.total_duration && (
-            <span className="text-xs text-gray-400 font-mono">{script.total_duration}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <CapCutExportButton script={script} />
+      {/* Header — stacks to two rows on very narrow screens */}
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <FileText className="w-5 h-5 text-indigo-600 shrink-0" />
+            <h2 className="font-semibold text-gray-900">Script</h2>
+            {script.total_duration && (
+              <span className="text-xs text-gray-400 font-mono">{script.total_duration}</span>
+            )}
+          </div>
+          {/* Copy all — icon + text on sm+, icon-only on mobile */}
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
           >
-            {copied ? <><Check className="w-3.5 h-3.5 text-green-500" />Copied!</> : <><Copy className="w-3.5 h-3.5" />Copy all</>}
+            {copied
+              ? <><Check className="w-3.5 h-3.5 text-green-500" /><span className="hidden sm:inline">Copied!</span></>
+              : <><Copy className="w-3.5 h-3.5" /><span className="hidden sm:inline">Copy all</span></>
+            }
           </button>
+        </div>
+        {/* CapCut export on its own row — avoids overflow on narrow phones */}
+        <div className="mt-2">
+          <CapCutExportButton script={script} />
         </div>
       </div>
 
       <div className="divide-y divide-gray-100">
         {script.lines.map((line, i) => (
-          <div key={i} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-            <div className="flex items-center gap-2 mb-3">
+          <div key={i} className="px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors">
+            {/* Scene meta */}
+            <div className="flex flex-wrap items-center gap-1.5 mb-3">
               <span className="text-xs font-mono text-gray-400">{line.time_range}</span>
               <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-medium">
                 {line.beat}
@@ -169,14 +178,14 @@ export function ScriptLayerCard({ script, onCopy }: ScriptLayerCardProps) {
               </span>
             </div>
 
-            <div className="grid gap-2">
-              <div className="flex gap-3">
-                <span className="text-xs font-semibold text-gray-400 uppercase w-8 shrink-0 pt-0.5">SAY</span>
+            <div className="space-y-2.5">
+              <div className="flex gap-2.5">
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider w-7 shrink-0 pt-1">SAY</span>
                 <p className="text-sm text-gray-900 font-medium leading-relaxed">{line.say}</p>
               </div>
-              <div className="flex gap-3">
-                <span className="text-xs font-semibold text-gray-400 uppercase w-8 shrink-0 pt-0.5">DO</span>
-                <p className="text-sm text-gray-600 leading-relaxed">{line.do}</p>
+              <div className="flex gap-2.5">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider w-7 shrink-0 pt-1">DO</span>
+                <p className="text-sm text-gray-500 leading-relaxed">{line.do}</p>
               </div>
             </div>
           </div>

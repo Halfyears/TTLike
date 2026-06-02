@@ -74,56 +74,49 @@ function AnalysisRow({ item, isPaid }: { item: AnalysisItem; isPaid: boolean }) 
   const storyboard  = encodeURIComponent(item.product_name ?? item.category)
 
   return (
-    <div className="py-4 border-b border-gray-50 last:border-0">
+    <div className="py-4 border-b border-gray-100 last:border-0">
 
       {/* Top row: icon + name + time */}
       <div className="flex items-start gap-3">
-        <div className="h-8 w-8 rounded-lg bg-pink-50 flex items-center justify-center shrink-0 mt-0.5">
-          <Zap className="h-3.5 w-3.5 text-pink-500" />
+        <div className="h-9 w-9 rounded-xl bg-pink-50 flex items-center justify-center shrink-0">
+          <Zap className="h-4 w-4 text-pink-500" />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-semibold text-gray-900 leading-tight truncate">{title}</p>
-            <p className="text-[11px] text-gray-400 shrink-0 pt-0.5">{timeAgo(item.created_at)}</p>
+            <p className="text-sm font-bold text-gray-900 leading-tight">{title}</p>
+            <p className="text-[11px] text-gray-400 shrink-0 pt-0.5 whitespace-nowrap">{timeAgo(item.created_at)}</p>
           </div>
 
-          {/* Category + type tags */}
+          {/* Tags */}
           <div className="flex flex-wrap items-center gap-1.5 mt-1">
-            {sub && (
-              <span className="text-[11px] text-gray-400">{sub}</span>
-            )}
+            {sub && <span className="text-[11px] text-gray-400">{sub}</span>}
             <TypeBadge structure={item.structure_type} />
-            {item.pipeline_ms && (
-              <span className="text-[10px] text-gray-300">{(item.pipeline_ms / 1000).toFixed(1)}s</span>
-            )}
           </div>
 
-          {/* Hook line preview */}
+          {/* Hook line */}
           {item.hook_line && (
-            <p className="text-[11px] text-gray-400 mt-1.5 line-clamp-2 italic leading-snug">
+            <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 italic leading-snug">
               &ldquo;{item.hook_line}&rdquo;
             </p>
           )}
         </div>
       </div>
 
-      {/* Action buttons row */}
+      {/* Action buttons — larger touch targets */}
       <div className="flex flex-wrap items-center gap-2 mt-3">
-        {/* View — reopens result in Studio via ?bd= */}
         <a
           href={`/studio?bd=${item.id}`}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pink-50 text-pink-600 hover:bg-pink-100 text-xs font-semibold transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-pink-50 text-pink-600 hover:bg-pink-100 text-xs font-semibold transition-colors"
         >
           <Eye className="h-3.5 w-3.5" />
-          View
+          View Script
         </a>
 
-        {/* Re-analyse — paid only; free users see locked upsell */}
         {isPaid ? (
           <a
             href={`/studio?video_id=${item.video_id}`}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-600 hover:bg-gray-100 text-xs font-semibold transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gray-50 text-gray-600 hover:bg-gray-100 text-xs font-semibold transition-colors"
           >
             <RotateCcw className="h-3.5 w-3.5" />
             Re-analyse
@@ -131,19 +124,16 @@ function AnalysisRow({ item, isPaid }: { item: AnalysisItem; isPaid: boolean }) 
         ) : (
           <a
             href="/pricing"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-300 text-xs font-semibold transition-colors border border-dashed border-gray-200 hover:border-pink-300 hover:text-pink-400 group"
-            title="Upgrade to re-analyse videos"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-dashed border-gray-200 text-gray-400 text-xs font-semibold transition-colors hover:border-pink-300 hover:text-pink-500"
           >
-            <Lock className="h-3 w-3 group-hover:hidden" />
-            <RotateCcw className="h-3 w-3 hidden group-hover:block text-pink-400" />
-            <span className="group-hover:text-pink-500">Re-analyse</span>
+            <Lock className="h-3.5 w-3.5" />
+            Re-analyse
           </a>
         )}
 
-        {/* Storyboard next step */}
         <a
           href={`/dashboard/studio?product=${storyboard}`}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 text-violet-600 hover:bg-violet-100 text-xs font-semibold transition-colors"
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-violet-50 text-violet-600 hover:bg-violet-100 text-xs font-semibold transition-colors"
         >
           <Clapperboard className="h-3.5 w-3.5" />
           Storyboard
