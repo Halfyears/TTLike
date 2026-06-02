@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -56,7 +57,9 @@ interface Props {
 
 // ─── Data fetching ────────────────────────────────────────────────────────────
 
-async function getVideo(id: string) {
+// cache() deduplicates calls within a single request — generateMetadata and the
+// page component both call getVideo(id); cache() ensures only one DB round-trip.
+const getVideo = cache(async function getVideo(id: string) {
   const url = new URL(`/rest/v1/tiktok_videos`, process.env.NEXT_PUBLIC_SUPABASE_URL)
   url.searchParams.set('select', '*')
   url.searchParams.set('id', `eq.${id}`)
@@ -72,7 +75,7 @@ async function getVideo(id: string) {
   if (!res.ok) return null
   const rows = await res.json()
   return Array.isArray(rows) && rows.length > 0 ? rows[0] : null
-}
+})
 
 async function getSimilar(niche: string, excludeId: string) {
   const url = new URL(`/rest/v1/tiktok_videos`, process.env.NEXT_PUBLIC_SUPABASE_URL)

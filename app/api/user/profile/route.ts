@@ -15,7 +15,10 @@ export async function PATCH(req: NextRequest) {
   let name: string
   try {
     const body = await req.json()
-    name = String(body.name ?? '').trim().slice(0, 60)
+    if (typeof body.name !== 'string') {
+      return NextResponse.json({ error: 'name must be a string' }, { status: 422 })
+    }
+    name = body.name.trim().slice(0, 60)
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }

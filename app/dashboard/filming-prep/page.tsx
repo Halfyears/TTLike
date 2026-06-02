@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import {
   Camera, Lightbulb, Mic, Wind, Brain, CheckCircle2, Circle,
   ChevronDown, Wand2, ArrowRight, Zap, Package, Monitor,
@@ -260,11 +259,12 @@ export default function FilmingPrepPage() {
     void (async () => {
       try {
         const res  = await fetch('/api/studio/analyses')
+        if (!res.ok) { setLoadingScript(false); return }   // 401/5xx — show no-script state
         const data = await res.json()
         const items: AnalysisItem[] = data.items ?? []
         setLatestAnalysis(items[0] ?? null)
       } catch {
-        // non-fatal — page works without it
+        // network error — page works without script reference
       } finally {
         setLoadingScript(false)
       }

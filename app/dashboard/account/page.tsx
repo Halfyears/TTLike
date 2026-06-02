@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   User, Mail, CreditCard, LogOut, Check, Loader2,
@@ -35,14 +35,16 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function AccountPage() {
-  const router  = useRouter()
-  const supabase = createClient()
+  const router   = useRouter()
+  // Stable Supabase client — created once, not on every render
+  const supabase = useMemo(() => createClient(), [])
 
   // ── User state ────────────────────────────────────────────────────────────
-  const [email,    setEmail]    = useState('')
-  const [name,     setName]     = useState('')
-  const [initials, setInitials] = useState('?')
-  const [tier,     setTier]     = useState<TierResponse | null>(null)
+  const [email,       setEmail]       = useState('')
+  const [name,        setName]        = useState('')
+  const [initials,    setInitials]    = useState('?')
+  const [tier,        setTier]        = useState<TierResponse | null>(null)
+  const [tierLoading, setTierLoading] = useState(true)
 
   // ── Name edit ─────────────────────────────────────────────────────────────
   const [nameEdit,    setNameEdit]    = useState('')
@@ -77,9 +79,13 @@ export default function AccountPage() {
     })()
 
     void fetch('/api/user/tier')
-      .then(r => r.json())
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
       .then((d: TierResponse) => setTier(d))
       .catch(() => {})
+      .finally(() => setTierLoading(false))
+
+    // Clear saved-name timer on unmount to prevent setState on unmounted component
+    return () => { if (savedTimer.current) clearTimeout(savedTimer.current) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Handlers ──────────────────────────────────────────────────────────────
@@ -132,8 +138,9 @@ export default function AccountPage() {
     setTimeout(() => router.refresh(), 100)
   }
 
-  const isFree    = !tier || tier.tier_name === 'free'
-  const planCfg   = PLAN_CONFIG[tier?.tier_name ?? 'free'] ?? PLAN_CONFIG.free!
+  // Only compute isFree after tier has loaded — prevents paid users seeing "Upgrade" flash
+  const isFree  = tierLoading ? null : (!tier || tier.tier_name === 'free')
+  const planCfg = PLAN_CONFIG[tier?.tier_name ?? 'free'] ?? PLAN_CONFIG.free!
 
   return (
     <div className="space-y-6 pb-4">
@@ -219,7 +226,10 @@ export default function AccountPage() {
 
             {/* Actions */}
             <div className="space-y-2">
-              {isFree ? (
+              {isFree === null ? (
+                /* Loading skeleton — prevents paid users seeing "Upgrade" flash */
+                <div className="h-12 rounded-xl bg-gray-100 animate-pulse" />
+              ) : isFree ? (
                 /* Free → show upgrade */
                 <a
                   href="/pricing"
