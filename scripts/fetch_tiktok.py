@@ -9,6 +9,7 @@ Required env vars:
   RAPIDAPI_KEY              — RapidAPI key
 """
 
+import io
 import os
 import re
 import sys
@@ -312,6 +313,81 @@ def upsert(videos: list[dict]) -> int:
     ).execute()
     return len(result.data) if result.data else 0
 
+# ── Cover image caching — uploads to Supabase Storage "covers" bucket ─────────
+COVERS_BUCKET = 'covers'
+
+def cache_cover_to_storage(video_id: str, cover_url: str) -> str | None:
+    """Download cover_url and upload to Supabase Storage. Returns public URL or None."""
+    if not cover_url or 'tiktokcdn' not in cover_url:
+        return None
+    try:
+        resp = requests.get(
+            cover_url,
+            headers={'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'},
+            timeout=10,
+        )
+        if not resp.ok:
+            return None
+
+        content_type = resp.headers.get('content-type', 'image/webp')
+        ext = 'jpg' if 'jpeg' in content_type else ('png' if 'png' in content_type else 'webp')
+        storage_path = f'{video_id}.{ext}'
+
+        supabase.storage.from_(COVERS_BUCKET).upload(
+            storage_path,
+            io.BytesIO(resp.content),
+            file_options={'content-type': content_type, 'cache-control': '31536000', 'upsert': 'true'},
+        )
+
+        # Build public URL from Supabase project URL
+        public_url = f'{SUPABASE_URL}/storage/v1/object/public/{COVERS_BUCKET}/{storage_path}'
+        return public_url
+    except Exception as e:
+        log(f'  [cover] cache failed for {video_id}: {e}')
+        return None
+
+def cache_covers_for_batch(videos: list[dict]) -> tuple[int, int]:
+    """Cache cover images for freshly upserted videos. Returns (cached, failed)."""
+    # Look up the DB ids for the tiktok_ids we just upserted
+    tiktok_ids = [v['tiktok_id'] for v in videos if v.get('cover_url')]
+    if not tiktok_ids:
+        return 0, 0
+
+    try:
+        rows = supabase.table('tiktok_videos') \
+            .select('id, tiktok_id, cover_url, cover_storage_url') \
+            .in_('tiktok_id', tiktok_ids) \
+            .is_('cover_storage_url', None) \
+            .execute()
+    except Exception as e:
+        log(f'  [cover] DB lookup failed: {e}')
+        return 0, 0
+
+    rows_data = rows.data or []
+    cached = 0
+    failed = 0
+
+    for row in rows_data:
+        cover_url = row.get('cover_url')
+        if not cover_url:
+            continue
+        video_id = row['id']
+        public_url = cache_cover_to_storage(video_id, cover_url)
+        if public_url:
+            try:
+                supabase.table('tiktok_videos') \
+                    .update({'cover_storage_url': public_url}) \
+                    .eq('id', video_id) \
+                    .execute()
+                cached += 1
+            except Exception as e:
+                log(f'  [cover] DB update failed for {video_id}: {e}')
+                failed += 1
+        else:
+            failed += 1
+
+    return cached, failed
+
 def log_run(status: str, msg: str, fetched: int = 0, updated: int = 0, error: str | None = None) -> None:
     try:
         supabase.table('scraper_logs').insert({
@@ -351,7 +427,12 @@ def main() -> None:
 
     updated = upsert(unique)
     log(f"✅ Upserted {updated} rows into tiktok_videos")
-    log_run('success', f'Fetched {len(unique)} videos, upserted {updated}', len(unique), updated)
+
+    log("Caching cover images to Supabase Storage…")
+    cached, cover_failed = cache_covers_for_batch(unique)
+    log(f"✅ Cover cache: {cached} cached, {cover_failed} failed")
+
+    log_run('success', f'Fetched {len(unique)} videos, upserted {updated}, covers cached {cached}', len(unique), updated)
 
 if __name__ == '__main__':
     main()

@@ -37,6 +37,15 @@ interface CacheResult {
   hint?: string
 }
 
+interface RefreshResult {
+  needsRefresh: number
+  refreshed: number
+  cached: number
+  failed: number
+  message: string
+  error?: string
+}
+
 export default function ScraperPage() {
   const [logs, setLogs] = useState<ScraperLog[]>([])
   const [stats, setStats] = useState<Stats>({ last_run: null, last_success: null, last_error: null, total_videos: 0 })
@@ -48,6 +57,11 @@ export default function ScraperPage() {
   const [caching,     setCaching]     = useState(false)
   const [cacheResult, setCacheResult] = useState<CacheResult | null>(null)
   const [cacheLimit,  setCacheLimit]  = useState(100)
+
+  // ── Refresh expired covers state ───────────────────────────────────────────
+  const [refreshingCovers, setRefreshingCovers] = useState(false)
+  const [refreshResult,    setRefreshResult]    = useState<RefreshResult | null>(null)
+  const [refreshLimit,     setRefreshLimit]     = useState(50)
 
   // ── Fallback switch state ──────────────────────────────────────────────────
   const [fallbackEnabled,  setFallbackEnabled]  = useState(false)
@@ -195,6 +209,24 @@ export default function ScraperPage() {
       setTriggerMsg({ ok: false, text: String(e) })
     } finally {
       setTriggering(false)
+    }
+  }
+
+  async function handleRefreshExpiredCovers() {
+    setRefreshingCovers(true)
+    setRefreshResult(null)
+    try {
+      const res = await fetch('/api/admin/refresh-expired-covers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: refreshLimit }),
+      })
+      const data: RefreshResult = await res.json()
+      setRefreshResult(data)
+    } catch (e) {
+      setRefreshResult({ needsRefresh: 0, refreshed: 0, cached: 0, failed: 0, message: String(e), error: String(e) })
+    } finally {
+      setRefreshingCovers(false)
     }
   }
 
@@ -583,6 +615,59 @@ export default function ScraperPage() {
                 <span>⏭ Skipped: <strong>{cacheResult.skipped}</strong></span>
                 {cacheResult.failed > 0 && <span>❌ Failed: <strong>{cacheResult.failed}</strong></span>}
                 <span className="text-gray-400">Total: {cacheResult.total}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Refresh Expired Covers panel */}
+      <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 mb-8">
+        <div className="flex items-center gap-2 mb-1">
+          <RefreshCw className="h-5 w-5 text-amber-400" />
+          <h2 className="text-white font-semibold">Refresh Expired Covers</h2>
+        </div>
+        <p className="text-gray-400 text-sm mb-4">
+          For videos whose TikTok CDN URL has already expired and no Storage copy exists, fetches a fresh
+          thumbnail via TikTok oEmbed API, then immediately caches it to Supabase Storage. Use this to
+          recover thumbnails that went blank before being cached.
+        </p>
+
+        <div className="flex flex-wrap items-center gap-3 mb-4">
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-gray-400">Batch size:</label>
+            <select
+              value={refreshLimit}
+              onChange={e => setRefreshLimit(Number(e.target.value))}
+              className="bg-gray-700 border border-gray-600 text-white text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            >
+              {[25, 50, 100].map(n => <option key={n} value={n}>{n} videos</option>)}
+            </select>
+          </div>
+
+          <button
+            onClick={handleRefreshExpiredCovers}
+            disabled={refreshingCovers}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-600 text-white text-sm font-semibold hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshingCovers ? 'animate-spin' : ''}`} />
+            {refreshingCovers ? 'Refreshing…' : 'Refresh Expired Covers'}
+          </button>
+        </div>
+
+        {refreshResult && (
+          <div className={`rounded-lg px-4 py-3 text-sm ${
+            refreshResult.error && !refreshResult.refreshed
+              ? 'bg-red-900/40 border border-red-700 text-red-300'
+              : 'bg-amber-900/20 border border-amber-700/50 text-amber-200'
+          }`}>
+            <p className="mb-1 text-xs text-amber-300/70">{refreshResult.message}</p>
+            {refreshResult.needsRefresh > 0 && (
+              <div className="flex flex-wrap gap-4 text-sm">
+                <span>🔍 Found expired: <strong>{refreshResult.needsRefresh}</strong></span>
+                <span>🔄 URL refreshed: <strong>{refreshResult.refreshed}</strong></span>
+                <span>✅ Cached: <strong>{refreshResult.cached}</strong></span>
+                {refreshResult.failed > 0 && <span>❌ Failed: <strong>{refreshResult.failed}</strong></span>}
               </div>
             )}
           </div>
