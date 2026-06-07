@@ -88,20 +88,26 @@ export async function POST() {
   }
 
   // ── 3. Build slug → best_cover_url map ───────────────────────────────────
+  type VideoRow = { cover_storage_url: string | null; cover_url: string | null }
   type BdRow = {
     video_id: string | null
     payload: Record<string, unknown> | null
-    tiktok_videos: { cover_storage_url: string | null; cover_url: string | null } | null
+    // Supabase left-join returns an array (even for to-one joins)
+    tiktok_videos: VideoRow[] | VideoRow | null
   }
 
   const slugToCover = new Map<string, string>()
 
-  for (const bd of (breakdowns ?? []) as BdRow[]) {
+  for (const bd of (breakdowns ?? []) as unknown as BdRow[]) {
     const slug = (bd.payload?.blog_post_slug ?? bd.payload?.slug) as string | undefined
     if (!slug) continue
 
-    const storageUrl = bd.tiktok_videos?.cover_storage_url
-    const cdnUrl     = bd.tiktok_videos?.cover_url
+    // Normalise: Supabase may return array or single object depending on join type
+    const videoRow = Array.isArray(bd.tiktok_videos)
+      ? bd.tiktok_videos[0] ?? null
+      : bd.tiktok_videos
+    const storageUrl = videoRow?.cover_storage_url
+    const cdnUrl     = videoRow?.cover_url
     const best = !isCdnUrl(storageUrl) ? storageUrl
                : !isCdnUrl(cdnUrl)     ? cdnUrl
                : null
