@@ -94,7 +94,7 @@ export async function POST(req: Request) {
       id,
       payload,
       blog_status,
-      tiktok_videos!left(id, title, product_name, niche, cover_url, views, likes, shares)
+      tiktok_videos!left(id, title, product_name, niche, cover_url, cover_storage_url, views, likes, shares)
     `)
     .eq('id', breakdown_id)
     .maybeSingle()
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
 
   type VideoRow = {
     id: string; title: string | null; product_name: string | null
-    niche: string | null; cover_url: string | null
+    niche: string | null; cover_url: string | null; cover_storage_url: string | null
     views: number | null; likes: number | null; shares: number | null
   }
   const video   = (bd as unknown as { tiktok_videos: VideoRow | null }).tiktok_videos
@@ -200,7 +200,8 @@ Write a blog post analyzing why this product went viral and how sellers can repl
         seoTitle:   (parsed.seo_title || parsed.title).slice(0, 200),
         seoDesc:    parsed.seo_desc?.slice(0, 300) ?? null,
         authorName: 'TTLike Team',
-        coverImage: video?.cover_url ?? null,
+        // Prefer permanent Supabase Storage URL; fall back to TikTok CDN (expires ~7 days)
+        coverImage: video?.cover_storage_url ?? video?.cover_url ?? null,
         status:     'PUBLISHED',
         publishedAt: new Date(),
       },

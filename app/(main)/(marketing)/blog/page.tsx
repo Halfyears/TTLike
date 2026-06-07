@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { formatDate } from '@/lib/utils'
 import { createServiceClient } from '@/lib/supabase/server'
+import { BlogImage } from '@/components/blog/BlogImage'
 import type { Metadata } from 'next'
 import { SITE_NAME, SITE_URL } from '@/lib/constants'
 
@@ -89,16 +90,23 @@ export default async function BlogPage() {
 
       {/* Featured Post */}
       <Link href={`/blog/${featured.slug}`}>
-        <Card hover className="mb-8">
-          <CardContent className="p-8">
+        <Card hover className="mb-8 overflow-hidden">
+          {/* Featured cover — tall hero image with fallback */}
+          <BlogImage
+            src={featured.cover_image}
+            alt={featured.title}
+            category={featured.category}
+            className="h-48 sm:h-64 w-full object-cover"
+          />
+          <CardContent className="p-6 sm:p-8">
             <Badge variant={categoryColors[featured.category ?? ''] ?? 'default'} className="mb-3">
               {featured.category ?? 'Article'}
             </Badge>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3 hover:text-pink-600 transition-colors">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 hover:text-pink-600 transition-colors">
               {featured.title}
             </h2>
             <p className="text-gray-600 mb-4 leading-relaxed">{featured.excerpt}</p>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-3 text-sm text-gray-500">
                 {featured.published_at && <span>{formatDate(new Date(featured.published_at))}</span>}
                 <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {featured.read_time ?? 5} min read</span>
@@ -116,11 +124,12 @@ export default async function BlogPage() {
         {rest.map(post => (
           <Link key={post.id} href={`/blog/${post.slug}`}>
             <Card hover className="h-full">
-              {post.cover_image ? (
-                <img src={post.cover_image} alt={post.title} className="h-36 w-full object-cover rounded-t-xl" />
-              ) : (
-                <div className="h-36 bg-gradient-to-br from-pink-50 to-violet-50 rounded-t-xl" />
-              )}
+              <BlogImage
+                src={post.cover_image}
+                alt={post.title}
+                category={post.category}
+                className="h-36 w-full object-cover rounded-t-xl"
+              />
               <CardContent className="p-5">
                 <Badge variant={categoryColors[post.category ?? ''] ?? 'default'} className="mb-2">
                   {post.category ?? 'Article'}

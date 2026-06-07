@@ -4,6 +4,7 @@ import { SEOFlywheelPanel }    from '@/components/admin/SEOFlywheelPanel'
 import type { BreakdownForFlywheel } from '@/components/admin/SEOFlywheelPanel'
 import { SitemapSubmitPanel }  from '@/components/admin/SitemapSubmitPanel'
 import { BlogPostsClient }     from '@/components/admin/BlogPostsClient'
+import { RefreshCoversButton }  from '@/components/admin/RefreshCoversButton'
 
 export const dynamic  = 'force-dynamic'
 export const metadata = { title: 'Blog · Admin · TTLike' }
@@ -68,6 +69,9 @@ export default async function AdminBlogPage() {
 
       {/* ── Section 1: Sitemap Auto-Submit ── */}
       <SitemapSubmitPanel />
+
+      {/* ── Section 1b: Blog Cover Refresh ── */}
+      <RefreshCoversButton />
 
       {/* ── Section 2: Video Breakdown → Blog Generator ── */}
       <div>

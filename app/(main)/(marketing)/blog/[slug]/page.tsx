@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { formatDate } from '@/lib/utils'
 import { createServiceClient } from '@/lib/supabase/server'
 import { SITE_URL } from '@/lib/constants'
+import { BlogImage } from '@/components/blog/BlogImage'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -271,13 +272,14 @@ export default async function BlogPostPage({ params }: Props) {
             <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {readTime} min read</span>
           </div>
 
-          {post.cover_image && (
-            <img
-              src={post.cover_image}
-              alt={cleanTitle(post.title)}
-              className="w-full rounded-xl mb-8 object-cover max-h-72"
-            />
-          )}
+          {/* Cover image — always shown; falls back to gradient if URL expired */}
+          <BlogImage
+            src={post.cover_image}
+            alt={cleanTitle(post.title)}
+            category={post.category}
+            className="w-full rounded-xl mb-8 object-cover max-h-72"
+            fallbackClassName="max-h-72"
+          />
 
           <div className="prose-custom space-y-1">
             {renderMarkdown(post.content)}
@@ -297,10 +299,11 @@ export default async function BlogPostPage({ params }: Props) {
             <CardContent className="p-5">
               <h3 className="font-semibold text-gray-900 text-sm mb-3">Try TTLike Free</h3>
               <p className="text-xs text-gray-600 mb-3">Find viral products and generate AI scripts in seconds.</p>
-              <Link href="/auth/signup">
-                <button className="w-full bg-pink-500 text-white text-sm font-medium py-2 rounded-lg hover:bg-pink-600">
-                  Get Started →
-                </button>
+              <Link
+                href="/auth/signup"
+                className="block w-full text-center bg-pink-500 text-white text-sm font-medium min-h-[44px] leading-none flex items-center justify-center rounded-lg hover:bg-pink-600 transition-colors"
+              >
+                Get Started →
               </Link>
             </CardContent>
           </Card>
