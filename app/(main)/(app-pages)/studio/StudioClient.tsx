@@ -422,18 +422,8 @@ function ResultView({
         hookLine={blueprint.hook}
         productName={meta.product_name}
         scriptLines={script.lines.slice(0, 3).map(l => `${l.say}`).filter(Boolean)}
+        scriptText={script.lines.map(l => `[${l.beat?.toUpperCase() ?? 'LINE'}]\n${l.say}`).join('\n\n')}
       />
-
-      {/* Ready-to-shoot nudge */}
-      <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-4 flex items-start gap-3">
-        <span className="text-xl shrink-0">🎬</span>
-        <div>
-          <p className="text-sm font-semibold text-emerald-800">You&apos;re ready enough.</p>
-          <p className="text-xs text-emerald-600 mt-0.5">
-            Don&apos;t overthink it. Shoot one imperfect take now — you can always improve from there.
-          </p>
-        </div>
-      </div>
 
       {/* ── Storyboard CTA ───────────────────────────────────────────────── */}
       {storyboardProduct && (
