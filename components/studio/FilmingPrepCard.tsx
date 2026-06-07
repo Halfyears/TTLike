@@ -191,13 +191,13 @@ export function FilmingPrepCard({ hookLine, productName, scriptLines = [], scrip
                   </div>
                 </div>
 
-                {/* Export row */}
+                {/* Export row — min-h-[44px] for touch targets */}
                 <div className="flex gap-2 mb-3">
                   <button
                     type="button"
                     onClick={handleCopyScript}
                     disabled={!scriptText && scriptLines.length === 0}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white/20 hover:bg-white/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-xs font-semibold transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 min-h-[44px] bg-white/20 hover:bg-white/30 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg text-xs font-semibold transition-colors"
                   >
                     <Copy className="w-3.5 h-3.5" aria-hidden="true" />
                     {copiedScript ? 'Copied!' : 'Copy Script'}
@@ -205,18 +205,18 @@ export function FilmingPrepCard({ hookLine, productName, scriptLines = [], scrip
                   <button
                     type="button"
                     onClick={handleSaveChecklist}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold transition-colors"
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 min-h-[44px] bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold transition-colors"
                   >
                     <Download className="w-3.5 h-3.5" aria-hidden="true" />
                     {copiedChecklist ? 'Copied!' : 'Save Checklist'}
                   </button>
                 </div>
 
-                {/* Primary CTA */}
+                {/* Primary CTA — min-h-[44px] */}
                 <button
                   type="button"
                   onClick={handleReadyToShoot}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl text-sm font-bold transition-colors shadow-sm"
+                  className="w-full flex items-center justify-center gap-2 px-4 min-h-[44px] bg-white text-emerald-700 hover:bg-emerald-50 rounded-xl text-sm font-bold transition-colors shadow-sm"
                 >
                   <Rocket className="w-4 h-4" aria-hidden="true" />
                   I&apos;m Ready to Shoot

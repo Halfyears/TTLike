@@ -728,7 +728,7 @@ export function StudioClient() {
                 <button
                   type="button"
                   onClick={() => setShowUpgradeModal(true)}
-                  className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                  className={`inline-flex items-center gap-1.5 text-xs px-4 min-h-[36px] rounded-full border transition-colors ${
                     remaining === 0
                       ? 'bg-red-500/15 border-red-500/30 text-red-400'
                       : remaining <= 1

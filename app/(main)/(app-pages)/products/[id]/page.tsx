@@ -414,11 +414,12 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
           )}
         </div>
 
-        {/* Shoot-Ready CTA — desktop header */}
-        <Link href={studioHref} className="hidden sm:block shrink-0">
-          <Button size="lg" className="gap-2">
-            <Wand2 className="h-4 w-4" /> Generate Shoot-Ready Script
-          </Button>
+        {/* Shoot-Ready CTA — desktop header (Link styled as button, no nested <button>) */}
+        <Link
+          href={studioHref}
+          className="hidden sm:inline-flex shrink-0 items-center gap-2 px-5 min-h-[44px] bg-gradient-to-r from-pink-500 to-violet-500 hover:opacity-90 text-white font-semibold rounded-xl text-sm transition-opacity shadow-sm"
+        >
+          <Wand2 className="h-4 w-4" /> Generate Shoot-Ready Script
         </Link>
       </div>
 
@@ -623,17 +624,22 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
               </span>
             </div>
             <div className="flex flex-col gap-2">
-              <Link href={studioHref}>
-                <button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-sm hover:shadow-md">
-                  <Wand2 className="h-4 w-4" />
-                  Generate Shoot-Ready Script
-                </button>
+              {/* Single <Link> styled as button — no nested <button> inside <a> */}
+              <Link
+                href={studioHref}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold min-h-[48px] px-4 rounded-xl text-sm transition-all shadow-sm hover:shadow-md"
+              >
+                <Wand2 className="h-4 w-4" />
+                Generate Shoot-Ready Script
               </Link>
               {v.video_url && (
-                <a href={String(v.video_url)} target="_blank" rel="noopener noreferrer">
-                  <button className="w-full flex items-center justify-center gap-2 border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition-colors text-sm">
-                    <ExternalLink className="h-3.5 w-3.5" /> Watch Original on TikTok
-                  </button>
+                <a
+                  href={String(v.video_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 font-medium min-h-[44px] px-4 rounded-xl transition-colors text-sm"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" /> Watch Original on TikTok
                 </a>
               )}
             </div>
@@ -692,13 +698,14 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
         </div>
       </div>
 
-      {/* Mobile CTA */}
+      {/* Mobile CTA (Link styled as button) */}
       <div className="mt-6 sm:hidden">
-        <Link href={studioHref}>
-          <button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold py-4 rounded-xl shadow-md text-sm">
-            <Wand2 className="h-4 w-4" />
-            Generate Shoot-Ready Script
-          </button>
+        <Link
+          href={studioHref}
+          className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:opacity-90 text-white font-bold min-h-[52px] px-4 rounded-xl shadow-md text-sm transition-opacity"
+        >
+          <Wand2 className="h-4 w-4" />
+          Generate Shoot-Ready Script
         </Link>
       </div>
     </div>
