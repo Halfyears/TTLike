@@ -5,6 +5,7 @@ import {
   ArrowLeft, Eye, Heart, Share2, MessageCircle,
   ExternalLink, Zap, TrendingUp, Tag, AlertCircle, Sparkles,
   Calendar, CheckCircle, Film, Users, Clapperboard, MousePointerClick,
+  Wand2, ListChecks,
 } from 'lucide-react'
 import { CommentsPanel } from './CommentsPanel'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -288,7 +289,11 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
         / Number(v.views)) * 100).toFixed(2)
     : '0'
 
-  const cloneHref = `/dashboard/ai-scripts?from_video=${encodeURIComponent(String(v.id))}&suggested_title=${encodeURIComponent(cleanName)}&niche=${encodeURIComponent(niche)}&keywords=${encodeURIComponent(rawTitle)}`
+  const cloneHref  = `/dashboard/ai-scripts?from_video=${encodeURIComponent(String(v.id))}&suggested_title=${encodeURIComponent(cleanName)}&niche=${encodeURIComponent(niche)}&keywords=${encodeURIComponent(rawTitle)}`
+  // Shoot-ready CTA: deep-link to Studio pre-filled with this video's URL
+  const studioHref = v.video_url
+    ? `/studio?url=${encodeURIComponent(String(v.video_url))}`
+    : '/studio'
 
   // ── trendradar SIGNAL badge ──────────────────────────────────────────────────
   const viralScore  = Number(v.viral_score ?? 0)
@@ -348,10 +353,10 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
           )}
         </div>
 
-        {/* Clone CTA — desktop */}
-        <Link href={cloneHref} className="hidden sm:block shrink-0">
+        {/* Shoot-Ready CTA — desktop header */}
+        <Link href={studioHref} className="hidden sm:block shrink-0">
           <Button size="lg" className="gap-2">
-            <Sparkles className="h-4 w-4" /> Clone &amp; Rewrite
+            <Wand2 className="h-4 w-4" /> Generate Shoot-Ready Script
           </Button>
         </Link>
       </div>
@@ -535,6 +540,33 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
             </CardContent>
           </Card>
 
+          {/* ── Shoot-Ready CTA ── */}
+          <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 p-5">
+            <div className="flex items-center gap-1.5 mb-1">
+              <ListChecks className="h-3.5 w-3.5 text-emerald-600" />
+              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Ready to film this?</p>
+            </div>
+            <h3 className="text-base font-bold text-gray-900 mb-1">Make your own version</h3>
+            <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+              Generate a shoot-ready script and pre-shoot checklist for this product — in ~20 seconds.
+            </p>
+            <div className="flex flex-col gap-2">
+              <Link href={studioHref}>
+                <button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-sm hover:shadow-md">
+                  <Wand2 className="h-4 w-4" />
+                  Generate Shoot-Ready Script
+                </button>
+              </Link>
+              {v.video_url && (
+                <a href={String(v.video_url)} target="_blank" rel="noopener noreferrer">
+                  <button className="w-full flex items-center justify-center gap-2 border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition-colors text-sm">
+                    <ExternalLink className="h-3.5 w-3.5" /> Watch Original on TikTok
+                  </button>
+                </a>
+              )}
+            </div>
+          </div>
+
           {/* ── Module 2: AI Inspiration Engine (on demand) ── */}
           <Card className="border-indigo-100">
             <CardContent className="p-5">
@@ -563,22 +595,7 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
             </CardContent>
           </Card>
 
-          {/* ── Clone & Rewrite CTA ── */}
-          <Link href={cloneHref}>
-            <button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-3.5 rounded-xl shadow-md hover:shadow-lg transition-all text-sm">
-              <Sparkles className="h-4 w-4" />
-              ✨ Clone &amp; Rewrite with AI
-            </button>
-          </Link>
-
-          {/* ── Watch on TikTok ── */}
-          {v.video_url && (
-            <a href={String(v.video_url)} target="_blank" rel="noopener noreferrer">
-              <button className="w-full flex items-center justify-center gap-2 border border-gray-200 text-gray-600 hover:bg-gray-50 font-medium py-2.5 rounded-xl transition-colors text-sm">
-                <ExternalLink className="h-4 w-4" /> Watch Original on TikTok
-              </button>
-            </a>
-          )}
+          {/* Watch on TikTok moved into Shoot-Ready CTA card above */}
 
           {/* ── Similar Products ── */}
           {similar.length > 0 && (
@@ -605,10 +622,10 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
 
       {/* Mobile CTA */}
       <div className="mt-6 sm:hidden">
-        <Link href={cloneHref}>
+        <Link href={studioHref}>
           <button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold py-4 rounded-xl shadow-md text-sm">
-            <Sparkles className="h-4 w-4" />
-            ✨ Clone &amp; Rewrite with AI
+            <Wand2 className="h-4 w-4" />
+            Generate Shoot-Ready Script
           </button>
         </Link>
       </div>
