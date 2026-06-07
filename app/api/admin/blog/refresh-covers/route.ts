@@ -12,25 +12,40 @@
  * video_breakdowns.payload (JSON field), stored as { blog_post_slug: "..." }
  * by the generate-from-breakdown API.
  *
- * Returns: { updated, skipped, total_posts, healthy, details }
+ * Auth: same isAdmin() session check used across all admin routes.
+ *
+ * Returns: { updated, skipped, healthy, total_posts, details }
  */
 
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 
-const ADMIN_KEY = process.env.ADMIN_API_KEY ?? ''
+// ── Auth (same pattern used across all /api/admin/* routes) ──────────────────
+async function isAdmin(): Promise<boolean> {
+  try {
+    const sb = await createClient()
+    const { data: { user } } = await sb.auth.getUser()
+    if (!user) return false
+    try {
+      const u = await prisma.user.findUnique({ where: { email: user.email! } })
+      if (u?.role === 'ADMIN') return true
+    } catch {}
+    return user.email === process.env.ADMIN_EMAIL
+  } catch { return false }
+}
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function isCdnUrl(url: string | null | undefined): boolean {
   if (!url) return true  // null → definitely broken
   return url.includes('tiktokcdn') || url.includes('muscdn') || url.includes('tiktok.com')
 }
 
-export async function POST(req: Request) {
-  // ── Auth guard ────────────────────────────────────────────────────────────
-  const key = req.headers.get('x-admin-key') ?? new URL(req.url).searchParams.get('key') ?? ''
-  if (!ADMIN_KEY || key !== ADMIN_KEY) {
-    return NextResponse.json({ error: 'Unauthorised' }, { status: 401 })
+// ── Handler ───────────────────────────────────────────────────────────────────
+export async function POST() {
+  if (!await isAdmin()) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const service = createServiceClient()
@@ -45,8 +60,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Failed to fetch posts', detail: postsErr?.message }, { status: 500 })
   }
 
-  const total = posts.length
-  const broken = posts.filter(p => isCdnUrl(p.cover_image as string | null))
+  const total   = posts.length
+  const broken  = posts.filter(p => isCdnUrl(p.cover_image as string | null))
   const healthy = total - broken.length
 
   if (broken.length === 0) {
@@ -57,7 +72,8 @@ export async function POST(req: Request) {
   }
 
   // ── 2. Fetch all video_breakdowns that have a blog_post_slug in payload ───
-  //   payload is a JSONB column; PostgREST exposes it via "payload->>key" syntax.
+  //   payload is a JSONB column; the slug is stored by generate-from-breakdown
+  //   as payload.blog_post_slug.
   const { data: breakdowns, error: bdErr } = await service
     .from('video_breakdowns')
     .select(`
@@ -86,9 +102,9 @@ export async function POST(req: Request) {
 
     const storageUrl = bd.tiktok_videos?.cover_storage_url
     const cdnUrl     = bd.tiktok_videos?.cover_url
-    const best       = !isCdnUrl(storageUrl) ? storageUrl
-                     : !isCdnUrl(cdnUrl)     ? cdnUrl
-                     : null
+    const best = !isCdnUrl(storageUrl) ? storageUrl
+               : !isCdnUrl(cdnUrl)     ? cdnUrl
+               : null
 
     if (best) slugToCover.set(slug, best)
   }

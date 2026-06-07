@@ -31,15 +31,9 @@ export function RefreshCoversButton() {
     setResult(null)
     setError(null)
 
-    const adminKey = (document.querySelector('meta[name="admin-key"]') as HTMLMetaElement | null)?.content
-                  ?? prompt('Enter admin API key:')
-                  ?? ''
-
     try {
-      const res = await fetch('/api/admin/blog/refresh-covers', {
-        method:  'POST',
-        headers: { 'x-admin-key': adminKey },
-      })
+      // No API key header needed — auth uses the admin's existing Supabase session
+      const res = await fetch('/api/admin/blog/refresh-covers', { method: 'POST' })
       const json = await res.json() as RefreshResult & { error?: string }
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`)
       setResult(json)
