@@ -11,6 +11,7 @@ import { CreativeBlueprintCard } from '@/components/studio/CreativeBlueprintCard
 import { ScriptLayerCard } from '@/components/studio/ScriptLayerCard'
 import { AntiDupHooksPanel } from '@/components/studio/AntiDupHooksPanel'
 import { FilmingPrepCard } from '@/components/studio/FilmingPrepCard'
+import { UpgradeModal } from '@/components/studio/UpgradeModal'
 import { TranscriptCard } from '@/components/studio/TranscriptCard'
 import type { TranscriptSegment } from '@/components/studio/TranscriptCard'
 import type { CreativeBlueprint, ScriptLayer } from '@/lib/utils/result-transform'
@@ -459,12 +460,24 @@ export function StudioClient() {
   const [errorMsg, setErrorMsg]         = useState<string | null>(null)
   const [prefillUrl, setPrefillUrl]     = useState<string | null>(null)
 
+  // Quota / upgrade modal
+  const [quotaInfo, setQuotaInfo]       = useState<{ used: number; limit: number; tier: string } | null>(null)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+
   const breakdownIdRef  = useRef<string | null>(null)
   const handledUrlRef   = useRef<string | null>(null)
   const videoMetaRef    = useRef<VideoMeta | null>(null)
 
   // Keep ref in sync so useCallback closures can read current videoMeta without stale captures
   useEffect(() => { videoMetaRef.current = videoMeta }, [videoMeta])
+
+  // Fetch quota on mount (non-blocking) — powers the usage badge in URL input
+  useEffect(() => {
+    fetch('/api/studio/quota')
+      .then(r => r.json())
+      .then(d => { if (d.ok) setQuotaInfo({ used: d.used, limit: d.limit, tier: d.tier }) })
+      .catch(() => { /* non-fatal */ })
+  }, [])
 
   useEffect(() => {
     const urlParam = searchParams.get('url')
@@ -600,11 +613,13 @@ export function StudioClient() {
       })
       const data = await res.json()
       if (!data.ok) {
-        // Quota exceeded: show the human-readable message from server
-        const msg = data.error === 'quota_exceeded'
-          ? (data.message ?? 'Monthly limit reached. Please upgrade to continue.')
-          : (data.error ?? 'Something went wrong. Please try again.')
-        setSubmitError(msg)
+        if (data.error === 'quota_exceeded') {
+          // Show upgrade modal with real usage numbers from server response
+          setQuotaInfo({ used: data.used ?? 0, limit: data.limit ?? 0, tier: data.tier ?? 'free' })
+          setShowUpgradeModal(true)
+        } else {
+          setSubmitError(data.error ?? 'Something went wrong. Please try again.')
+        }
         return
       }
       if (!data.breakdown_id) {
@@ -701,11 +716,33 @@ export function StudioClient() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-64 w-64 rounded-full bg-pink-400/10 blur-3xl" />
           </div>
 
-          <div className="relative flex justify-center mb-8">
+          <div className="relative flex justify-center mb-8 gap-3 flex-wrap">
             <span className="inline-flex items-center gap-2 bg-pink-500/10 border border-pink-500/20 text-pink-400 text-xs px-4 py-1.5 rounded-full">
               <span className="h-1.5 w-1.5 rounded-full bg-pink-400 animate-pulse" />
               AI-Powered · ~20 seconds · Any public TikTok URL
             </span>
+            {/* Usage badge — only shown for free tier */}
+            {quotaInfo && quotaInfo.tier === 'free' && (() => {
+              const remaining = Math.max(0, quotaInfo.limit - quotaInfo.used)
+              return (
+                <button
+                  type="button"
+                  onClick={() => setShowUpgradeModal(true)}
+                  className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                    remaining === 0
+                      ? 'bg-red-500/15 border-red-500/30 text-red-400'
+                      : remaining <= 1
+                      ? 'bg-amber-500/15 border-amber-500/30 text-amber-400'
+                      : 'bg-white/10 border-white/20 text-gray-400'
+                  }`}
+                >
+                  <Zap className="w-3 h-3" />
+                  {remaining === 0
+                    ? 'No scripts left · Upgrade'
+                    : `${remaining} / ${quotaInfo.limit} scripts left`}
+                </button>
+              )
+            })()}
           </div>
 
           <div className="relative">
@@ -780,6 +817,15 @@ export function StudioClient() {
             Try again
           </button>
         </div>
+      )}
+
+      {/* ── Upgrade Modal ────────────────────────────────────────────────── */}
+      {showUpgradeModal && quotaInfo && (
+        <UpgradeModal
+          used={quotaInfo.used}
+          limit={quotaInfo.limit}
+          onClose={() => setShowUpgradeModal(false)}
+        />
       )}
     </div>
   )
