@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Plus, X, Loader2, ChevronLeft, Clock, Zap, Clapperboard, Mic } from 'lucide-react'
+import { Plus, X, Loader2, ChevronLeft, Clock, Zap, Clapperboard, Mic, FileText, Lightbulb, ListChecks } from 'lucide-react'
 import { handleIntent } from '@/lib/behavior/intent-bridge'
 import { useBehaviorStore } from '@/lib/behavior/state-machine'
 import { URLInputCard } from '@/components/studio/URLInputCard'
@@ -257,6 +257,35 @@ function ProductFormStep({
   )
 }
 
+// ── Section Header ────────────────────────────────────────────────────────────
+
+function SectionHeader({
+  number,
+  icon: Icon,
+  title,
+  subtitle,
+  accentColor = 'bg-pink-500',
+}: {
+  number:      number
+  icon:        React.ElementType
+  title:       string
+  subtitle?:   string
+  accentColor?: string
+}) {
+  return (
+    <div className="flex items-center gap-3 pt-2">
+      <div className={`w-7 h-7 rounded-full ${accentColor} text-white text-xs font-bold flex items-center justify-center shrink-0`}>
+        {number}
+      </div>
+      <Icon className="h-4 w-4 text-gray-400 shrink-0" />
+      <div>
+        <h2 className="font-bold text-gray-900 text-sm leading-none">{title}</h2>
+        {subtitle && <p className="text-[11px] text-gray-400 mt-0.5">{subtitle}</p>}
+      </div>
+    </div>
+  )
+}
+
 // ── Result View ───────────────────────────────────────────────────────────────
 
 function ResultView({
@@ -309,7 +338,8 @@ function ResultView({
 
   return (
     <div className="w-full max-w-2xl mx-auto space-y-6">
-      {/* Header */}
+
+      {/* ── Top bar: meta + New video ─────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs text-gray-400 mb-0.5 flex items-center gap-1.5">
@@ -346,27 +376,68 @@ function ResultView({
         </button>
       </div>
 
-      <CreativeBlueprintCard blueprint={blueprint} />
+      {/* ════════════════════════════════════════════════════════════════
+          Section 1 — Your Script
+          ════════════════════════════════════════════════════════════════ */}
+      <div className="border-t border-gray-100 pt-2">
+        <SectionHeader
+          number={1}
+          icon={FileText}
+          title="Your Script"
+          subtitle="Hook · Body · CTA — ready to read on camera"
+          accentColor="bg-pink-500"
+        />
+      </div>
       <ScriptLayerCard script={script} onCopy={() => triggerComplete('copy')} />
 
-      {/* Audio transcript with pause / topic-turn markers */}
+      {/* ════════════════════════════════════════════════════════════════
+          Section 2 — Why It Works
+          ════════════════════════════════════════════════════════════════ */}
+      <div className="border-t border-gray-100 pt-2">
+        <SectionHeader
+          number={2}
+          icon={Lightbulb}
+          title="Why It Works"
+          subtitle="Viral pattern · Emotional trigger · Audience pain points"
+          accentColor="bg-violet-500"
+        />
+      </div>
+      <CreativeBlueprintCard blueprint={blueprint} />
+      {blueprint.hook && <AntiDupHooksPanel hookLine={blueprint.hook} />}
       {transcript.length > 0 && <TranscriptCard segments={transcript} />}
 
-      {/* Anti-duplication variants */}
-      {blueprint.hook && (
-        <AntiDupHooksPanel hookLine={blueprint.hook} />
-      )}
-
-      {/* Pre-shoot checklist — script-aware */}
+      {/* ════════════════════════════════════════════════════════════════
+          Section 3 — Pre-Shoot Checklist
+          ════════════════════════════════════════════════════════════════ */}
+      <div className="border-t border-gray-100 pt-2">
+        <SectionHeader
+          number={3}
+          icon={ListChecks}
+          title="Pre-Shoot Checklist"
+          subtitle="Environment · Props · Gear · Mindset — so you can start filming today"
+          accentColor="bg-emerald-500"
+        />
+      </div>
       <FilmingPrepCard
         hookLine={blueprint.hook}
         productName={meta.product_name}
         scriptLines={script.lines.slice(0, 3).map(l => `${l.say}`).filter(Boolean)}
       />
 
-      {/* Storyboard CTA */}
+      {/* Ready-to-shoot nudge */}
+      <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-5 py-4 flex items-start gap-3">
+        <span className="text-xl shrink-0">🎬</span>
+        <div>
+          <p className="text-sm font-semibold text-emerald-800">You&apos;re ready enough.</p>
+          <p className="text-xs text-emerald-600 mt-0.5">
+            Don&apos;t overthink it. Shoot one imperfect take now — you can always improve from there.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Storyboard CTA ───────────────────────────────────────────────── */}
       {storyboardProduct && (
-        <div className="flex justify-center pt-2">
+        <div className="flex justify-center pt-2 pb-4">
           <a
             href={`/dashboard/studio?product=${storyboardProduct}`}
             onClick={() => triggerComplete('storyboard')}
@@ -377,6 +448,7 @@ function ResultView({
           </a>
         </div>
       )}
+
     </div>
   )
 }
