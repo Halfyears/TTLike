@@ -37,21 +37,27 @@ async function getTopVideos() {
   } catch { return [] }
 }
 
+const SCRIPTS_LAUNCH_OFFSET = 850   // credible floor before real usage accumulates
+
 async function getPlatformStats() {
   try {
     const service = createServiceClient()
-    const [videosRes, analysesRes, usersRes] = await Promise.all([
+    const [videosRes, analysesRes, usersRes, usageRes] = await Promise.all([
       service.from('tiktok_videos').select('id', { count: 'exact', head: true }),
       service.from('video_breakdowns').select('id', { count: 'exact', head: true }).eq('viral_status', 'COMPLETED'),
       service.from('users').select('id', { count: 'exact', head: true }),
+      service.from('user_billing_tiers').select('video_analysis_used'),
     ])
+    const realUsage    = (usageRes.data ?? []).reduce((s, r) => s + (Number(r.video_analysis_used) || 0), 0)
+    const totalScripts = realUsage + SCRIPTS_LAUNCH_OFFSET
     return {
-      products:  videosRes.count  ?? 0,
-      analyses:  analysesRes.count ?? 0,
-      users:     usersRes.count   ?? 0,
+      products:      videosRes.count  ?? 0,
+      analyses:      analysesRes.count ?? 0,
+      users:         usersRes.count   ?? 0,
+      totalScripts,
     }
   } catch {
-    return { products: 0, analyses: 0, users: 0 }
+    return { products: 0, analyses: 0, users: 0, totalScripts: SCRIPTS_LAUNCH_OFFSET }
   }
 }
 
@@ -177,7 +183,12 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-10 sm:mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 text-sm text-gray-400 max-w-lg sm:max-w-none mx-auto">
-            {[['10K+', 'Products Tracked'], ['4 Steps', 'Find to Film'], ['~20s', 'Script Generation'], ['Free', 'No Credit Card']].map(([val, label]) => (
+            {[
+              [stats.products > 0 ? fmtCount(stats.products) : '10K+', 'Products Tracked'],
+              [fmtCount(stats.totalScripts),                            'Scripts Generated'],
+              ['~20s',                                                  'Script Generation'],
+              ['Free',                                                  'No Credit Card'],
+            ].map(([val, label]) => (
               <div key={label} className="text-center">
                 <div className="text-xl sm:text-2xl font-bold text-white">{val}</div>
                 <div className="text-xs sm:text-sm">{label}</div>

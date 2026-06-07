@@ -16,6 +16,7 @@ import { LocalDate } from '@/components/ui/LocalDate'
 import { VideoBreakdownWithTier } from '@/components/VideoBreakdownWithTier'
 import { StructuralHealthReport } from '@/components/StructuralHealthReport'
 import { formatNumber } from '@/lib/utils'
+import { syntheticScriptCount, scriptCountLabel } from '@/lib/utils/social-proof'
 import type { Metadata } from 'next'
 import { SITE_URL } from '@/lib/constants'
 
@@ -547,9 +548,20 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
               <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Ready to film this?</p>
             </div>
             <h3 className="text-base font-bold text-gray-900 mb-1">Make your own version</h3>
-            <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+            <p className="text-sm text-gray-500 mb-3 leading-relaxed">
               Generate a shoot-ready script and pre-shoot checklist for this product — in ~20 seconds.
             </p>
+            {/* Social proof badge */}
+            <div className="flex items-center gap-1.5 mb-4">
+              <div className="flex -space-x-1">
+                {['bg-pink-400','bg-violet-400','bg-teal-400'].map((c,i) => (
+                  <div key={i} className={`w-5 h-5 rounded-full ${c} border-2 border-white`} />
+                ))}
+              </div>
+              <span className="text-xs text-emerald-700 font-medium">
+                🎬 {scriptCountLabel(syntheticScriptCount(String(v.id), Number(v.viral_score ?? 50)))}
+              </span>
+            </div>
             <div className="flex flex-col gap-2">
               <Link href={studioHref}>
                 <button className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-sm hover:shadow-md">
