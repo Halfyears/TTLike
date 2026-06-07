@@ -3,7 +3,7 @@ import Link from 'next/link'
 import {
   ArrowRight, Zap, TrendingUp, Brain, ShoppingBag,
   Star, Users, Play, Search, Wand2, CheckCircle2,
-  BookOpen, ChevronDown,
+  BookOpen, ChevronDown, ListChecks,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -14,8 +14,8 @@ import { createClient, createServiceClient } from '@/lib/supabase/server'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-  title: `${SITE_NAME} · AI TikTok Viral Intelligence for Dropshippers`,
-  description: SITE_DESCRIPTION,
+  title: `${SITE_NAME} · Find Viral TikTok Products. Generate Scripts. Get Ready to Shoot.`,
+  description: 'TTLike helps TikTok sellers move from viral product discovery to shoot-ready action. Find trending products, decode why they go viral, generate your script, and get a pre-shoot checklist — all in one place.',
   openGraph: {
     url: SITE_URL,
     images: [{ url: `${SITE_URL}/og-home.png`, width: 1200, height: 630 }],
@@ -138,32 +138,46 @@ export default async function HomePage() {
           </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-tight mb-5 sm:mb-6">
-            Find Viral TikTok Products<br />
+            Find Viral TikTok Products and<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-violet-400">
-              Before They Blow Up
+              Turn Them Into Shoot-Ready Scripts
             </span>
           </h1>
 
-          <p className="text-base sm:text-xl text-gray-300 max-w-2xl mx-auto mb-8 sm:mb-10">
-            Browse 10,000+ viral products, decode hook patterns, and generate ready-to-film scripts — all in one place.
+          <p className="text-base sm:text-xl text-gray-300 max-w-2xl mx-auto mb-5 sm:mb-6">
+            Discover winning products, decode their viral hooks, generate your own script, and get a pre-shoot checklist — so you can start filming today.
           </p>
 
-          {/* P1: Primary CTA → Browse Products (no login required) */}
+          {/* Workflow steps pill */}
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-8 sm:mb-10 flex-wrap">
+            {[
+              { label: 'Find', color: 'text-pink-400' },
+              { label: '→', color: 'text-gray-600' },
+              { label: 'Understand', color: 'text-violet-400' },
+              { label: '→', color: 'text-gray-600' },
+              { label: 'Script', color: 'text-blue-400' },
+              { label: '→', color: 'text-gray-600' },
+              { label: 'Prepare to Shoot', color: 'text-emerald-400' },
+            ].map((step, i) => (
+              <span key={i} className={`text-sm font-semibold ${step.color}`}>{step.label}</span>
+            ))}
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
-            <Link href="/products">
+            <Link href="/studio">
               <Button size="lg" className="w-full sm:w-auto">
-                <Search className="mr-2 h-5 w-5" /> Browse Products Free
+                <Wand2 className="mr-2 h-5 w-5" /> Generate Shoot-Ready Script
               </Button>
             </Link>
-            <Link href="/auth/signup">
+            <Link href="/products">
               <Button size="lg" variant="secondary" className="w-full sm:w-auto bg-white/10 border-white/20 text-white hover:bg-white/20">
-                Get Started Free <ArrowRight className="ml-2 h-4 w-4" />
+                <Search className="mr-2 h-4 w-4" /> Browse Products Free
               </Button>
             </Link>
           </div>
 
           <div className="mt-10 sm:mt-12 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-8 text-sm text-gray-400 max-w-lg sm:max-w-none mx-auto">
-            {[['10K+', 'Products Tracked'], ['94%', 'Viral Accuracy'], ['~20s', 'Script Generation'], ['Free', 'No Credit Card']].map(([val, label]) => (
+            {[['10K+', 'Products Tracked'], ['4 Steps', 'Find to Film'], ['~20s', 'Script Generation'], ['Free', 'No Credit Card']].map(([val, label]) => (
               <div key={label} className="text-center">
                 <div className="text-xl sm:text-2xl font-bold text-white">{val}</div>
                 <div className="text-xs sm:text-sm">{label}</div>
@@ -177,8 +191,9 @@ export default async function HomePage() {
       <section className="py-12 sm:py-20 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10 sm:mb-14">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">From Zero to Viral Script in 3 Steps</h2>
-            <p className="text-gray-500 text-sm sm:text-base max-w-xl mx-auto">No guesswork. Our AI decodes what makes videos go viral, then writes your script.</p>
+            <p className="text-sm font-semibold text-pink-500 uppercase tracking-widest mb-3">The Workflow</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-3">From Viral Product to First Take</h2>
+            <p className="text-gray-500 text-sm sm:text-base max-w-xl mx-auto">Most tools stop at data. TTLike takes you all the way to the moment you press record.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
@@ -253,12 +268,14 @@ export default async function HomePage() {
               <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-3">
                 <Wand2 className="w-5 h-5 text-pink-400" />
               </div>
-              <h3 className="font-bold text-white mb-2">Generate Your Script</h3>
-              <p className="text-sm text-gray-400 mb-4">Paste any TikTok URL. Our AI analyzes it in ~20 seconds and writes a ready-to-film script.</p>
+              <h3 className="font-bold text-white mb-1">Get Shoot-Ready</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                Paste any TikTok URL → AI script in ~20 seconds, plus a pre-shoot checklist so you can start filming today.
+              </p>
 
-              {/* Static script preview */}
-              <div className="space-y-1.5 mb-4">
-                {DEMO_SCRIPT.slice(0, 3).map((line, i) => (
+              {/* Script + checklist preview */}
+              <div className="space-y-1.5 mb-3">
+                {DEMO_SCRIPT.slice(0, 2).map((line, i) => (
                   <div key={i} className="bg-white/5 rounded-lg px-3 py-2 border border-white/10">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-[10px] font-mono text-gray-500">{line.time}</span>
@@ -268,10 +285,17 @@ export default async function HomePage() {
                   </div>
                 ))}
               </div>
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2 mb-4">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <ListChecks className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wide">Pre-Shoot Checklist</span>
+                </div>
+                <p className="text-xs text-gray-400">Environment · Props · Gear · Mindset</p>
+              </div>
 
               <Link href="/auth/signup">
                 <button className="w-full py-2.5 bg-gradient-to-r from-pink-500 to-violet-500 rounded-xl text-sm font-semibold text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-                  <Zap className="w-4 h-4" /> Try Viral Studio Free
+                  <Zap className="w-4 h-4" /> Generate Shoot-Ready Script Free
                 </button>
               </Link>
             </div>
@@ -488,18 +512,23 @@ export default async function HomePage() {
       <section className="py-12 sm:py-16 bg-gradient-to-r from-pink-500 to-violet-600 text-white">
         <div className="mx-auto max-w-3xl px-4 text-center">
           <Users className="h-10 w-10 mx-auto mb-4 opacity-80" />
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3">Ready to Generate Your First Script?</h2>
-          <p className="text-pink-100 mb-3 text-sm sm:text-base">Sign up free. Paste a TikTok URL. Get a script in 20 seconds.</p>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3">
+            Stop saving viral products.<br className="hidden sm:block" />
+            Start filming them.
+          </h2>
+          <p className="text-pink-100 mb-2 text-sm sm:text-base max-w-lg mx-auto">
+            Pick a viral product. Get your script. Check the pre-shoot list. Film one imperfect take today.
+          </p>
           <p className="text-pink-200 text-xs mb-8">No credit card · Instant access · Cancel anytime</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/auth/signup">
               <Button size="lg" variant="secondary" className="w-full sm:w-auto bg-white text-pink-600 hover:bg-pink-50">
-                Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
+                <Wand2 className="mr-2 h-5 w-5" /> Generate Shoot-Ready Script Free
               </Button>
             </Link>
             <Link href="/products">
               <Button size="lg" variant="secondary" className="w-full sm:w-auto bg-transparent border-white/40 text-white hover:bg-white/10">
-                <Play className="mr-2 h-4 w-4" /> Browse Products First
+                <Search className="mr-2 h-4 w-4" /> Browse Products First
               </Button>
             </Link>
           </div>
