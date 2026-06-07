@@ -1,4 +1,4 @@
-import { Check, Zap, Sparkles, Shield } from 'lucide-react'
+import { Check, X, Zap, Sparkles, Shield, Video, FileText, ListChecks, Lightbulb } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent } from '@/components/ui/Card'
@@ -8,7 +8,7 @@ import { PricingCheckoutButton } from '@/components/pricing/PricingCheckoutButto
 
 export const metadata = {
   title:       'Pricing · TTLike',
-  description: 'Start free — 5 viral analyses per month. Upgrade to Creator ($29/mo) for 50 analyses, or Scale ($99/mo) for unlimited TikTok viral intelligence.',
+  description: 'From viral product discovery to shoot-ready action. Free plan includes 5 shoot-ready outputs/month. Creator ($39/mo) and Scale ($99/mo) for serious TikTok sellers and teams.',
   alternates:  { canonical: `${SITE_URL}/pricing` },
 }
 
@@ -17,76 +17,112 @@ const PLANS = [
     key:         'free',
     name:        'Free',
     price:       0,
-    description: 'Try TTLike at no cost',
+    tagline:     'Try the full workflow',
+    description: 'Experience one complete Find → Script → Prepare cycle at no cost.',
     icon:        Sparkles,
     iconColor:   'text-gray-400',
     highlight:   false,
     cta:         'Get Started Free',
     planSlug:    null as null | 'creator' | 'scale',
     features: [
-      `${TIER_LIMITS.free.video_analysis} video analyses / month`,
-      'AI Viral Breakdown (viral formulas + timeline)',
-      'Production Insights panel',
-      'SIGNAL trend badge',
-      'Buyer Signals comments',
-      'AI Script Generator (3 scripts/day)',
-      'Hook library access',
+      `${TIER_LIMITS.free.video_analysis} shoot-ready outputs / month`,
+      'Viral product discovery (Product Database)',
+      'AI Viral Breakdown (hooks + formulas)',
+      'AI Script Generator',
+      'Pre-Shoot Checklist',
+      'Hook Library access',
+      'Trending products feed',
     ],
     locked: [
-      'AI Structural Health Report',
       'Anti-duplication hook variants',
       'CapCut script export',
       'Batch analysis',
+      'CSV export',
+      'Trend alerts',
     ],
   },
   {
     key:         'creator',
     name:        'Creator',
-    price:       29,
-    description: 'For serious TikTok sellers',
+    price:       39,
+    tagline:     'Build a repeatable content engine',
+    description: 'For TikTok sellers and UGC creators turning viral products into weekly content.',
     icon:        Zap,
     iconColor:   'text-pink-500',
     highlight:   true,
     cta:         'Start Creator',
     planSlug:    'creator' as 'creator' | 'scale',
     features: [
-      `${TIER_LIMITS.creator.video_analysis} video analyses / month`,
-      `${TIER_LIMITS.creator.strategy_audit} AI Structural Health Reports / month`,
-      'All Free features',
+      `${TIER_LIMITS.creator.video_analysis} shoot-ready outputs / month`,
+      'Everything in Free',
       'Anti-duplication hook variants',
       'Full CapCut script export',
-      'Unlimited AI scripts',
-      'Trend alerts',
+      'Batch analysis',
+      'CSV export',
+      'Daily trend alerts',
+      'Unlimited saved products',
       'Priority support',
-      'CSV exports',
     ],
     locked: [
       'White-label reports',
       'Team seats',
+      'API access',
     ],
   },
   {
     key:         'scale',
     name:        'Scale',
     price:       99,
-    description: 'For agencies & power sellers',
+    tagline:     'Prepare at scale for teams',
+    description: 'For agencies and TikTok Shop teams researching products and prepping content in bulk.',
     icon:        Shield,
     iconColor:   'text-violet-500',
     highlight:   false,
     cta:         'Get Scale',
     planSlug:    'scale' as 'creator' | 'scale',
     features: [
-      `${TIER_LIMITS.scale.video_analysis} video analyses / month`,
-      `${TIER_LIMITS.scale.strategy_audit} AI Structural Health Reports / month`,
-      'All Creator features',
+      `${TIER_LIMITS.scale.video_analysis} shoot-ready outputs / month`,
+      'Everything in Creator',
       'White-label reports',
       'Team seats (5 users)',
+      'API access',
       'Custom integrations',
       'Dedicated account manager',
       'SLA guarantee',
-      'API access',
     ],
     locked: [],
+  },
+]
+
+// What's inside a shoot-ready output
+const OUTPUT_STEPS = [
+  {
+    icon:  Video,
+    color: 'text-pink-500',
+    bg:    'bg-pink-50',
+    title: 'Viral Product Opportunity',
+    desc:  'A trending product that is already getting traction on TikTok.',
+  },
+  {
+    icon:  Lightbulb,
+    color: 'text-amber-500',
+    bg:    'bg-amber-50',
+    title: 'Hook & Formula Breakdown',
+    desc:  'Why the video works — hook type, emotional trigger, viral formula.',
+  },
+  {
+    icon:  FileText,
+    color: 'text-blue-500',
+    bg:    'bg-blue-50',
+    title: 'AI-Generated Script',
+    desc:  'Your own version of the script, ready to read on camera.',
+  },
+  {
+    icon:  ListChecks,
+    color: 'text-emerald-500',
+    bg:    'bg-emerald-50',
+    title: 'Pre-Shoot Checklist',
+    desc:  'Environment, props, gear, and mindset — so you can start filming today.',
   },
 ]
 
@@ -98,19 +134,57 @@ export default async function PricingPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-16">
 
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">Simple, Transparent Pricing</h1>
-        <p className="text-xl text-gray-600 mb-2">Start free. Upgrade when you&apos;re ready.</p>
-        <p className="text-sm text-gray-400">No contracts. Cancel anytime.</p>
+      {/* ── Header ───────────────────────────────────────────────────────────── */}
+      <div className="text-center mb-10">
+        <p className="text-sm font-semibold text-pink-500 uppercase tracking-widest mb-3">Pricing</p>
+        <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4 leading-tight">
+          Don&apos;t just find viral products.<br className="hidden sm:block" />
+          Get ready to film them.
+        </h1>
+        <p className="text-lg text-gray-500 max-w-xl mx-auto">
+          Every plan gives you a complete workflow — from discovery to shoot-ready action.
+        </p>
+        <p className="text-sm text-gray-400 mt-2">No contracts. Cancel anytime.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* ── What is a shoot-ready output? ────────────────────────────────────── */}
+      <div className="mb-12 rounded-2xl border border-gray-100 bg-gray-50 p-6 sm:p-8">
+        <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">What you get</p>
+        <h2 className="text-xl font-bold text-gray-900 mb-1">What is a shoot-ready output?</h2>
+        <p className="text-sm text-gray-500 mb-6">
+          One output = one complete cycle from viral product to first take. Every plan is measured in outputs, not raw API calls.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {OUTPUT_STEPS.map((step, i) => {
+            const Icon = step.icon
+            return (
+              <div key={step.title} className="flex flex-col items-start gap-2">
+                <div className={`w-9 h-9 rounded-xl ${step.bg} flex items-center justify-center`}>
+                  <Icon className={`h-4 w-4 ${step.color}`} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">
+                    Step {i + 1}
+                  </p>
+                  <p className="text-sm font-semibold text-gray-800 leading-snug">{step.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{step.desc}</p>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Plans grid ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         {PLANS.map(plan => {
           const Icon = plan.icon
           return (
             <Card
               key={plan.key}
-              className={plan.highlight ? 'border-pink-400 shadow-xl ring-2 ring-pink-400 relative' : 'relative'}
+              className={plan.highlight
+                ? 'border-pink-400 shadow-xl ring-2 ring-pink-400 relative'
+                : 'relative'}
             >
               {plan.highlight && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -120,19 +194,25 @@ export default async function PricingPage() {
                 </div>
               )}
               <CardContent className="p-6">
-                <div className="flex items-center gap-2 mb-1">
+                {/* Plan header */}
+                <div className="flex items-center gap-2 mb-0.5">
                   <Icon className={`h-5 w-5 ${plan.iconColor}`} />
                   <h2 className="text-xl font-bold text-gray-900">{plan.name}</h2>
                 </div>
-                <p className="text-gray-500 text-sm mb-5">{plan.description}</p>
+                <p className={`text-sm font-semibold mb-1 ${plan.highlight ? 'text-pink-500' : 'text-gray-500'}`}>
+                  {plan.tagline}
+                </p>
+                <p className="text-xs text-gray-400 mb-5 leading-relaxed">{plan.description}</p>
 
-                <div className="mb-6">
+                {/* Price */}
+                <div className="mb-5">
                   <div className="flex items-end gap-1">
                     <span className="text-4xl font-black text-gray-900">${plan.price}</span>
-                    <span className="text-gray-500 text-sm mb-1">/mo</span>
+                    <span className="text-gray-400 text-sm mb-1">/mo</span>
                   </div>
                 </div>
 
+                {/* CTA */}
                 <div className="mb-6">
                   {plan.planSlug ? (
                     <PricingCheckoutButton
@@ -150,6 +230,7 @@ export default async function PricingPage() {
                   )}
                 </div>
 
+                {/* Features */}
                 <ul className="space-y-2.5">
                   {plan.features.map(feature => (
                     <li key={feature} className="flex items-start gap-2">
@@ -159,8 +240,8 @@ export default async function PricingPage() {
                   ))}
                   {plan.locked.map(feature => (
                     <li key={feature} className="flex items-start gap-2 opacity-40">
-                      <Check className="h-4 w-4 text-gray-300 mt-0.5 shrink-0" />
-                      <span className="text-sm text-gray-500 line-through">{feature}</span>
+                      <X className="h-4 w-4 text-gray-300 mt-0.5 shrink-0" />
+                      <span className="text-sm text-gray-400">{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -170,38 +251,72 @@ export default async function PricingPage() {
         })}
       </div>
 
-      <div className="mt-12 text-center">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Frequently Asked Questions</h3>
-        <div className="max-w-2xl mx-auto space-y-4 text-left">
+      {/* ── Value comparison strip ────────────────────────────────────────────── */}
+      <div className="mb-12 rounded-2xl bg-gray-900 text-white p-6 sm:p-8">
+        <h3 className="text-base font-semibold mb-1 text-white">How TTLike is different</h3>
+        <p className="text-gray-400 text-sm mb-6">Most tools stop at data. TTLike takes you to action.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           {[
-            {
-              q: 'What counts as a video analysis?',
-              a: 'Each unique TikTok video URL analyzed via the Inspiration Engine counts as one use. Cached results (same video analyzed again) do not consume additional quota.',
-            },
-            {
-              q: 'Do unused analyses roll over?',
-              a: 'Quotas reset on the 1st of each month. Unused analyses do not carry over.',
-            },
-            {
-              q: 'Can I upgrade or downgrade anytime?',
-              a: 'Yes. Upgrades take effect immediately. Downgrades apply at the next billing cycle.',
-            },
-            {
-              q: 'Do you support PayPal?',
-              a: 'Yes, we accept both credit cards (via Stripe) and PayPal.',
-            },
-            {
-              q: 'What is the AI Structural Health Report?',
-              a: 'A forensic audit of a viral video covering Hook Retention Mechanics, Trust Blueprint, Structural Leak Detection, and a zero-cost Counter-Attack Manual — exclusive to Creator and Scale tiers.',
-            },
-          ].map(({ q, a }) => (
-            <div key={q} className="border-b border-gray-100 pb-4">
-              <h4 className="font-medium text-gray-900 mb-1">{q}</h4>
-              <p className="text-sm text-gray-600">{a}</p>
+            ['Other product research tools', 'Tell you what products are trending'],
+            ['TTLike',                        'Show you why a video works, generate your script, and prep you to shoot'],
+            ['Other ad libraries',           'Find winning ads for inspiration'],
+            ['TTLike',                        'Convert that inspiration into a shoot-ready output you can film today'],
+          ].map(([who, what], i) => (
+            <div
+              key={i}
+              className={`rounded-xl px-4 py-3 ${
+                who === 'TTLike'
+                  ? 'bg-pink-500/20 border border-pink-500/30 text-pink-200'
+                  : 'bg-white/5 border border-white/10 text-gray-400'
+              }`}
+            >
+              <p className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${who === 'TTLike' ? 'text-pink-400' : 'text-gray-600'}`}>
+                {who}
+              </p>
+              <p>{what}</p>
             </div>
           ))}
         </div>
       </div>
+
+      {/* ── FAQ ──────────────────────────────────────────────────────────────── */}
+      <div className="text-center mb-6">
+        <h3 className="text-lg font-semibold text-gray-900">Frequently Asked Questions</h3>
+      </div>
+      <div className="max-w-2xl mx-auto space-y-4">
+        {[
+          {
+            q: 'What counts as a shoot-ready output?',
+            a: 'One output = one viral product analyzed through the full workflow: Viral Breakdown, AI Script, and Pre-Shoot Checklist. Re-analyzing the same video does not consume additional quota.',
+          },
+          {
+            q: 'Do unused outputs roll over?',
+            a: 'Quotas reset on the 1st of each month. Unused outputs do not carry over.',
+          },
+          {
+            q: 'Can I upgrade or downgrade anytime?',
+            a: 'Yes. Upgrades take effect immediately. Downgrades apply at the next billing cycle.',
+          },
+          {
+            q: 'Do you support PayPal?',
+            a: 'Yes, we accept both credit cards (via Stripe) and PayPal.',
+          },
+          {
+            q: 'Is TTLike useful if I have zero filming experience?',
+            a: "Yes. The Pre-Shoot Checklist is designed for beginners — no studio, no fancy gear. You get a list of exactly what to prepare so you can shoot one imperfect take and improve from there.",
+          },
+          {
+            q: 'What is the difference between Creator and Scale?',
+            a: 'Creator is for individual sellers and creators. Scale adds team seats (5 users), white-label reporting, and API access for agencies or TikTok Shop teams managing multiple products at once.',
+          },
+        ].map(({ q, a }) => (
+          <div key={q} className="border-b border-gray-100 pb-4">
+            <h4 className="font-medium text-gray-900 mb-1">{q}</h4>
+            <p className="text-sm text-gray-600">{a}</p>
+          </div>
+        ))}
+      </div>
+
     </div>
   )
 }
