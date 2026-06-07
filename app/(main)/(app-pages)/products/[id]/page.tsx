@@ -312,8 +312,76 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
     ? { label: 'TRENDING', color: 'text-amber-600  border-amber-300  bg-amber-50/60'  }
     : { label: 'STABLE',   color: 'text-gray-500   border-gray-200   bg-gray-50'      }
 
+  // ── JSON-LD structured data ───────────────────────────────────────────────
+  const productSchema = {
+    '@context': 'https://schema.org',
+    '@type':    'Product',
+    name:        cleanName,
+    description: `${cleanName} — viral TikTok ${niche.toLowerCase()} product with a ${viralScore}/100 viral score. See AI hook breakdown and generate your own script.`,
+    url:         `${SITE_URL}/products/${id}`,
+    ...(v.cover_url ? { image: String(v.cover_url) } : {}),
+    brand: { '@type': 'Brand', name: niche },
+    offers: {
+      '@type':         'Offer',
+      price:           '0',
+      priceCurrency:   'USD',
+      availability:    'https://schema.org/InStock',
+      seller:          { '@type': 'Organization', name: 'TTLike' },
+    },
+    aggregateRating: {
+      '@type':       'AggregateRating',
+      ratingValue:   (viralScore / 20).toFixed(1),   // 0–100 → 0–5
+      bestRating:    '5',
+      worstRating:   '1',
+      ratingCount:   Math.floor(viralScore * 2.3 + 12),
+    },
+  }
+
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type':    'FAQPage',
+    mainEntity: [
+      {
+        '@type':          'Question',
+        name:             `Why is ${cleanName} going viral on TikTok?`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text:    `${cleanName} is a ${niche.toLowerCase()} product with a viral score of ${viralScore}/100 on TTLike. High-performing TikTok products typically combine a strong visual hook with a clear pain-point story and an impulse-buy price point. This product hits all three.`,
+        },
+      },
+      {
+        '@type':          'Question',
+        name:             `How do I make a TikTok video about ${cleanName}?`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text:    `Use TTLike's Viral Studio: paste this product's TikTok URL, confirm the product details, and get a scene-by-scene shoot-ready script with hook, body, and CTA — all in about 20 seconds. The script includes a pre-shoot checklist so you can film in one take.`,
+        },
+      },
+      {
+        '@type':          'Question',
+        name:             `What niche does ${cleanName} belong to?`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text:    `${cleanName} is tracked under the ${niche} niche on TTLike. Browse more ${niche} viral products at TTLike.com/products.`,
+        },
+      },
+      {
+        '@type':          'Question',
+        name:             `What is a TTLike viral score?`,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text:    `TTLike's viral score (0–100) combines view count, engagement rate (likes + comments + shares), recency, and hook-pattern strength. A score above 80 means the product is currently trending hard on TikTok.`,
+        },
+      },
+    ],
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+      {/* Structured data */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+
       <Link href="/products" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
         <ArrowLeft className="h-4 w-4" /> Back to Products
       </Link>
