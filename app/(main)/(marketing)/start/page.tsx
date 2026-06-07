@@ -120,11 +120,65 @@ const TESTIMONIALS = [
   },
 ]
 
+// ── HowTo structured data (public page — Googlebot can crawl) ────────────────
+const howToSchema = {
+  '@context':  'https://schema.org',
+  '@type':     'HowTo',
+  name:        'How to Generate a Shoot-Ready TikTok Script with TTLike',
+  description: 'Turn any viral TikTok product URL into a scene-by-scene script with hook, body lines, CTA, and a pre-shoot checklist — in about 20 seconds.',
+  totalTime:   'PT2M',
+  tool: [
+    { '@type': 'HowToTool', name: 'TTLike Viral Studio', url: `${SITE_URL}/studio` },
+    { '@type': 'HowToTool', name: 'Any public TikTok video URL' },
+  ],
+  step: [
+    {
+      '@type':   'HowToStep',
+      position:  1,
+      name:      'Find a viral TikTok product',
+      text:      "Browse TTLike's product database of 10,000+ videos ranked by viral score, or copy the URL of any public TikTok video featuring a product you want to film.",
+      url:       `${SITE_URL}/products`,
+    },
+    {
+      '@type':   'HowToStep',
+      position:  2,
+      name:      'Paste the TikTok URL into Viral Studio',
+      text:      "Open TTLike Viral Studio and paste the TikTok video URL. The AI immediately decodes the hook type, emotional trigger, and viral pattern of the original video.",
+      url:       `${SITE_URL}/studio`,
+    },
+    {
+      '@type':   'HowToStep',
+      position:  3,
+      name:      'Confirm your product details',
+      text:      'Enter your product name, category, and up to 5 customer pain points. TTLike uses these to personalise the script for your specific audience.',
+      url:       `${SITE_URL}/studio`,
+    },
+    {
+      '@type':   'HowToStep',
+      position:  4,
+      name:      'Get your shoot-ready script and checklist',
+      text:      'Receive a scene-by-scene script (hook, body, CTA), a hook-pattern breakdown, and a personalised pre-shoot checklist. Copy the script and start filming.',
+      url:       `${SITE_URL}/studio`,
+    },
+    {
+      '@type':   'HowToStep',
+      position:  5,
+      name:      'Film one imperfect take',
+      text:      "Tick off your pre-shoot checklist, press record, and shoot one take. You don't need a studio or experience — just a product and the script TTLike gave you.",
+      url:       `${SITE_URL}/start`,
+    },
+  ],
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function StartPage() {
   return (
     <div className="overflow-x-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
+      />
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <section className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">

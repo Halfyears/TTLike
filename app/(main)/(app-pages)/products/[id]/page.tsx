@@ -314,26 +314,18 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
 
   // ── JSON-LD structured data ───────────────────────────────────────────────
   const productSchema = {
-    '@context': 'https://schema.org',
-    '@type':    'Product',
-    name:        cleanName,
-    description: `${cleanName} — viral TikTok ${niche.toLowerCase()} product with a ${viralScore}/100 viral score. See AI hook breakdown and generate your own script.`,
-    url:         `${SITE_URL}/products/${id}`,
+    '@context':        'https://schema.org',
+    '@type':           'ItemPage',
+    name:              `${cleanName} — TikTok Viral Product Analysis`,
+    description:       `${cleanName} — viral TikTok ${niche.toLowerCase()} product with a ${viralScore}/100 viral score. See AI hook breakdown and generate your own shoot-ready script.`,
+    url:               `${SITE_URL}/products/${id}`,
     ...(v.cover_url ? { image: String(v.cover_url) } : {}),
-    brand: { '@type': 'Brand', name: niche },
-    offers: {
-      '@type':         'Offer',
-      price:           '0',
-      priceCurrency:   'USD',
-      availability:    'https://schema.org/InStock',
-      seller:          { '@type': 'Organization', name: 'TTLike' },
-    },
-    aggregateRating: {
-      '@type':       'AggregateRating',
-      ratingValue:   (viralScore / 20).toFixed(1),   // 0–100 → 0–5
-      bestRating:    '5',
-      worstRating:   '1',
-      ratingCount:   Math.floor(viralScore * 2.3 + 12),
+    inLanguage:        'en',
+    isPartOf:          { '@type': 'WebSite', name: 'TTLike', url: SITE_URL },
+    about: {
+      '@type':  'Thing',
+      name:     cleanName,
+      category: niche,
     },
   }
 

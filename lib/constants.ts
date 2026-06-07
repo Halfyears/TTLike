@@ -6,7 +6,7 @@ export const SITE_DESCRIPTION = 'AI-powered TikTok viral intelligence for dropsh
 
 export const SUBSCRIPTION_PLANS = {
   FREE:    { name: 'Free',    price: 0,  tier: 'free',    scriptsPerDay: 3 },
-  CREATOR: { name: 'Creator', price: 29, tier: 'creator', scriptsPerDay: 999 },
+  CREATOR: { name: 'Creator', price: 39, tier: 'creator', scriptsPerDay: 999 },
   SCALE:   { name: 'Scale',   price: 99, tier: 'scale',   scriptsPerDay: 999 },
 } as const
 

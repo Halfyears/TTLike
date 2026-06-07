@@ -16,48 +16,8 @@ export const metadata: Metadata = {
   },
 }
 
-const howToSchema = {
-  '@context':   'https://schema.org',
-  '@type':      'HowTo',
-  name:         'How to Generate a Shoot-Ready TikTok Script with TTLike',
-  description:  'Turn any viral TikTok product URL into a scene-by-scene script with hook, body lines, CTA, and a pre-shoot checklist — in about 20 seconds.',
-  totalTime:    'PT1M',
-  tool: [
-    { '@type': 'HowToTool', name: 'TTLike Viral Studio', url: `${SITE_URL}/studio` },
-    { '@type': 'HowToTool', name: 'TikTok video URL' },
-  ],
-  supply: [],
-  step: [
-    {
-      '@type':    'HowToStep',
-      position:   1,
-      name:       'Find a viral TikTok product',
-      text:       'Browse TTLike\'s product database or copy the URL of any TikTok video featuring a product you want to film.',
-      url:        `${SITE_URL}/studio`,
-    },
-    {
-      '@type':    'HowToStep',
-      position:   2,
-      name:       'Paste the TikTok URL into Viral Studio',
-      text:       'Open TTLike Viral Studio and paste the TikTok video URL. The AI begins analysing the video\'s viral structure immediately.',
-      url:        `${SITE_URL}/studio`,
-    },
-    {
-      '@type':    'HowToStep',
-      position:   3,
-      name:       'Confirm your product details',
-      text:       'Enter your product name, category, and key customer pain points. This personalises the generated script for your audience.',
-      url:        `${SITE_URL}/studio`,
-    },
-    {
-      '@type':    'HowToStep',
-      position:   4,
-      name:       'Get your shoot-ready script and checklist',
-      text:       'Receive a scene-by-scene script (hook, body, CTA), a hook-pattern breakdown explaining why the original went viral, and a personalised pre-shoot checklist. Copy the script and start filming.',
-      url:        `${SITE_URL}/studio`,
-    },
-  ],
-}
+// Note: HowTo structured data lives on /start (public, crawlable).
+// /studio requires login so Googlebot cannot index it.
 
 export default async function StudioPage() {
   const sb = await createClient()
@@ -65,14 +25,8 @@ export default async function StudioPage() {
   if (!user) redirect('/auth/login?redirect=/studio')
 
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }}
-      />
-      <Suspense>
-        <StudioClient />
-      </Suspense>
-    </>
+    <Suspense>
+      <StudioClient />
+    </Suspense>
   )
 }
