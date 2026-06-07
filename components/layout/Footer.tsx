@@ -9,6 +9,7 @@ const footerLinks = {
     { href: '/dashboard/ai-scripts', label: 'AI Script Generator' },
   ],
   Company: [
+    { href: '/about', label: 'About' },
     { href: '/blog', label: 'Blog' },
     { href: '/pricing', label: 'Pricing' },
     { href: '/auth/signup', label: 'Sign Up Free' },
