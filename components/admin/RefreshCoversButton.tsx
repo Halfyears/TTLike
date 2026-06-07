@@ -14,6 +14,7 @@ import { ImageIcon, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react'
 interface RefreshResult {
   updated:     number
   skipped:     number
+  healthy:     number
   total_posts: number
   details:     Array<{ id: string; slug: string; status: string; url?: string }>
   message?:    string
@@ -87,7 +88,7 @@ export function RefreshCoversButton() {
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
             <CheckCircle2 className="w-4 h-4" />
-            {result.message ?? `Updated ${result.updated} cover${result.updated !== 1 ? 's' : ''}. Skipped ${result.skipped}. Total posts: ${result.total_posts}.`}
+            {result.message ?? `Fixed ${result.updated} · Could not fix ${result.skipped} · Already healthy ${result.healthy ?? 0} · Total ${result.total_posts}`}
           </div>
 
           {result.details.length > 0 && (

@@ -301,7 +301,7 @@ export default async function BlogPostPage({ params }: Props) {
               <p className="text-xs text-gray-600 mb-3">Find viral products and generate AI scripts in seconds.</p>
               <Link
                 href="/auth/signup"
-                className="block w-full text-center bg-pink-500 text-white text-sm font-medium min-h-[44px] leading-none flex items-center justify-center rounded-lg hover:bg-pink-600 transition-colors"
+                className="w-full text-center bg-pink-500 text-white text-sm font-medium min-h-[44px] flex items-center justify-center rounded-lg hover:bg-pink-600 transition-colors"
               >
                 Get Started →
               </Link>

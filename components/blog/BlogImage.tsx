@@ -49,8 +49,9 @@ export function BlogImage({ src, alt, category, className = '', fallbackClassNam
   if (showFallback) {
     return (
       <div
-        className={`bg-gradient-to-br ${style.gradient} flex flex-col items-center justify-center gap-3 ${className} ${fallbackClassName}`}
+        role="img"
         aria-label={alt}
+        className={`bg-gradient-to-br ${style.gradient} flex flex-col items-center justify-center gap-3 ${className} ${fallbackClassName}`}
       >
         {/* Initials circle */}
         <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">

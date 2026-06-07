@@ -2,24 +2,27 @@
  * POST /api/admin/blog/refresh-covers
  *
  * Backfills blog_posts.cover_image for any post whose current cover_image looks
- * like an expiring TikTok CDN URL (contains "tiktokcdn" or "muscdn") and whose
+ * like an expiring TikTok CDN URL (contains "tiktokcdn" / "muscdn") and whose
  * source video has a permanent cover_storage_url in Supabase Storage.
  *
- * Also repairs any post where cover_image is NULL if the linked video has a
- * cover_storage_url available.
+ * Lookup path: blog_posts.slug → video_breakdowns.payload->>'blog_post_slug'
+ *              → video_breakdowns.video_id → tiktok_videos.cover_storage_url
  *
- * Returns: { updated: number, skipped: number, details: [...] }
+ * Note: blog_posts has NO video_breakdown_id column. The link lives in
+ * video_breakdowns.payload (JSON field), stored as { blog_post_slug: "..." }
+ * by the generate-from-breakdown API.
+ *
+ * Returns: { updated, skipped, total_posts, healthy, details }
  */
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 
-// Simple admin key guard — same pattern used elsewhere in this codebase
 const ADMIN_KEY = process.env.ADMIN_API_KEY ?? ''
 
-function isCdnUrl(url: string | null): boolean {
-  if (!url) return true  // null = definitely broken
+function isCdnUrl(url: string | null | undefined): boolean {
+  if (!url) return true  // null → definitely broken
   return url.includes('tiktokcdn') || url.includes('muscdn') || url.includes('tiktok.com')
 }
 
@@ -35,76 +38,93 @@ export async function POST(req: Request) {
   // ── 1. Fetch all published blog posts ─────────────────────────────────────
   const { data: posts, error: postsErr } = await service
     .from('blog_posts')
-    .select('id, slug, cover_image, video_breakdown_id')
+    .select('id, slug, cover_image')
     .eq('status', 'PUBLISHED')
 
   if (postsErr || !posts) {
     return NextResponse.json({ error: 'Failed to fetch posts', detail: postsErr?.message }, { status: 500 })
   }
 
-  // ── 2. Narrow to posts that need repair ───────────────────────────────────
-  const needsRepair = posts.filter(p => isCdnUrl(p.cover_image as string | null))
+  const total = posts.length
+  const broken = posts.filter(p => isCdnUrl(p.cover_image as string | null))
+  const healthy = total - broken.length
 
-  if (needsRepair.length === 0) {
-    return NextResponse.json({ updated: 0, skipped: posts.length, details: [], message: 'All covers look healthy.' })
+  if (broken.length === 0) {
+    return NextResponse.json({
+      updated: 0, skipped: 0, healthy, total_posts: total,
+      details: [], message: `All ${total} covers look healthy — nothing to repair.`,
+    })
   }
 
-  // ── 3. For each broken post, look up cover_storage_url via breakdown → video
+  // ── 2. Fetch all video_breakdowns that have a blog_post_slug in payload ───
+  //   payload is a JSONB column; PostgREST exposes it via "payload->>key" syntax.
+  const { data: breakdowns, error: bdErr } = await service
+    .from('video_breakdowns')
+    .select(`
+      video_id,
+      payload,
+      tiktok_videos!left(cover_storage_url, cover_url)
+    `)
+    .not('payload', 'is', null)
+
+  if (bdErr) {
+    return NextResponse.json({ error: 'Failed to fetch breakdowns', detail: bdErr.message }, { status: 500 })
+  }
+
+  // ── 3. Build slug → best_cover_url map ───────────────────────────────────
+  type BdRow = {
+    video_id: string | null
+    payload: Record<string, unknown> | null
+    tiktok_videos: { cover_storage_url: string | null; cover_url: string | null } | null
+  }
+
+  const slugToCover = new Map<string, string>()
+
+  for (const bd of (breakdowns ?? []) as BdRow[]) {
+    const slug = (bd.payload?.blog_post_slug ?? bd.payload?.slug) as string | undefined
+    if (!slug) continue
+
+    const storageUrl = bd.tiktok_videos?.cover_storage_url
+    const cdnUrl     = bd.tiktok_videos?.cover_url
+    const best       = !isCdnUrl(storageUrl) ? storageUrl
+                     : !isCdnUrl(cdnUrl)     ? cdnUrl
+                     : null
+
+    if (best) slugToCover.set(slug, best)
+  }
+
+  // ── 4. Loop broken posts and apply repairs ────────────────────────────────
   const details: Array<{ id: string; slug: string; status: string; url?: string }> = []
   let updated = 0
 
-  for (const post of needsRepair) {
-    const breakdownId = (post as Record<string, unknown>).video_breakdown_id as string | null
+  for (const post of broken) {
+    const id   = post.id   as string
+    const slug = post.slug as string
 
-    if (!breakdownId) {
-      details.push({ id: post.id as string, slug: post.slug as string, status: 'skipped_no_breakdown' })
+    const newCover = slugToCover.get(slug) ?? null
+
+    if (!newCover) {
+      details.push({ id, slug, status: 'skipped_no_storage_url' })
       continue
     }
 
-    // Get video linked to this breakdown
-    const { data: bd } = await service
-      .from('video_breakdowns')
-      .select('video_id')
-      .eq('id', breakdownId)
-      .maybeSingle()
-
-    if (!bd?.video_id) {
-      details.push({ id: post.id as string, slug: post.slug as string, status: 'skipped_no_video' })
-      continue
-    }
-
-    const { data: video } = await service
-      .from('tiktok_videos')
-      .select('cover_storage_url, cover_url')
-      .eq('id', bd.video_id)
-      .maybeSingle()
-
-    const newCover = (video as Record<string, string | null> | null)?.cover_storage_url
-                  ?? (video as Record<string, string | null> | null)?.cover_url
-                  ?? null
-
-    if (!newCover || isCdnUrl(newCover)) {
-      details.push({ id: post.id as string, slug: post.slug as string, status: 'skipped_no_storage_url' })
-      continue
-    }
-
-    // Update via Prisma so updatedAt is bumped
     try {
       await prisma.blogPost.update({
-        where: { id: post.id as string },
+        where: { id },
         data:  { coverImage: newCover },
       })
-      details.push({ id: post.id as string, slug: post.slug as string, status: 'updated', url: newCover })
+      details.push({ id, slug, status: 'updated', url: newCover })
       updated++
     } catch (e) {
-      details.push({ id: post.id as string, slug: post.slug as string, status: `error: ${e instanceof Error ? e.message : String(e)}` })
+      details.push({ id, slug, status: `error: ${e instanceof Error ? e.message : String(e)}` })
     }
   }
 
   return NextResponse.json({
     updated,
-    skipped: needsRepair.length - updated,
-    total_posts: posts.length,
+    skipped:     broken.length - updated,
+    healthy,
+    total_posts: total,
     details,
   })
 }
