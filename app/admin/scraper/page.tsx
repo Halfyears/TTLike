@@ -197,13 +197,16 @@ export default function ScraperPage() {
     setTriggering(true)
     setTriggerMsg(null)
     try {
-      const res = await fetch('/api/admin/trigger-scraper', { method: 'POST' })
+      const res  = await fetch('/api/admin/trigger-scraper', { method: 'POST' })
       const data = await res.json()
       if (res.ok) {
-        setTriggerMsg({ ok: true, text: 'Scraper triggered via GitHub Actions. Results appear in ~1 min.' })
-        setTimeout(fetchData, 10_000)
+        setTriggerMsg({ ok: true, text: '✅ Scraper triggered via GitHub Actions. Check the Run History in ~1–2 min.' })
+        setTimeout(fetchData, 15_000)
       } else {
-        setTriggerMsg({ ok: false, text: data.error ?? 'Unknown error' })
+        const parts = [data.error ?? 'Unknown error']
+        if (data.detail) parts.push(`Detail: ${data.detail}`)
+        if (data.hint)   parts.push(`💡 ${data.hint}`)
+        setTriggerMsg({ ok: false, text: parts.join(' — ') })
       }
     } catch (e) {
       setTriggerMsg({ ok: false, text: String(e) })
