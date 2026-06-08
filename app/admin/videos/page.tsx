@@ -440,12 +440,8 @@ export default function AdminVideosPage() {
       )
       .subscribe()
 
-    // ── Fallback: poll every 30 s in case Realtime is not enabled ─────────
-    const interval = setInterval(fetchAll, 30_000)
-
     return () => {
       supabase.removeChannel(channel)
-      clearInterval(interval)
     }
   }, [fetchAll, supabase])
 
