@@ -197,16 +197,20 @@ export default function ScraperPage() {
     setTriggering(true)
     setTriggerMsg(null)
     try {
-      const res  = await fetch('/api/admin/trigger-scraper', { method: 'POST' })
+      // Primary: direct inline scraper (no GitHub Actions required)
+      const res  = await fetch('/api/admin/run-scraper', { method: 'POST' })
       const data = await res.json()
-      if (res.ok) {
-        setTriggerMsg({ ok: true, text: '✅ Scraper triggered via GitHub Actions. Check the Run History in ~1–2 min.' })
-        setTimeout(fetchData, 15_000)
+      if (res.ok && data.success) {
+        setTriggerMsg({
+          ok:   true,
+          text: `✅ Done — fetched ${data.fetched} videos, upserted ${data.upserted}, covers cached ${data.covers_cached}. ${data.errors?.length ? `⚠ ${data.errors.length} partial error(s).` : ''}`,
+        })
+        fetchData()   // refresh logs immediately
       } else {
-        const parts = [data.error ?? 'Unknown error']
-        if (data.detail) parts.push(`Detail: ${data.detail}`)
-        if (data.hint)   parts.push(`💡 ${data.hint}`)
-        setTriggerMsg({ ok: false, text: parts.join(' — ') })
+        const parts = [data.error ?? 'Scraper returned no results']
+        if (data.errors?.length) parts.push(...data.errors.slice(0, 3))
+        if (data.hint)           parts.push(`💡 ${data.hint}`)
+        setTriggerMsg({ ok: false, text: parts.join(' · ') })
       }
     } catch (e) {
       setTriggerMsg({ ok: false, text: String(e) })
@@ -525,9 +529,9 @@ export default function ScraperPage() {
           )}
         </h2>
         <p className="text-gray-400 text-sm mb-4">
-          Dispatches a GitHub Actions workflow run immediately. Requires{' '}
-          <code className="text-pink-400 bg-gray-900 px-1 rounded text-xs">GH_TOKEN</code>{' '}
-          in your environment. Control availability via <strong className="text-gray-300">On-Demand Scrape</strong> toggle above.
+          Runs the scraper directly on Vercel — no GitHub Actions required. Calls RapidAPI,
+          upserts new videos to the database, and caches cover images. Takes ~20–40 seconds.
+          Control availability via <strong className="text-gray-300">On-Demand Scrape</strong> toggle above.
         </p>
         <button
           onClick={handleTrigger}
