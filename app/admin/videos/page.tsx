@@ -353,6 +353,7 @@ export default function AdminVideosPage() {
   const [deleted, setDeleted] = useState<Video[]>([])
   const [loading, setLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveOk, setSaveOk] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
@@ -417,10 +418,36 @@ export default function AdminVideosPage() {
       }
     } finally {
       setLoading(false)
+      setLastRefreshed(new Date())
     }
   }, [supabase])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => {
+    fetchAll()
+
+    // ── Supabase Realtime: re-fetch when rows are inserted or updated ──────
+    const channel = supabase
+      .channel('admin_videos_realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'tiktok_videos' },
+        () => { fetchAll() },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'tiktok_videos' },
+        () => { fetchAll() },
+      )
+      .subscribe()
+
+    // ── Fallback: poll every 30 s in case Realtime is not enabled ─────────
+    const interval = setInterval(fetchAll, 30_000)
+
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(interval)
+    }
+  }, [fetchAll, supabase])
 
   // ── Filtered view ──────────────────────────────────────────────────────────
   const visibleActive = useMemo(() => {
@@ -563,13 +590,20 @@ export default function AdminVideosPage() {
             {active.length} active · {deleted.length} deleted
           </p>
         </div>
-        <button
-          onClick={fetchAll}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
-        >
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-3">
+          {lastRefreshed && !loading && (
+            <span className="text-xs text-gray-600 hidden sm:block">
+              Updated {lastRefreshed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </span>
+          )}
+          <button
+            onClick={fetchAll}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-700 transition-colors"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* ── Viral Radar + Prompt Manager + Quality Checker ──────────────────── */}
