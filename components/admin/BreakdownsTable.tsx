@@ -12,6 +12,8 @@ import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+export interface UserMapEntry { email: string; name: string | null }
+
 export interface BreakdownRow {
   id:         string
   url_hash:   string
@@ -19,6 +21,7 @@ export interface BreakdownRow {
   seo_slug:   string | null
   payload:    VideoBreakdownPayload
   created_at: string
+  user_id:    string | null
   tiktok_videos: {
     id:           string
     title:        string | null
@@ -89,7 +92,7 @@ function Pagination({ page, total, onChange }: { page: number; total: number; on
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function BreakdownsTable({ rows: initial }: { rows: BreakdownRow[] }) {
+export function BreakdownsTable({ rows: initial, userMap = {} }: { rows: BreakdownRow[]; userMap?: Record<string, UserMapEntry> }) {
   const [rows,       setRows]       = useState(initial)
   const [filters,    setFilters]    = useState<Filters>(() => {
     if (typeof window === 'undefined') return { niche: '', engine: 'all', has_pipeline: 'all' }
@@ -195,6 +198,7 @@ export function BreakdownsTable({ rows: initial }: { rows: BreakdownRow[] }) {
           <thead>
             <tr className="border-b border-gray-700 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
               <th className="text-left px-5 py-3">Product</th>
+              <th className="text-left px-4 py-3">User</th>
               <th className="text-left px-4 py-3">Niche</th>
               <th className="text-left px-4 py-3">Engine</th>
               <th className="text-right px-4 py-3">Views</th>
@@ -208,6 +212,9 @@ export function BreakdownsTable({ rows: initial }: { rows: BreakdownRow[] }) {
               <tr><td colSpan={7} className="px-5 py-12 text-center text-gray-500 text-sm">No breakdowns match filters.</td></tr>
             ) : paged.map(b => {
               const video    = b.tiktok_videos
+              const userInfo   = b.user_id ? userMap[b.user_id] : null
+              const userName   = userInfo?.name?.trim() || null
+              const userEmail  = userInfo?.email || null
               const sourceMeta = (b.payload as VideoBreakdownPayload & { source_meta?: { title?: string; thumbnail_url?: string } })?.source_meta
               const name     = video
                 ? cleanTitle(String(video.product_name ?? video.title ?? 'Untitled'))

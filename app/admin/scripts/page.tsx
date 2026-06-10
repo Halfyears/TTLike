@@ -195,18 +195,20 @@ export default async function AdminScriptsPage() {
                 return (
                   <tr key={s.id} className={`hover:bg-gray-700/30 transition-colors ${isDeleted ? 'opacity-40' : ''}`}>
 
-                    {/* User — shows name + email, falls back to truncated ID */}
+                    {/* User — shows name + email, links to user detail */}
                     <td className="px-5 py-3 max-w-[160px]">
-                      {userName ? (
-                        <>
-                          <p className="text-xs text-white font-medium truncate">{userName}</p>
-                          <p className="text-[10px] text-gray-500 font-mono truncate">{userEmail}</p>
-                        </>
-                      ) : userEmail ? (
-                        <p className="text-xs text-gray-300 font-mono truncate">{userEmail}</p>
-                      ) : (
-                        <span className="text-xs font-mono text-gray-500">{shortId(s.user_id)}</span>
-                      )}
+                      <Link href={`/admin/users/${s.user_id}`} className="block hover:opacity-80 transition-opacity">
+                        {userName ? (
+                          <>
+                            <p className="text-xs text-pink-300 font-medium truncate hover:underline">{userName}</p>
+                            <p className="text-[10px] text-gray-500 font-mono truncate">{userEmail}</p>
+                          </>
+                        ) : userEmail ? (
+                          <p className="text-xs text-pink-300 font-mono truncate hover:underline">{userEmail}</p>
+                        ) : (
+                          <span className="text-xs font-mono text-pink-400 hover:underline">{shortId(s.user_id)}</span>
+                        )}
+                      </Link>
                       {isDeleted && (
                         <span className="text-[10px] text-red-400 font-semibold block mt-0.5">[deleted]</span>
                       )}
