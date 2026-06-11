@@ -127,7 +127,7 @@ async function apiGet(path: string, params: Record<string, string | number>): Pr
   return res.json() as Promise<Record<string, unknown>>
 }
 
-async function fetchHashtag(tag: string, count: number): Promise<VideoRow[]> {
+async function fetchHashtag(tag: string, count: number, errors: string[]): Promise<VideoRow[]> {
   const cutoff = Math.floor(Date.now() / 1000) - MAX_AGE_DAYS * 86_400
 
   // Try challenge lookup first
@@ -143,8 +143,12 @@ async function fetchHashtag(tag: string, count: number): Promise<VideoRow[]> {
       const postsBody = await apiGet('challenge/posts', { challenge_id: String(cid), count, cursor: 0, sort_type: 0 })
       const d = (postsBody['data'] as Record<string, unknown>) ?? {}
       rawVideos = (d['videos'] ?? d['itemList'] ?? d['aweme_list'] ?? []) as unknown[]
+    } else {
+      errors.push(`#${tag}: challenge/info returned no challenge id`)
     }
-  } catch { /* fall through to feed search */ }
+  } catch (e) {
+    errors.push(`#${tag} challenge/info: ${e instanceof Error ? e.message : String(e)}`)
+  }
 
   // Fallback: keyword feed search
   if (rawVideos.length === 0) {
@@ -152,7 +156,10 @@ async function fetchHashtag(tag: string, count: number): Promise<VideoRow[]> {
       const feedBody = await apiGet('feed/list', { keywords: tag, count, cursor: 0, region: 'US', sort_type: 0 })
       const d = (feedBody['data'] as Record<string, unknown>) ?? {}
       rawVideos = (d['videos'] ?? d['itemList'] ?? d['aweme_list'] ?? (Array.isArray(d) ? d : [])) as unknown[]
-    } catch { /* ignore */ }
+      if (rawVideos.length === 0) errors.push(`#${tag} feed/list: 0 results`)
+    } catch (e) {
+      errors.push(`#${tag} feed/list: ${e instanceof Error ? e.message : String(e)}`)
+    }
   }
 
   const videos: VideoRow[] = []
@@ -274,7 +281,7 @@ export async function POST() {
   // ── 1. Fetch from all hashtags ─────────────────────────────────────────────
   for (const tag of HASHTAGS) {
     try {
-      const videos = await fetchHashtag(tag, PER_HASHTAG)
+      const videos = await fetchHashtag(tag, PER_HASHTAG, errors)
       for (const v of videos) allVideos.set(v.tiktok_id, v)
     } catch (e) {
       errors.push(`#${tag}: ${e instanceof Error ? e.message : String(e)}`)
@@ -290,7 +297,7 @@ export async function POST() {
       videos_fetched: 0, videos_updated: 0,
       error_details: errors.join('; ') || msg,
     })
-    return NextResponse.json({ success: false, fetched: 0, upserted: 0, covers_cached: 0, errors, duration_ms: Date.now() - startMs })
+    return NextResponse.json({ success: false, error: msg, fetched: 0, upserted: 0, covers_cached: 0, errors, duration_ms: Date.now() - startMs })
   }
 
   // ── 2. Upsert to tiktok_videos ─────────────────────────────────────────────
