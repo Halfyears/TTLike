@@ -9,7 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { TIKTOK_HOST_RE, MAX_URL_LENGTH } from '@/lib/urlValidation'
-import { fetchVideoStats } from '@/lib/tiktok/fetchVideoStats'
+import { fetchVideoStats, deriveKeyword } from '@/lib/tiktok/fetchVideoStats'
 
 async function getUser() {
   try {
@@ -277,7 +277,8 @@ export async function POST(req: NextRequest) {
 
   // Existing record but no engagement stats yet (e.g. first save fell back to oEmbed) — retry once.
   if (videoRow && !videoRow.views) {
-    const stats = await fetchVideoStats(tiktokId, rawUrl)
+    const keyword = deriveKeyword(videoRow.product_name) ?? deriveKeyword(videoRow.title)
+    const stats = await fetchVideoStats(tiktokId, keyword)
     if (stats) {
       await service.from('tiktok_videos').update(stats).eq('id', videoRow.id)
     }
