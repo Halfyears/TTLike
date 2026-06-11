@@ -209,7 +209,7 @@ export function BreakdownsTable({ rows: initial, userMap = {} }: { rows: Breakdo
           </thead>
           <tbody className="divide-y divide-gray-700/50">
             {paged.length === 0 ? (
-              <tr><td colSpan={7} className="px-5 py-12 text-center text-gray-500 text-sm">No breakdowns match filters.</td></tr>
+              <tr><td colSpan={8} className="px-5 py-12 text-center text-gray-500 text-sm">No breakdowns match filters.</td></tr>
             ) : paged.map(b => {
               const video    = b.tiktok_videos
               const userInfo   = b.user_id ? userMap[b.user_id] : null
@@ -249,6 +249,25 @@ export function BreakdownsTable({ rows: initial, userMap = {} }: { rows: Breakdo
                         )}
                       </div>
                     </div>
+                  </td>
+
+                  <td className="px-4 py-3 max-w-[140px]">
+                    {b.user_id ? (
+                      <Link href={`/admin/users/${b.user_id}`} className="block hover:opacity-80 transition-opacity">
+                        {userName ? (
+                          <>
+                            <p className="text-xs text-pink-300 font-medium truncate hover:underline">{userName}</p>
+                            <p className="text-[10px] text-gray-500 font-mono truncate">{userEmail}</p>
+                          </>
+                        ) : userEmail ? (
+                          <p className="text-xs text-pink-300 font-mono truncate hover:underline">{userEmail}</p>
+                        ) : (
+                          <span className="text-xs font-mono text-pink-400 hover:underline">{b.user_id.slice(0, 8)}…</span>
+                        )}
+                      </Link>
+                    ) : (
+                      <span className="text-xs text-gray-600">—</span>
+                    )}
                   </td>
 
                   <td className="px-4 py-3">

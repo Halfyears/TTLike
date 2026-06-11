@@ -32,6 +32,45 @@ async function isAdmin(): Promise<boolean> {
   } catch { return false }
 }
 
+/** Strip hashtags, emoji, and stray symbols from a product/title string. */
+function cleanProductName(text: string): string {
+  return text
+    .replace(/#[\wÀ-ɏḀ-ỿ一-鿿]+/g, '')         // #hashtags (incl. accented/CJK)
+    .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu, '') // emoji/dingbats/arrows
+    .replace(/[|•@~_*^]+/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[\s.,!?:;\-]+|[\s.,!?:;\-]+$/g, '')
+    .trim()
+}
+
+// ── Writer personas — picked at random per post for variety (avoid AI sameness) ─
+const WRITER_ANGLES = [
+  {
+    voice: 'a skeptical reviewer who tested a lot of viral TikTok products and is wary of hype',
+    structure: 'Open with the skepticism, walk through what actually makes this one different, then give a balanced verdict.',
+  },
+  {
+    voice: 'a TikTok Shop seller writing for other sellers, focused on practical replication',
+    structure: 'Open with a quick observation about the trend, then go straight into a numbered playbook sellers can copy.',
+  },
+  {
+    voice: 'a short-form content strategist analyzing the creative mechanics of the video',
+    structure: 'Open by describing the scene/hook of the video itself, then break down the creative structure scene-by-scene.',
+  },
+  {
+    voice: 'a curious consumer-trends writer explaining why a product niche is having a moment',
+    structure: 'Open with the broader trend or problem this product solves, then zoom into this specific example as a case study.',
+  },
+  {
+    voice: 'a no-fluff dropshipping coach giving blunt, tactical advice',
+    structure: 'Open with a direct claim or question, then use short punchy paragraphs and a clear action checklist.',
+  },
+  {
+    voice: 'a copywriter breaking down the psychology and hook formula used in the video',
+    structure: 'Open with the hook line itself as a quote, then dissect why it works psychologically before giving takeaways.',
+  },
+]
+
 function toSlug(text: string): string {
   // Strip non-ASCII (handles Chinese/emoji product names), then slugify
   return text
@@ -45,24 +84,34 @@ function toSlug(text: string): string {
     .slice(0, 80)
 }
 
-const SYSTEM_PROMPT = `You are an expert TikTok content strategist and SEO blog writer.
-You will be given data about a viral TikTok video: the product name, niche, viral hook formulas, and engagement metrics.
-Write a comprehensive, SEO-optimized blog post that:
-- Explains why this product went viral
-- Breaks down the hook formula and what made it work
-- Gives actionable advice for sellers/creators
+function buildSystemPrompt(angle: typeof WRITER_ANGLES[number], hasStats: boolean): string {
+  const statsRule = hasStats
+    ? `Engagement numbers ARE provided — you may reference them naturally (e.g. roughly how many views/likes), but don't over-rely on them.`
+    : `No reliable engagement numbers are provided for this video. DO NOT invent or estimate view counts, like counts, percentages, or any other specific metrics. Instead describe virality qualitatively — momentum, repeat appearances in the niche, the kind of hook/format that tends to spread, audience reactions implied by the format, etc. Never write phrases like "with X views" or "garnered X likes" if X is not given.`
+
+  return `You are writing a single article for a blog about TikTok Shop / UGC product trends. Write in the voice of ${angle.voice}.
+
+Structure guidance: ${angle.structure} Do not follow this structure rigidly if a different flow fits the product better — use it as inspiration, not a template.
+
+Hard requirements:
+- This article must read as genuinely distinct from other posts on the site: vary your sentence rhythm, opening style, headings, and vocabulary. Avoid generic AI phrasing like "In today's fast-paced world", "Let's dive in", "In conclusion", "viral sensation", "game-changer", "unlock the secret".
+- Avoid repeating the exact product name in every single heading — use synonyms, pronouns, or descriptive references ("this product", "the item", category terms) for variety.
+- ${statsRule}
+- Write naturally for a human reader first; good SEO follows from genuinely useful, specific, non-templated content (this matters because near-duplicate pages get filtered out of Google's index).
+- Ground every claim in the actual data given (product name, niche, hook formulas, transcript/description if present) — don't pad with generic filler that could apply to any product.
 
 Return ONLY valid JSON (no markdown code fences) with this exact structure:
 {
-  "title": "SEO title 50-70 chars, no emoji",
+  "title": "SEO title 50-70 chars, no emoji, must include the actual product name or a clear descriptor of it",
   "slug": "url-friendly-slug",
   "excerpt": "2-3 sentence summary, 120-160 chars",
   "category": "one of: Strategy | Research | Guide | AI",
   "tags": ["tag1","tag2","tag3","tag4"],
   "seo_title": "SEO title (same or slightly different)",
   "seo_desc": "Meta description 120-160 chars",
-  "content": "Full article in Markdown. Use ## H2 and ### H3. Include: intro, why it went viral, hook breakdown, actionable tips, conclusion. 600-900 words."
+  "content": "Full article in Markdown. Use ## and ### headings that fit your chosen structure. 600-900 words."
 }`
+}
 
 interface GeneratedPost {
   title:     string
@@ -125,18 +174,24 @@ export async function POST(req: Request) {
     viral_formulas?: Array<{ title: string; description?: string }>
   } | null
 
-  const productName   = video?.product_name ?? video?.title ?? 'Unknown Product'
+  const rawName       = video?.product_name ?? video?.title ?? 'Unknown Product'
+  const productName   = cleanProductName(rawName) || rawName
   const niche         = video?.niche ?? 'General'
-  const views         = payload?.metrics?.views ?? String(video?.views ?? 0)
-  const likes         = payload?.metrics?.likes ?? String(video?.likes ?? 0)
+  const viewsNum      = Number(payload?.metrics?.views ?? video?.views ?? 0)
+  const likesNum      = Number(payload?.metrics?.likes ?? video?.likes ?? 0)
+  const hasStats      = viewsNum > 0 || likesNum > 0
   const topFormulas   = (payload?.viral_formulas ?? []).slice(0, 3).map(f => f.title).join('; ') || 'Unknown'
+
+  // Pick a random writer angle so generated posts vary in voice/structure (avoid templated, near-duplicate pages)
+  const angle = WRITER_ANGLES[Math.floor(Math.random() * WRITER_ANGLES.length)]!
+  const SYSTEM_PROMPT = buildSystemPrompt(angle, hasStats)
 
   const userPrompt = `Product: ${productName}
 Niche: ${niche}
-Viral stats: ${views} views, ${likes} likes
+${hasStats ? `Approximate stats: ${viewsNum} views, ${likesNum} likes` : 'No reliable engagement stats available — do not mention specific numbers.'}
 Top hook formulas used: ${topFormulas}
 
-Write a blog post analyzing why this product went viral and how sellers can replicate it.`
+Write a blog post analyzing why this product/video stands out and how sellers or creators can apply the same approach.`
 
   // ── 4. Run AI waterfall ──────────────────────────────────────────────────────
   let text: string

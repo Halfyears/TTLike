@@ -31,6 +31,7 @@ import {
 import { PromptManager }        from './PromptManager'
 import { ViralRadarButton }    from './ViralRadarButton'
 import { PromptQualityChecker } from './PromptQualityChecker'
+import { RefreshStatsButton }   from '@/components/admin/RefreshStatsButton'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Video {
@@ -605,6 +606,7 @@ export default function AdminVideosPage() {
       {/* ── Viral Radar + Prompt Manager + Quality Checker ──────────────────── */}
       <div className="mb-5 space-y-3">
         <ViralRadarButton />
+        <RefreshStatsButton />
         <PromptQualityChecker />
         <PromptManager />
       </div>

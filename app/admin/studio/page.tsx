@@ -8,6 +8,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { Clapperboard, CheckCircle2, XCircle, Clock, Users } from 'lucide-react'
 import { LocalDate } from '@/components/ui/LocalDate'
+import Link from 'next/link'
 
 export const metadata = { title: 'Studio Management · TTLike Admin' }
 export const dynamic  = 'force-dynamic'
@@ -64,8 +65,22 @@ function StatusBadge({ status }: { status: DramaRow['status'] }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+interface UserInfo { id: string; email: string; name: string | null }
+
+function shortId(id: string) { return id.slice(0, 8) }
+
 export default async function StudioAdminPage() {
   const dramas = await getDramas()
+
+  // ── User lookup for User column ─────────────────────────────────────────────
+  const service = createServiceClient()
+  const uniqueUserIds = [...new Set(dramas.map(d => d.user_id))]
+  const { data: userRows } = uniqueUserIds.length > 0
+    ? await service.from('users').select('id, email, name').in('id', uniqueUserIds)
+    : { data: [] }
+  const userMap = new Map<string, UserInfo>(
+    (userRows ?? []).map((u: UserInfo) => [u.id, u])
+  )
 
   const total     = dramas.length
   const completed = dramas.filter(d => d.status === 'COMPLETED').length
@@ -138,10 +153,22 @@ export default async function StudioAdminPage() {
                         {d.title || '—'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <span className="text-gray-400 font-mono text-[10px]">
-                        {d.user_id.slice(0, 8)}…
-                      </span>
+                    <td className="px-4 py-3 max-w-[140px]">
+                      <Link href={`/admin/users/${d.user_id}`} className="block hover:opacity-80 transition-opacity">
+                        {(() => {
+                          const userInfo  = userMap.get(d.user_id)
+                          const userName  = userInfo?.name?.trim() || null
+                          const userEmail = userInfo?.email || null
+                          if (userName) return (
+                            <>
+                              <p className="text-xs text-pink-300 font-medium truncate hover:underline">{userName}</p>
+                              <p className="text-[10px] text-gray-500 font-mono truncate">{userEmail}</p>
+                            </>
+                          )
+                          if (userEmail) return <p className="text-xs text-pink-300 font-mono truncate hover:underline">{userEmail}</p>
+                          return <span className="text-xs font-mono text-pink-400 hover:underline">{shortId(d.user_id)}…</span>
+                        })()}
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={d.status} />

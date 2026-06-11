@@ -21,7 +21,7 @@ export default async function BreakdownsAdminPage() {
 
   const { data: rows, error } = await service
     .from('video_breakdowns')
-    .select('id, url_hash, video_id, seo_slug, payload, created_at, tiktok_videos!left(id, title, product_name, niche, cover_url, views, viral_score)')
+    .select('id, url_hash, video_id, seo_slug, payload, created_at, user_id, tiktok_videos!left(id, title, product_name, niche, cover_url, views, viral_score)')
     .order('created_at', { ascending: false })
     .limit(500)
 
@@ -30,6 +30,15 @@ export default async function BreakdownsAdminPage() {
   }
 
   const breakdowns = (rows ?? []) as unknown as BreakdownRow[]
+
+  // ── User lookup for User column ─────────────────────────────────────────────
+  const uniqueUserIds = [...new Set(breakdowns.map(b => b.user_id).filter(Boolean))] as string[]
+  const { data: userRows } = uniqueUserIds.length > 0
+    ? await service.from('users').select('id, email, name').in('id', uniqueUserIds)
+    : { data: [] }
+  const userMap: Record<string, { email: string; name: string | null }> = Object.fromEntries(
+    (userRows ?? []).map((u: { id: string; email: string; name: string | null }) => [u.id, { email: u.email, name: u.name }])
+  )
 
   const total       = breakdowns.length
   const weekAgo     = Date.now() - 7 * 86_400_000
@@ -92,7 +101,7 @@ export default async function BreakdownsAdminPage() {
       )}
 
       {/* All Breakdowns — client component with filters + pagination + delete */}
-      <BreakdownsTable rows={breakdowns} />
+      <BreakdownsTable rows={breakdowns} userMap={userMap} />
 
     </div>
   )

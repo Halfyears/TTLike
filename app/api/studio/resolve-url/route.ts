@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { TIKTOK_HOST_RE, MAX_URL_LENGTH } from '@/lib/urlValidation'
+import { fetchVideoStats } from '@/lib/tiktok/fetchVideoStats'
 
 async function getUser() {
   try {
@@ -268,11 +269,19 @@ export async function POST(req: NextRequest) {
 
   const service = createServiceClient()
 
-  type VideoRow = { id: string; title: string | null; product_name: string | null; niche: string | null }
+  type VideoRow = { id: string; title: string | null; product_name: string | null; niche: string | null; views: number | null }
   const { data: existing } = await service
-    .from('tiktok_videos').select('id, title, product_name, niche').eq('tiktok_id', tiktokId).maybeSingle()
+    .from('tiktok_videos').select('id, title, product_name, niche, views').eq('tiktok_id', tiktokId).maybeSingle()
 
   let videoRow = existing as VideoRow | null
+
+  // Existing record but no engagement stats yet (e.g. first save fell back to oEmbed) — retry once.
+  if (videoRow && !videoRow.views) {
+    const stats = await fetchVideoStats(tiktokId, rawUrl)
+    if (stats) {
+      await service.from('tiktok_videos').update(stats).eq('id', videoRow.id)
+    }
+  }
 
   if (!videoRow) {
     let result = await fetchFromRapidAPI(tiktokId, rawUrl)
