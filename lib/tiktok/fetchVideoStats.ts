@@ -76,7 +76,7 @@ export async function fetchVideoStatsDebug(tiktokId: string, keyword: string | n
   const endpoint = `${BASE}/feed/list?keywords=${encodeURIComponent(keyword)}&count=20&cursor=0&region=US&sort_type=0`
 
   try {
-    const res = await fetch(endpoint, { headers: HEADERS, signal: AbortSignal.timeout(15_000) })
+    const res = await fetch(endpoint, { headers: HEADERS, signal: AbortSignal.timeout(6_000) })
     if (!res.ok) {
       const bodyText = await res.text().catch(() => '')
       return { error: `HTTP ${res.status}${bodyText ? `: ${bodyText.slice(0, 150)}` : ''}` }

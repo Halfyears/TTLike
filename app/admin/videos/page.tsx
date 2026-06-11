@@ -48,6 +48,7 @@ interface Video {
   is_viral_hit: boolean
   video_url:    string | null
   cover_url:    string | null
+  cover_storage_url: string | null
   niche:        string | null
   sort_order:   number | null
   deleted_at: string | null
@@ -258,8 +259,8 @@ function SortableRow({
 
       {/* Cover */}
       <td className="px-2 py-2 w-10">
-        {video.cover_url ? (
-          <img src={video.cover_url} alt="" className="h-10 w-7 rounded object-cover" />
+        {(video.cover_storage_url || video.cover_url) ? (
+          <img src={video.cover_storage_url || video.cover_url || ''} alt="" className="h-10 w-7 rounded object-cover" />
         ) : (
           <div className="h-10 w-7 rounded bg-gray-700 flex items-center justify-center">
             <TrendingUp className="h-3 w-3 text-gray-500" />

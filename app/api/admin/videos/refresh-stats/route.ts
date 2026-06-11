@@ -37,7 +37,7 @@ export async function POST() {
     .from('tiktok_videos')
     .select('id, tiktok_id, video_url, title, product_name')
     .or('views.is.null,views.eq.0')
-    .limit(50)
+    .limit(8)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

@@ -50,7 +50,7 @@ export function RefreshStatsButton() {
           </div>
           <div>
             <p className="text-sm font-semibold text-white">Refresh Video Stats</p>
-            <p className="text-xs text-gray-400">Backfill views/likes/shares for videos showing 0 (oEmbed fallback)</p>
+            <p className="text-xs text-gray-400">Backfill views/likes/shares for videos showing 0 (processes 8 per click — click again for more)</p>
           </div>
         </div>
 
