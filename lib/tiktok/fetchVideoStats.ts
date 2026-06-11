@@ -48,8 +48,14 @@ function extractStats(body: unknown): VideoStats | null {
  * the video can't be found, or the response contains no usable stats.
  */
 export async function fetchVideoStats(tiktokId: string, tiktokUrl: string): Promise<VideoStats | null> {
+  const result = await fetchVideoStatsDebug(tiktokId, tiktokUrl)
+  return 'data' in result ? result.data : null
+}
+
+/** Same as fetchVideoStats but reports why it failed, for diagnostics. */
+export async function fetchVideoStatsDebug(tiktokId: string, tiktokUrl: string): Promise<{ data: VideoStats } | { error: string }> {
   const apiKey = process.env.RAPIDAPI_KEY
-  if (!apiKey) return null
+  if (!apiKey) return { error: 'RAPIDAPI_KEY not configured' }
 
   const HEADERS = { 'x-rapidapi-key': apiKey, 'x-rapidapi-host': 'tiktok-scraper7.p.rapidapi.com' }
   const BASE = 'https://tiktok-scraper7.p.rapidapi.com'
@@ -58,14 +64,16 @@ export async function fetchVideoStats(tiktokId: string, tiktokUrl: string): Prom
     `${BASE}/video/info?video_id=${tiktokId}`,
   ]
 
+  let lastErr = 'unknown'
   for (const endpoint of endpoints) {
     try {
       const res = await fetch(endpoint, { headers: HEADERS, signal: AbortSignal.timeout(15_000) })
-      if (!res.ok) continue
+      if (!res.ok) { lastErr = `HTTP ${res.status} from ${endpoint}`; continue }
       const body = await res.json()
       const stats = extractStats(body)
-      if (stats) return stats
-    } catch { /* try next endpoint */ }
+      if (stats) return { data: stats }
+      lastErr = `No stats in response from ${endpoint}: ${JSON.stringify(body).slice(0, 200)}`
+    } catch (e) { lastErr = `${e instanceof Error ? e.message : String(e)} (${endpoint})` }
   }
-  return null
+  return { error: lastErr }
 }

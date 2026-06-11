@@ -16,6 +16,7 @@ interface RefreshResult {
   updated: number
   checked: number
   failed:  number
+  sampleErrors?: Array<{ tiktok_id: string; video_url: string | null; error: string }>
 }
 
 export function RefreshStatsButton() {
@@ -72,9 +73,22 @@ export function RefreshStatsButton() {
       )}
 
       {result && !error && (
-        <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
-          <CheckCircle2 className="w-4 h-4" />
-          Updated {result.updated} · Failed {result.failed} · Checked {result.checked}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium">
+            <CheckCircle2 className="w-4 h-4" />
+            Updated {result.updated} · Failed {result.failed} · Checked {result.checked}
+          </div>
+          {result.sampleErrors && result.sampleErrors.length > 0 && (
+            <div className="rounded-lg bg-gray-900 p-3 space-y-1">
+              {result.sampleErrors.map((e, i) => (
+                <div key={i} className="text-[11px] font-mono text-gray-400">
+                  <span className="text-gray-300">{e.tiktok_id}</span>
+                  {e.video_url && <span className="text-gray-600"> · {e.video_url.slice(0, 50)}</span>}
+                  <div className="text-red-400/80">{e.error}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

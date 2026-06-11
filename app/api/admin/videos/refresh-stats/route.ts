@@ -11,7 +11,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
-import { fetchVideoStats } from '@/lib/tiktok/fetchVideoStats'
+import { fetchVideoStatsDebug } from '@/lib/tiktok/fetchVideoStats'
 
 async function isAdmin(): Promise<boolean> {
   try {
@@ -43,14 +43,22 @@ export async function POST() {
 
   let updated = 0
   let failed  = 0
+  const sampleErrors: Array<{ tiktok_id: string; video_url: string | null; error: string }> = []
 
   for (const row of (rows ?? []) as Array<{ id: string; tiktok_id: string; video_url: string | null }>) {
     const tiktokUrl = row.video_url ?? `https://www.tiktok.com/video/${row.tiktok_id}`
-    const stats = await fetchVideoStats(row.tiktok_id, tiktokUrl)
-    if (!stats) { failed++; continue }
-    const { error: updErr } = await service.from('tiktok_videos').update(stats).eq('id', row.id)
-    if (updErr) failed++; else updated++
+    const result = await fetchVideoStatsDebug(row.tiktok_id, tiktokUrl)
+    if ('error' in result) {
+      failed++
+      if (sampleErrors.length < 5) sampleErrors.push({ tiktok_id: row.tiktok_id, video_url: row.video_url, error: result.error })
+      continue
+    }
+    const { error: updErr } = await service.from('tiktok_videos').update(result.data).eq('id', row.id)
+    if (updErr) {
+      failed++
+      if (sampleErrors.length < 5) sampleErrors.push({ tiktok_id: row.tiktok_id, video_url: row.video_url, error: `DB update: ${updErr.message}` })
+    } else updated++
   }
 
-  return NextResponse.json({ updated, checked: (rows ?? []).length, failed })
+  return NextResponse.json({ updated, checked: (rows ?? []).length, failed, sampleErrors })
 }
