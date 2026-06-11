@@ -32,8 +32,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/blog`,               lastModified: new Date(), changeFrequency: 'weekly',  priority: 0.8 },
     { url: `${SITE_URL}/pricing`,            lastModified: new Date(), changeFrequency: 'monthly', priority: 0.7 },
     { url: `${SITE_URL}/start`,             lastModified: new Date(), changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${SITE_URL}/auth/signup`,       lastModified: new Date(), changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${SITE_URL}/auth/login`,         lastModified: new Date(), changeFrequency: 'monthly', priority: 0.5 },
   ]
 
   // ── 2. Niche hook pages (programmatic SEO) ────────────────────────────────
@@ -77,36 +75,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         limit:  '200',
       },
     )
-    if (rows.length > 0) {
-      blogRoutes = rows.map(r => ({
-        url:             `${SITE_URL}/blog/${r.slug}`,
-        lastModified:    r.updated_at ? new Date(r.updated_at) : new Date(),
-        changeFrequency: 'monthly' as const,
-        priority:        0.6,
-      }))
-    } else {
-      // Fallback: hardcoded slugs when DB returns nothing
-      throw new Error('empty')
-    }
-  } catch {
-    blogRoutes = [
-      'tiktok-viral-products-2024',
-      'hook-formula-guide',
-      'dropshipping-tiktok-beginners',
-      'ugc-scripts-that-convert',
-      'tiktok-algorithm-explained',
-      'ai-ugc-content-creation',
-    ].map(slug => ({
-      url:             `${SITE_URL}/blog/${slug}`,
-      lastModified:    new Date(),
+    blogRoutes = rows.map(r => ({
+      url:             `${SITE_URL}/blog/${r.slug}`,
+      lastModified:    r.updated_at ? new Date(r.updated_at) : new Date(),
       changeFrequency: 'monthly' as const,
       priority:        0.6,
     }))
-  }
+  } catch { /* non-fatal */ }
 
   // ── 5. Viral breakdown pages — top 1000 most recent ───────────────────────
   let viralRoutes: MetadataRoute.Sitemap = []
   try {
+    // Only submit breakdowns whose video has real engagement stats — thin/0-stat
+    // pages dilute crawl budget and get classified as "crawled - not indexed".
     const rows = await supabase<{
       video_id: string | null
       seo_slug: string | null
@@ -114,9 +95,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }>(
       'video_breakdowns',
       {
-        select: 'video_id,seo_slug,created_at',
+        select: 'video_id,seo_slug,created_at,tiktok_videos!inner(views)',
         order:  'created_at.desc',
-        limit:  '1000',
+        'tiktok_videos.views': 'gt.0',
+        limit:  '200',
       },
     )
     viralRoutes = rows
