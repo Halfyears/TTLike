@@ -362,6 +362,8 @@ export default function AdminVideosPage() {
   const [search, setSearch] = useState('')
   const [niche, setNiche] = useState('')
   const [autoSortKey, setAutoSortKey] = useState<SortKey>('viral_score')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 50
 
   // Smart recommendation engine state
   const [smartOpen,    setSmartOpen]    = useState(false)
@@ -380,13 +382,20 @@ export default function AdminVideosPage() {
 
     try {
       // ── Active videos ── (separate query chain — never share a builder)
+      // Count first so the fetch limit always covers the real number of rows.
+      const { count: activeCount } = await supabase
+        .from('tiktok_videos')
+        .select('id', { count: 'exact', head: true })
+        .is('deleted_at', null)
+      const activeLimit = Math.max(activeCount ?? 0, 50)
+
       const { data: activeData, error: activeErr } = await supabase
         .from('tiktok_videos')
         .select('*')
         .is('deleted_at', null)
         .order('sort_order', { ascending: true, nullsFirst: false })
         .order('viral_score', { ascending: false })
-        .limit(500)
+        .limit(activeLimit)
 
       if (activeErr) {
         console.error('[admin/videos] active fetch error:', activeErr)
@@ -395,7 +404,7 @@ export default function AdminVideosPage() {
           .from('tiktok_videos')
           .select('*')
           .order('viral_score', { ascending: false })
-          .limit(500)
+          .limit(activeLimit)
         if (fallbackErr) {
           setFetchError(fallbackErr.message)
         } else {
@@ -406,12 +415,18 @@ export default function AdminVideosPage() {
       }
 
       // ── Deleted videos ──
+      const { count: deletedCount } = await supabase
+        .from('tiktok_videos')
+        .select('id', { count: 'exact', head: true })
+        .not('deleted_at', 'is', null)
+      const deletedLimit = Math.max(deletedCount ?? 0, 50)
+
       const { data: deletedData, error: deletedErr } = await supabase
         .from('tiktok_videos')
         .select('*')
         .not('deleted_at', 'is', null)
         .order('deleted_at', { ascending: false })
-        .limit(200)
+        .limit(deletedLimit)
 
       if (deletedErr) {
         console.error('[admin/videos] deleted fetch error:', deletedErr)
@@ -576,6 +591,21 @@ export default function AdminVideosPage() {
   const currentList = useMemo(
     () => tab === 'active' ? visibleActive : visibleDeleted,
     [tab, visibleActive, visibleDeleted]
+  )
+
+  // Reset to page 1 whenever the underlying list changes shape
+  useEffect(() => {
+    setPage(1)
+  }, [tab, search, niche])
+
+  const totalPages = Math.max(1, Math.ceil(currentList.length / PAGE_SIZE))
+  const pagedList  = useMemo(
+    () => currentList.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [currentList, page]
+  )
+  const pagedActive = useMemo(
+    () => tab === 'active' ? pagedList : [],
+    [tab, pagedList]
   )
 
   return (
@@ -843,15 +873,15 @@ export default function AdminVideosPage() {
                   onDragEnd={handleDragEnd}
                 >
                   <SortableContext
-                    items={visibleActive.map(v => v.id)}
+                    items={pagedActive.map(v => v.id)}
                     strategy={verticalListSortingStrategy}
                   >
                     <tbody>
-                      {visibleActive.map((video, i) => (
+                      {pagedActive.map((video, i) => (
                         <SortableRow
                           key={video.id}
                           video={video}
-                          index={i}
+                          index={(page - 1) * PAGE_SIZE + i}
                           tab="active"
                           onDelete={handleDelete}
                           onRestore={handleRestore}
@@ -862,11 +892,11 @@ export default function AdminVideosPage() {
                 </DndContext>
               ) : (
                 <tbody>
-                  {visibleDeleted.map((video, i) => (
+                  {pagedList.map((video, i) => (
                     <SortableRow
                       key={video.id}
                       video={video}
-                      index={i}
+                      index={(page - 1) * PAGE_SIZE + i}
                       tab="deleted"
                       onDelete={handleDelete}
                       onRestore={handleRestore}
@@ -879,11 +909,34 @@ export default function AdminVideosPage() {
         )}
       </div>
 
-      {/* Footer count */}
+      {/* Footer count + pagination */}
       {!loading && currentList.length > 0 && (
-        <p className="text-xs text-gray-600 mt-3 text-right">
-          Showing {currentList.length} of {tab === 'active' ? active.length : deleted.length} videos
-        </p>
+        <div className="flex items-center justify-between gap-3 mt-3">
+          <p className="text-xs text-gray-600">
+            Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, currentList.length)} of {currentList.length} videos
+          </p>
+          {totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                className="px-2.5 py-1 text-xs rounded bg-gray-800 border border-gray-700 text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-700"
+              >
+                Prev
+              </button>
+              <span className="text-xs text-gray-500">Page {page} / {totalPages}</span>
+              <button
+                type="button"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="px-2.5 py-1 text-xs rounded bg-gray-800 border border-gray-700 text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-700"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )
