@@ -64,16 +64,24 @@ export async function fetchVideoStatsDebug(tiktokId: string, tiktokUrl: string):
     `${BASE}/video/info?video_id=${tiktokId}`,
   ]
 
-  let lastErr = 'unknown'
+  const attempts: string[] = []
   for (const endpoint of endpoints) {
+    const label = endpoint.includes('?url=') ? 'url' : 'video_id'
     try {
       const res = await fetch(endpoint, { headers: HEADERS, signal: AbortSignal.timeout(15_000) })
-      if (!res.ok) { lastErr = `HTTP ${res.status} from ${endpoint}`; continue }
+      if (!res.ok) {
+        let bodyText = ''
+        try { bodyText = (await res.text()).slice(0, 150) } catch {}
+        attempts.push(`[${label}] HTTP ${res.status}${bodyText ? `: ${bodyText}` : ''}`)
+        continue
+      }
       const body = await res.json()
       const stats = extractStats(body)
       if (stats) return { data: stats }
-      lastErr = `No stats in response from ${endpoint}: ${JSON.stringify(body).slice(0, 200)}`
-    } catch (e) { lastErr = `${e instanceof Error ? e.message : String(e)} (${endpoint})` }
+      attempts.push(`[${label}] 200 but no stats: ${JSON.stringify(body).slice(0, 150)}`)
+    } catch (e) {
+      attempts.push(`[${label}] ${e instanceof Error ? e.message : String(e)}`)
+    }
   }
-  return { error: lastErr }
+  return { error: attempts.join(' | ') }
 }
