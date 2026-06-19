@@ -1,8 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { clerkMiddleware } from '@clerk/nextjs/server'
 import { updateSession } from '@/lib/supabase/proxy'
 import { PROTECTED_ROUTES, AUTH_ROUTES, ADMIN_ROUTES } from '@/lib/constants'
 
-export async function middleware(request: NextRequest) {
+const CLERK_ENABLED = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
+
+async function coreMiddleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const { supabaseResponse, user } = await updateSession(request)
 
@@ -33,6 +36,10 @@ export async function middleware(request: NextRequest) {
 
   return supabaseResponse
 }
+
+export const middleware = CLERK_ENABLED
+  ? clerkMiddleware((_auth, request) => coreMiddleware(request))
+  : coreMiddleware
 
 export const config = {
   matcher: [
