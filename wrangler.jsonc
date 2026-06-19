@@ -28,21 +28,6 @@
       "id": "c9bc3db7e5da482780602ad2e517098d"
     }
   ],
-  "queues": {
-    "producers": [
-      {
-        "binding": "TTLIKE_JOBS",
-        "queue": "ttlike-jobs"
-      }
-    ],
-    "consumers": [
-      {
-        "queue": "ttlike-jobs",
-        "max_batch_size": 1,
-        "max_retries": 3
-      }
-    ]
-  },
   "triggers": {
     "crons": ["0 7,19 * * *"]
   },
