@@ -79,7 +79,7 @@ export function useLanguage() {
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as Lang | null
-    if (saved === 'en' || saved === 'zh') setLangState(saved)
+    if (saved === 'en' || saved === 'zh') queueMicrotask(() => setLangState(saved))
   }, [])
 
   function setLang(l: Lang) {

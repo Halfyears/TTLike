@@ -11,22 +11,6 @@ import { DashboardTracker } from '@/components/DashboardTracker'
 export const metadata = { title: 'Overview · TTLike' }
 
 // ── Viral score bar ───────────────────────────────────────────────────────────
-function ScoreBar({ score }: { score: number }) {
-  const pct = Math.min(100, Math.round((score / 100) * 100))
-  const color =
-    pct >= 80 ? 'from-pink-500 to-rose-400' :
-    pct >= 60 ? 'from-orange-400 to-amber-400' :
-                'from-blue-400 to-cyan-400'
-  return (
-    <div className="flex items-center gap-2 min-w-0">
-      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full bg-gradient-to-r ${color} rounded-full`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="text-xs font-bold text-gray-700 tabular-nums w-8 text-right shrink-0">{score}</span>
-    </div>
-  )
-}
-
 // ── Niche pill ────────────────────────────────────────────────────────────────
 const NICHE_COLORS: Record<string, string> = {
   'Beauty & Skincare': 'bg-pink-50 text-pink-700',

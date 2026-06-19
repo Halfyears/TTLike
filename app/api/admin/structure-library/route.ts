@@ -5,7 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 import { getStructureLibrary } from '@/lib/engines/structure-library'
 
 async function isAdmin(): Promise<boolean> {
@@ -14,7 +14,7 @@ async function isAdmin(): Promise<boolean> {
     const { data: { user } } = await sb.auth.getUser()
     if (!user) return false
     try {
-      const u = await prisma.user.findUnique({ where: { email: user.email! } })
+      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (u?.role === 'ADMIN') return true
     } catch {}
     return user.email === process.env.ADMIN_EMAIL

@@ -5,6 +5,7 @@ import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { SITE_URL } from '@/lib/constants'
+import { queryD1Rows } from '@/lib/cloudflare/d1'
 
 export const dynamic = 'force-dynamic'
 export const metadata = {
@@ -13,18 +14,61 @@ export const metadata = {
   alternates:  { canonical: `${SITE_URL}/trending` },
 }
 
-export default async function TrendingPage() {
-  const supabase = await createClient()
+type VideoMetric = {
+  id: string
+  niche: string | null
+  viral_score: number | null
+  views: number | null
+}
 
-  // Fetch all videos to compute real niche stats
+type TopProduct = VideoMetric & {
+  product_name: string | null
+  title: string | null
+}
+
+async function getTrendingData(): Promise<{ allVideos: VideoMetric[]; topProducts: TopProduct[] }> {
+  const [d1Videos, d1TopProducts] = await Promise.all([
+    queryD1Rows<VideoMetric>(
+      `SELECT id, niche, viral_score, views
+         FROM tiktok_videos
+        WHERE deleted_at IS NULL
+        ORDER BY viral_score DESC`,
+    ),
+    queryD1Rows<TopProduct>(
+      `SELECT id, product_name, title, niche, viral_score, views
+         FROM tiktok_videos
+        WHERE deleted_at IS NULL
+        ORDER BY viral_score DESC
+        LIMIT 6`,
+    ),
+  ])
+
+  if (d1Videos && d1TopProducts) return { allVideos: d1Videos, topProducts: d1TopProducts }
+
+  const supabase = await createClient()
   const { data: allVideos } = await supabase
     .from('tiktok_videos')
     .select('id, niche, viral_score, views')
     .order('viral_score', { ascending: false })
 
+  const { data: topProducts } = await supabase
+    .from('tiktok_videos')
+    .select('id, product_name, title, niche, viral_score, views')
+    .order('viral_score', { ascending: false })
+    .limit(6)
+
+  return {
+    allVideos: (allVideos ?? []) as VideoMetric[],
+    topProducts: (topProducts ?? []) as TopProduct[],
+  }
+}
+
+export default async function TrendingPage() {
+  const { allVideos, topProducts } = await getTrendingData()
+
   // Group by niche
   const nicheMap: Record<string, { count: number; totalScore: number; totalViews: number }> = {}
-  for (const v of allVideos ?? []) {
+  for (const v of allVideos) {
     const niche = v.niche ?? 'General'
     if (!nicheMap[niche]) nicheMap[niche] = { count: 0, totalScore: 0, totalViews: 0 }
     nicheMap[niche].count++
@@ -40,13 +84,6 @@ export default async function TrendingPage() {
       totalViews: s.totalViews,
     }))
     .sort((a, b) => b.avgScore - a.avgScore)
-
-  // Top products sidebar
-  const { data: topProducts } = await supabase
-    .from('tiktok_videos')
-    .select('id, product_name, title, niche, viral_score, views')
-    .order('viral_score', { ascending: false })
-    .limit(6)
 
   const hasData = nicheStats.length > 0
 
@@ -120,7 +157,7 @@ export default async function TrendingPage() {
             </Link>
           </div>
 
-          {!topProducts || topProducts.length === 0 ? (
+          {topProducts.length === 0 ? (
             <div className="rounded-xl border border-gray-100 bg-white p-6 text-center">
               <p className="text-sm text-gray-400">No data yet — check back after the next scraper run.</p>
             </div>

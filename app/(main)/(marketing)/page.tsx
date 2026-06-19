@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import {
   ArrowRight, Zap, TrendingUp, Brain, ShoppingBag,
-  Star, Users, Play, Search, Wand2, CheckCircle2,
+  Star, Users, Search, Wand2, CheckCircle2,
   BookOpen, ChevronDown, ListChecks,
 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from '@/lib/constants'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { queryD1First, queryD1Rows } from '@/lib/cloudflare/d1'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,15 @@ export const metadata: Metadata = {
 
 async function getTopVideos() {
   try {
+    const d1Videos = await queryD1Rows<Record<string, unknown>>(
+      `SELECT id, product_name, title, niche, viral_score, views
+         FROM tiktok_videos
+        WHERE deleted_at IS NULL
+        ORDER BY viral_score DESC
+        LIMIT 6`,
+    )
+    if (d1Videos) return d1Videos
+
     const supabase = await createClient()
     const { data } = await supabase
       .from('tiktok_videos')
@@ -41,6 +51,22 @@ const SCRIPTS_LAUNCH_OFFSET = 850   // credible floor before real usage accumula
 
 async function getPlatformStats() {
   try {
+    const [videosRow, analysesRow, usersRow, usageRow] = await Promise.all([
+      queryD1First<{ total: number }>('SELECT COUNT(*) AS total FROM tiktok_videos WHERE deleted_at IS NULL'),
+      queryD1First<{ total: number }>("SELECT COUNT(*) AS total FROM video_breakdowns WHERE viral_status = 'COMPLETED'"),
+      queryD1First<{ total: number }>('SELECT COUNT(*) AS total FROM users'),
+      queryD1First<{ total: number | null }>('SELECT COALESCE(SUM(video_analysis_used), 0) AS total FROM user_billing_tiers'),
+    ])
+
+    if (videosRow && analysesRow && usersRow && usageRow) {
+      return {
+        products:      Number(videosRow.total ?? 0),
+        analyses:      Number(analysesRow.total ?? 0),
+        users:         Number(usersRow.total ?? 0),
+        totalScripts:  Number(usageRow.total ?? 0) + SCRIPTS_LAUNCH_OFFSET,
+      }
+    }
+
     const service = createServiceClient()
     const [videosRes, analysesRes, usersRes, usageRes] = await Promise.all([
       service.from('tiktok_videos').select('id', { count: 'exact', head: true }),

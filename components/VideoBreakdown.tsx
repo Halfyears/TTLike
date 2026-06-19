@@ -68,7 +68,7 @@ export function VideoBreakdown({ videoId, autoLoad = false, tier = 'free' }: Pro
 
   // Auto-trigger on mount when coming from UrlIngestion redirect
   useEffect(() => {
-    if (autoLoad) load()
+    if (autoLoad) queueMicrotask(() => void load())
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

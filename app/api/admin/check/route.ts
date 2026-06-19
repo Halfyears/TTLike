@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 
 export async function GET() {
   try {
@@ -12,7 +12,7 @@ export async function GET() {
     let isAdmin = user.email === process.env.ADMIN_EMAIL
 
     try {
-      const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
+      const dbUser = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (dbUser) isAdmin = dbUser.role === 'ADMIN'
     } catch {
       // DB not connected - fall back to env check

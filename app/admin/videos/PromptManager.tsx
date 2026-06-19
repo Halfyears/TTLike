@@ -25,15 +25,17 @@ export function PromptManager() {
 
   useEffect(() => {
     if (!open) return
-    setLoading(true)
-    fetch('/api/admin/prompt-config')
-      .then(r => r.json())
-      .then((d: { value?: string; updated_at?: string }) => {
-        setValue(d.value ?? '')
-        setSavedAt(d.updated_at ?? null)
-      })
-      .catch(() => setErrorMsg('Failed to load prompt config'))
-      .finally(() => setLoading(false))
+    queueMicrotask(() => {
+      setLoading(true)
+      fetch('/api/admin/prompt-config')
+        .then(r => r.json())
+        .then((d: { value?: string; updated_at?: string }) => {
+          setValue(d.value ?? '')
+          setSavedAt(d.updated_at ?? null)
+        })
+        .catch(() => setErrorMsg('Failed to load prompt config'))
+        .finally(() => setLoading(false))
+    })
   }, [open])
 
   async function save() {

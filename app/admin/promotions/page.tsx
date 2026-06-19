@@ -226,7 +226,7 @@ export default function AdminPromotionsPage() {
     }
   }, [])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => { queueMicrotask(() => void fetchAll()) }, [fetchAll])
 
   // ── KPIs ──────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => ({

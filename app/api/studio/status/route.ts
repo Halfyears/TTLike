@@ -27,12 +27,15 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await service
     .from('video_breakdowns')
-    .select('id, viral_status, viral_error')
+    .select('id, user_id, viral_status, viral_error')
     .eq('id', breakdown_id)
     .maybeSingle()
 
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
   if (!data)  return NextResponse.json({ ok: true, viral_status: 'PENDING', breakdown_id: null })
+  if ((data as { user_id?: string | null }).user_id !== user.id) {
+    return NextResponse.json({ ok: true, viral_status: 'PENDING', breakdown_id: null })
+  }
 
   return NextResponse.json({
     ok:           true,

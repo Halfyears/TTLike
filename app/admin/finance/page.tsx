@@ -128,8 +128,10 @@ function DetailDrawer({
 
   useEffect(() => {
     if (!type) return
-    setLoading(true)
-    setErr(null)
+    queueMicrotask(() => {
+      setLoading(true)
+      setErr(null)
+    })
 
     const url =
       type === 'finops'
@@ -292,7 +294,7 @@ export default function FinancePage() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { queueMicrotask(() => void load()) }, [load])
 
   const d = data
 

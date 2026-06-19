@@ -186,7 +186,7 @@ async function fetchFromRapidAPI(tiktokId: string, tiktokUrl: string): Promise<{
     lastStatus === 403 ? ' — API key invalid or quota exceeded' :
     lastStatus === 429 ? ' — Rate limit, try again shortly' :
     lastStatus === 404 ? ' — Video may be private or deleted' : ''
-  return { error: `Could not fetch video (${lastStatus || 'timeout'})${hint}` }
+  return { error: `Could not fetch video (${lastStatus || 'timeout'})${hint}: ${lastErr || 'no usable response'}` }
 }
 
 async function fetchFromOEmbed(tiktokId: string, tiktokUrl: string): Promise<{ data: FetchedVideo } | { error: string }> {

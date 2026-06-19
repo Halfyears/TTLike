@@ -11,10 +11,15 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient }       from '@/lib/supabase/server'
+import { isCurrentUserAdmin }        from '@/lib/auth/admin'
 
 const DEFAULT_THRESHOLD = 5
 
 export async function POST(req: NextRequest) {
+  if (!await isCurrentUserAdmin()) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body      = await req.json().catch(() => ({})) as { threshold?: number }
     const threshold = Math.max(1, Number(body.threshold ?? DEFAULT_THRESHOLD))

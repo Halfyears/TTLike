@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { BlogImage } from '@/components/blog/BlogImage'
 import type { Metadata } from 'next'
 import { SITE_NAME, SITE_URL } from '@/lib/constants'
+import { queryD1Rows } from '@/lib/cloudflare/d1'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,6 +47,31 @@ const categoryColors: Record<string, 'default' | 'success' | 'warning' | 'danger
 // ── Data fetch ───────────────────────────────────────────────────────────────
 async function getPosts(): Promise<BlogPost[]> {
   try {
+    const d1Posts = await queryD1Rows<{
+      id: string; slug: string; title: string; excerpt: string | null
+      category: string | null; cover_image: string | null; published_at: string | null
+      content: string | null
+    }>(
+      `SELECT id, slug, title, excerpt, category, cover_image, published_at, content
+         FROM blog_posts
+        WHERE status = 'PUBLISHED'
+        ORDER BY published_at DESC
+        LIMIT 50`,
+    )
+
+    if (d1Posts && d1Posts.length > 0) {
+      return d1Posts.map(p => ({
+        id:           p.id,
+        slug:         p.slug,
+        title:        p.title,
+        excerpt:      p.excerpt,
+        category:     p.category,
+        cover_image:  p.cover_image,
+        published_at: p.published_at,
+        read_time:    p.content ? Math.max(1, Math.round(p.content.split(/\s+/).length / 200)) : 5,
+      }))
+    }
+
     const service = createServiceClient()
     const { data, error } = await service
       .from('blog_posts')

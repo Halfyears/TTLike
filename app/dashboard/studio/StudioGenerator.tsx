@@ -172,7 +172,7 @@ export function StudioGenerator() {
   // Pre-fill product name when arriving from Viral Studio result page
   useEffect(() => {
     const p = searchParams.get('product')
-    if (p) setProduct(decodeURIComponent(p).slice(0, 80))
+    if (p) queueMicrotask(() => setProduct(decodeURIComponent(p).slice(0, 80)))
   }, [searchParams])
 
   async function handleGenerate(e: React.FormEvent) {

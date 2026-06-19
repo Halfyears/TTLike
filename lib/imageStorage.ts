@@ -1,42 +1,30 @@
 /**
- * lib/imageStorage.ts — Supabase Storage cover image cache
+ * Permanent TikTok cover image cache.
  *
- * Downloads a TikTok CDN cover image and uploads it to the "covers" bucket
- * in Supabase Storage, returning the permanent public URL.
+ * Cloudflare target: upload covers to the `COVERS_BUCKET` R2 binding and serve
+ * them through `/api/assets/covers/:key`.
  *
- * SETUP: Create a PUBLIC bucket named "covers" in the Supabase dashboard:
- *   Storage → New bucket → Name: covers → Public: ON
- *
- * The stored path is: covers/{videoId}.webp
- * The public URL never expires and has no CORS/hotlink restrictions.
+ * During migration, Supabase Storage remains as a fallback when R2 is not
+ * available so the current production path keeps working.
  */
 import 'server-only'
+import { buildPublicCoverUrl, getCoversBucket } from '@/lib/cloudflare/env'
 import { createServiceClient } from '@/lib/supabase/server'
 
 const BUCKET = 'covers'
 
-/**
- * Download a TikTok CDN image and upload it to Supabase Storage.
- *
- * @param storageKey  Filename stem for the stored object (e.g. tiktok_videos.id or url_hash)
- * @param sourceUrl   The TikTok CDN URL to download from
- * @returns           The permanent Supabase Storage public URL, or null on failure
- */
 export async function cacheCoverImage(
   storageKey: string,
-  sourceUrl:  string,
+  sourceUrl: string,
 ): Promise<string | null> {
   if (!sourceUrl.includes('tiktokcdn')) {
-    // Not a TikTok CDN URL — return as-is
     return sourceUrl
   }
 
   try {
-    // Download from TikTok CDN server-side (no Referer header = no hotlink block)
     const fetchRes = await fetch(sourceUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-        // Intentionally omit Referer so TikTok CDN hotlink check is bypassed
       },
       signal: AbortSignal.timeout(10_000),
     })
@@ -46,32 +34,40 @@ export async function cacheCoverImage(
       return null
     }
 
-    const buffer      = await fetchRes.arrayBuffer()
+    const buffer = await fetchRes.arrayBuffer()
     const contentType = fetchRes.headers.get('content-type') ?? 'image/webp'
-    const ext         = contentType.includes('jpeg') ? 'jpg'
-                      : contentType.includes('png')  ? 'png'
-                      : 'webp'
+    const ext = contentType.includes('jpeg') ? 'jpg'
+      : contentType.includes('png') ? 'png'
+      : 'webp'
     const storagePath = `${storageKey}.${ext}`
+
+    const useR2 = process.env.STORAGE_PROVIDER === 'cloudflare-r2'
+    const bucket = useR2 ? await getCoversBucket() : null
+    if (bucket) {
+      await bucket.put(storagePath, buffer, {
+        httpMetadata: {
+          contentType,
+          cacheControl: 'public, max-age=31536000, immutable',
+        },
+      })
+      return buildPublicCoverUrl(storagePath)
+    }
 
     const service = createServiceClient()
     const { error: uploadError } = await service.storage
       .from(BUCKET)
       .upload(storagePath, buffer, {
         contentType,
-        upsert: true,   // overwrite if re-caching
-        cacheControl: '31536000', // 1 year
+        upsert: true,
+        cacheControl: '31536000',
       })
 
     if (uploadError) {
-      console.error(`[imageStorage] Upload failed for key ${storageKey}:`, uploadError.message)
+      console.error(`[imageStorage] Supabase upload failed for key ${storageKey}:`, uploadError.message)
       return null
     }
 
-    // Get the permanent public URL
-    const { data: { publicUrl } } = service.storage
-      .from(BUCKET)
-      .getPublicUrl(storagePath)
-
+    const { data: { publicUrl } } = service.storage.from(BUCKET).getPublicUrl(storagePath)
     return publicUrl
   } catch (e) {
     console.error(`[imageStorage] Error caching cover for key ${storageKey}:`, e)
@@ -79,13 +75,10 @@ export async function cacheCoverImage(
   }
 }
 
-/**
- * Update tiktok_videos.cover_storage_url after a successful upload.
- */
 export async function saveCoverStorageUrl(
-  videoId:     string,
-  storageUrl:  string,
-): Promise<void> {
+  videoId: string,
+  storageUrl: string,
+): Promise<boolean> {
   const service = createServiceClient()
   const { error } = await service
     .from('tiktok_videos')
@@ -94,5 +87,8 @@ export async function saveCoverStorageUrl(
 
   if (error) {
     console.error(`[imageStorage] DB update failed for video ${videoId}:`, error.message)
+    return false
   }
+
+  return true
 }

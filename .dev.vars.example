@@ -1,0 +1,32 @@
+# Cloudflare local runtime variables for `npm run preview`.
+# Copy to `.dev.vars` for Wrangler/OpenNext local preview.
+
+NEXT_PUBLIC_SITE_URL=http://localhost:8787
+AUTH_PROVIDER=cloudflare-d1
+STORAGE_PROVIDER=cloudflare-r2
+R2_PUBLIC_COVERS_PATH=/api/assets/covers
+
+APP_SESSION_SECRET=replace-with-at-least-32-random-bytes
+ADMIN_EMAIL=admin@example.com
+
+GEMINI_API_KEY=
+GROQ_API_KEY=
+GITHUB_TOKEN=
+RAPIDAPI_KEY=
+
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRO_PRICE_ID=
+STRIPE_ENTERPRISE_PRICE_ID=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+
+PAYPAL_CLIENT_ID=
+PAYPAL_CLIENT_SECRET=
+NEXT_PUBLIC_PAYPAL_CLIENT_ID=
+
+BING_WEBMASTER_API_KEY=
+INDEXNOW_API_KEY=
+
+# Used only by migration scripts. Do not deploy these to Cloudflare.
+OLD_SUPABASE_URL=
+OLD_SUPABASE_SERVICE_ROLE_KEY=

@@ -49,8 +49,10 @@ export function URLInputCard({ onResolved, prefillUrl }: URLInputCardProps) {
   useEffect(() => {
     if (!prefillUrl?.trim()) return
     const trimmed = prefillUrl.trim()
-    setUrl(trimmed)
-    void resolveUrl(trimmed)
+    queueMicrotask(() => {
+      setUrl(trimmed)
+      void resolveUrl(trimmed)
+    })
   }, [prefillUrl, resolveUrl])
 
   async function handleSubmit(e: React.FormEvent) {

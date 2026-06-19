@@ -18,7 +18,7 @@
 
 import { NextResponse }                      from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { prisma }                            from '@/lib/prisma'
+import { d1Db }                            from '@/lib/cloudflare/d1Compat'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ ok: false, reason: 'unauthenticated' })
 
     // ── Validate affiliate code via Prisma ────────────────────────────────────
-    const affiliateLink = await prisma.affiliateLink.findUnique({ where: { code: ref } })
+    const affiliateLink = await d1Db.affiliateLink.findUnique({ where: { code: ref } })
     if (!affiliateLink || !affiliateLink.isActive) {
       return NextResponse.json({ ok: false, reason: 'invalid_code' })
     }
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     // ── Atomic idempotent grant ────────────────────────────────────────────────
     // updateMany with affiliateCode:null condition prevents double-grant even
     // under concurrent retries — no separate read needed.
-    const updated = await prisma.user.updateMany({
+    const updated = await d1Db.user.updateMany({
       where: { email: user.email!, affiliateCode: null },
       data:  { affiliateCode: ref, whitelabelPdfPasses: { increment: 1 } },
     })
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     }
 
     // First attribution — increment affiliate conversions
-    await prisma.affiliateLink.update({
+    await d1Db.affiliateLink.update({
       where: { code: ref },
       data:  { conversions: { increment: 1 } },
     })

@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 import { BADGE_LABELS } from '@/lib/behavior/badge-types'
 import type { BadgeType } from '@/lib/behavior/badge-types'
 import { fmtDateTime } from '@/lib/dateUtils'
@@ -7,12 +7,12 @@ export const metadata = { title: 'Badges · Admin' }
 
 export default async function AdminBadgesPage() {
   const [distribution, recent] = await Promise.all([
-    prisma.badgeLog.groupBy({
+    d1Db.badgeLog.groupBy({
       by:      ['badgeType'],
       _count:  { id: true },
       orderBy: { _count: { id: 'desc' } },
     }),
-    prisma.badgeLog.findMany({
+    d1Db.badgeLog.findMany({
       orderBy: { createdAt: 'desc' },
       take:    100,
       select:  { id: true, userId: true, badgeType: true, createdAt: true },

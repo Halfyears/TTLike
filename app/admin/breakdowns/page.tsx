@@ -41,7 +41,7 @@ export default async function BreakdownsAdminPage() {
   )
 
   const total       = breakdowns.length
-  const weekAgo     = Date.now() - 7 * 86_400_000
+  const weekAgo     = new Date().getTime() - 7 * 86_400_000
   const thisWeek    = breakdowns.filter(b => new Date(b.created_at).getTime() > weekAgo).length
   const v25Count    = breakdowns.filter(b => getRowType(b.payload) === 'v25').length
   const healthCount = breakdowns.filter(b => getRowType(b.payload) === 'health').length

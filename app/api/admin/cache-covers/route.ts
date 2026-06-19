@@ -86,8 +86,13 @@ export async function POST(req: Request) {
 
     const storageUrl = await cacheCoverImage(video.id as string, url)
     if (storageUrl) {
-      await saveCoverStorageUrl(video.id as string, storageUrl)
-      cached++
+      const saved = await saveCoverStorageUrl(video.id as string, storageUrl)
+      if (saved) {
+        cached++
+      } else {
+        failed++
+        errors.push(video.id as string)
+      }
     } else {
       failed++
       errors.push(video.id as string)

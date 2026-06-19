@@ -5,7 +5,7 @@ import {
   RefreshCw, Users, CreditCard, Zap, ShieldCheck,
   ChevronDown, Search, CheckCircle, BarChart2,
   Brain, Clock, ChevronRight, RotateCcw, AlertTriangle,
-  MousePointerClick, TrendingUp, ArrowUpRight, ShieldAlert, Check,
+  MousePointerClick, ArrowUpRight, ShieldAlert, Check,
 } from 'lucide-react'
 import Link           from 'next/link'
 import { Badge }      from '@/components/ui/Badge'
@@ -213,7 +213,7 @@ function OperatorProfilesPanel() {
     }
   }, [])
 
-  useEffect(() => { fetchProfiles() }, [fetchProfiles])
+  useEffect(() => { queueMicrotask(() => void fetchProfiles()) }, [fetchProfiles])
 
   async function handleCompute() {
     setComputing(true)
@@ -386,7 +386,7 @@ function FeatureHotspotsPanel() {
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { fetch7d() }, [])
+  useEffect(() => { queueMicrotask(() => void fetch7d()) }, [])
 
   const maxTotal = data ? Math.max(...data.features.map(f => f.total), 1) : 1
 
@@ -477,7 +477,7 @@ function UpgradeAttributionPanel() {
     } finally { setLoading(false) }
   }
 
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => { queueMicrotask(() => void fetchData()) }, [])
 
   const TRIGGER_LABELS: Record<string, string> = {
     loss_aversion: '避亏心理',
@@ -612,7 +612,7 @@ export default function AdminUsersPage() {
     }
   }, [])
 
-  useEffect(() => { fetchUsers() }, [fetchUsers])
+  useEffect(() => { queueMicrotask(() => void fetchUsers()) }, [fetchUsers])
 
   // ── Mark a field as pending (does NOT call API) ────────────────────────────
   function markPending(userId: string, field: 'role' | 'accountStatus' | 'plan', value: string) {
@@ -645,7 +645,11 @@ export default function AdminUsersPage() {
         }
       }))
       // Clear pending for this user
-      setPendingChanges(prev => { const { [userId]: _, ...rest } = prev; return rest })
+      setPendingChanges(prev => {
+        const next = { ...prev }
+        delete next[userId]
+        return next
+      })
     } catch (e) {
       alert(`Failed to save: ${e instanceof Error ? e.message : e}`)
     } finally {

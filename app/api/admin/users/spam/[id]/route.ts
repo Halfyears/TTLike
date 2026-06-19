@@ -5,8 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { prisma }       from '@/lib/prisma'
-import { Prisma }       from '@prisma/client'
+import { d1Db }       from '@/lib/cloudflare/d1Compat'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,7 +15,7 @@ async function isAdmin(): Promise<boolean> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return false
     try {
-      const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
+      const dbUser = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (dbUser?.role === 'ADMIN') return true
     } catch {}
     return user.email === process.env.ADMIN_EMAIL
@@ -39,13 +38,13 @@ export async function PATCH(
     isEnabled:   boolean
   }>
 
-  const rule = await prisma.spamRule.update({
+  const rule = await d1Db.spamRule.update({
     where: { id },
     data: {
       ...(body.name        !== undefined && { name: body.name }),
       ...(body.description !== undefined && { description: body.description }),
       ...(body.ruleType    !== undefined && { ruleType: body.ruleType }),
-      ...(body.config      !== undefined && { config: body.config as Prisma.InputJsonValue }),
+      ...(body.config      !== undefined && { config: body.config as Record<string, unknown> }),
       ...(body.autoAction  !== undefined && { autoAction: body.autoAction }),
       ...(body.isEnabled   !== undefined && { isEnabled: body.isEnabled }),
       updatedAt: new Date(),
@@ -62,6 +61,6 @@ export async function DELETE(
   if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id } = await params
-  await prisma.spamRule.delete({ where: { id } })
+  await d1Db.spamRule.delete({ where: { id } })
   return NextResponse.json({ ok: true })
 }

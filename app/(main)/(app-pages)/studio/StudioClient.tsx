@@ -59,7 +59,7 @@ function TranscribingScreen({ title }: { title: string | null }) {
         Analysing the actual spoken words so the AI can generate accurate insights…
       </p>
       {title && (
-        <p className="text-xs text-gray-400 max-w-xs italic line-clamp-2">"{title}"</p>
+        <p className="text-xs text-gray-400 max-w-xs italic line-clamp-2">&ldquo;{title}&rdquo;</p>
       )}
       <p className="mt-4 text-xs text-gray-400">~10–20 seconds</p>
       {/* Indeterminate progress bar */}
@@ -304,9 +304,17 @@ function ResultView({
   transcript: TranscriptSegment[]
   onReset:    () => void
 }) {
-  const timeAgo = resultMeta.generated_at
+  const [now, setNow] = useState<number | null>(null)
+
+  useEffect(() => {
+    queueMicrotask(() => setNow(Date.now()))
+    const id = setInterval(() => setNow(Date.now()), 60_000)
+    return () => clearInterval(id)
+  }, [])
+
+  const timeAgo = resultMeta.generated_at && now
     ? (() => {
-        const secs = Math.floor((Date.now() - new Date(resultMeta.generated_at).getTime()) / 1000)
+        const secs = Math.floor((now - new Date(resultMeta.generated_at).getTime()) / 1000)
         if (secs < 10)  return 'just now'
         if (secs < 60)  return `${secs}s ago`
         if (secs < 120) return '1 min ago'

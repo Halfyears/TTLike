@@ -127,7 +127,7 @@ export default function AdminAffiliatesPage() {
     }
   }, [])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  useEffect(() => { queueMicrotask(() => void fetchAll()) }, [fetchAll])
 
   // ── KPIs ──────────────────────────────────────────────────────────────────
   const kpis = useMemo(() => ({

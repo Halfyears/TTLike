@@ -11,6 +11,7 @@
 
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { queryD1First } from '@/lib/cloudflare/d1'
 
 export const revalidate = 3600
 
@@ -20,6 +21,23 @@ const LAUNCH_OFFSET = 850
 
 export async function GET() {
   try {
+    const [usageRow, productsRow] = await Promise.all([
+      queryD1First<{ total: number | null }>(
+        'SELECT COALESCE(SUM(video_analysis_used), 0) AS total FROM user_billing_tiers',
+      ),
+      queryD1First<{ total: number }>(
+        'SELECT COUNT(*) AS total FROM tiktok_videos WHERE deleted_at IS NULL',
+      ),
+    ])
+
+    if (usageRow && productsRow) {
+      return NextResponse.json({
+        ok:               true,
+        total_scripts:    Number(usageRow.total ?? 0) + LAUNCH_OFFSET,
+        products_tracked: Number(productsRow.total ?? 0),
+      })
+    }
+
     const service = createServiceClient()
 
     // Sum of all video_analysis_used across users

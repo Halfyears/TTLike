@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 
 async function isAdmin(): Promise<boolean> {
   try {
@@ -13,7 +13,7 @@ async function isAdmin(): Promise<boolean> {
     const { data: { user } } = await sb.auth.getUser()
     if (!user) return false
     try {
-      const u = await prisma.user.findUnique({ where: { email: user.email! } })
+      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (u?.role === 'ADMIN') return true
     } catch {}
     return user.email === process.env.ADMIN_EMAIL
@@ -24,7 +24,7 @@ export async function GET() {
   if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const posts = await prisma.blogPost.findMany({
+    const posts = await d1Db.blogPost.findMany({
       orderBy: { createdAt: 'desc' },
       take: 100,
       select: {
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     : 'DRAFT'
 
   try {
-    const post = await prisma.blogPost.create({
+    const post = await d1Db.blogPost.create({
       data: {
         title,
         slug:       safeSlug,

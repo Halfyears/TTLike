@@ -269,7 +269,7 @@ export function ScriptHistory() {
     }
   }, [search, filterNiche, filterHook])
 
-  useEffect(() => { fetchHistory(1) }, [fetchHistory])
+  useEffect(() => { queueMicrotask(() => void fetchHistory(1)) }, [fetchHistory])
 
   function handleDelete(id: string) {
     setItems(prev => prev.filter(i => i.id !== id))

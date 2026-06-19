@@ -22,16 +22,6 @@ import { CopyHookButton } from './CopyHookButton'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-interface ShareParams {
-  score:   number
-  pattern: string
-  hook:    string
-  v1:      string
-  v2:      string
-  v3:      string
-  v4:      string
-}
-
 // ── Variant display config ─────────────────────────────────────────────────────
 
 const VARIANT_META = [
@@ -249,4 +239,3 @@ export default async function HookSharePage(
     </div>
   )
 }
-

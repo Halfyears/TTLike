@@ -7,10 +7,15 @@
  */
 
 import { NextResponse } from 'next/server'
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 export const maxDuration = 10
 
 export async function GET() {
+  if (!await isCurrentUserAdmin()) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   const apiKey = process.env.GEMINI_API_KEY
   if (!apiKey) {
     return NextResponse.json({ ok: false, error: 'GEMINI_API_KEY not set' })

@@ -1,8 +1,8 @@
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { ProductCard } from '@/components/ProductCard'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
 import { SITE_URL } from '@/lib/constants'
+import { getD1Database } from '@/lib/cloudflare/env'
 
 export const dynamic = 'force-dynamic'
 export const metadata = {
@@ -16,6 +16,111 @@ const PER_PAGE = 24
 
 interface ProductsPageProps {
   searchParams: Promise<{ q?: string; niche?: string; sort?: string; page?: string }>
+}
+
+type Row = {
+  id: string; product_name: string | null; title: string | null;
+  niche: string | null; viral_score: number; views: number;
+  likes: number; shares: number; author: string;
+  cover_url: string | null; cover_storage_url: string | null; video_url: string | null;
+}
+
+async function querySupabaseProducts(args: {
+  q?: string
+  niche?: string
+  sortKey: 'views' | 'viral_score' | null
+  offset: number
+}) {
+  const { createClient } = await import('@/lib/supabase/server')
+  const supabase = await createClient()
+
+  let query = supabase
+    .from('tiktok_videos')
+    .select('id,product_name,title,niche,viral_score,views,likes,shares,author,cover_url,cover_storage_url,video_url', { count: 'exact' })
+    .is('deleted_at', null)
+    .range(args.offset, args.offset + PER_PAGE - 1)
+
+  if (args.sortKey) {
+    query = query.order(args.sortKey, { ascending: false })
+  } else {
+    query = query
+      .order('sort_order', { ascending: true, nullsFirst: false })
+      .order('viral_score', { ascending: false })
+  }
+
+  if (args.q) query = query.ilike('title', `%${args.q}%`)
+  if (args.niche && args.niche !== 'All') query = query.eq('niche', args.niche)
+
+  let { data, count, error } = await query
+
+  if (error?.code === '42703') {
+    console.warn('[products] cover_storage_url column missing - run migration 20260523_cover_storage.sql')
+    const fbQuery = supabase
+      .from('tiktok_videos')
+      .select('id,product_name,title,niche,viral_score,views,likes,shares,author,cover_url,video_url', { count: 'exact' })
+      .is('deleted_at', null)
+      .range(args.offset, args.offset + PER_PAGE - 1)
+    const sorted = args.sortKey
+      ? fbQuery.order(args.sortKey, { ascending: false })
+      : fbQuery.order('sort_order', { ascending: true, nullsFirst: false }).order('viral_score', { ascending: false })
+    const filtered = args.q ? sorted.ilike('title', `%${args.q}%`) : sorted
+    const filtered2 = (args.niche && args.niche !== 'All') ? filtered.eq('niche', args.niche) : filtered
+    const fb = await filtered2
+    data = fb.data as typeof data
+    count = fb.count
+    error = fb.error
+  }
+
+  if (error) throw error
+  return { rows: (data ?? []) as Row[], total: count ?? 0 }
+}
+
+async function queryD1Products(args: {
+  q?: string
+  niche?: string
+  sortKey: 'views' | 'viral_score' | null
+  offset: number
+}) {
+  try {
+    const db = await getD1Database()
+    if (!db) return null
+
+    const where: string[] = ['deleted_at IS NULL']
+    const values: unknown[] = []
+    if (args.q) {
+      where.push('LOWER(title) LIKE ?')
+      values.push(`%${args.q.toLowerCase()}%`)
+    }
+    if (args.niche && args.niche !== 'All') {
+      where.push('niche = ?')
+      values.push(args.niche)
+    }
+
+    const whereSql = where.join(' AND ')
+    const orderSql = args.sortKey
+      ? `${args.sortKey} DESC`
+      : 'sort_order IS NULL ASC, sort_order ASC, viral_score DESC'
+
+    const { results = [] } = await db.prepare(`
+      SELECT id, product_name, title, niche, viral_score, views, likes, shares, author,
+             cover_url, cover_storage_url, video_url
+      FROM tiktok_videos
+      WHERE ${whereSql}
+      ORDER BY ${orderSql}
+      LIMIT ? OFFSET ?
+    `).bind(...values, PER_PAGE, args.offset).all<Row>()
+
+    const totalRow = await db.prepare(`
+      SELECT COUNT(*) AS total
+      FROM tiktok_videos
+      WHERE ${whereSql}
+    `).bind(...values).first<{ total: number }>()
+
+    return { rows: results, total: Number(totalRow?.total ?? 0) }
+  } catch (error) {
+    console.warn('[products] D1 query failed; falling back to Supabase:', error)
+    return null
+  }
 }
 
 // ── Pagination helper ─────────────────────────────────────────────────────────
@@ -51,13 +156,6 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   // Sort: 'featured' = admin sort_order, 'viral' = viral_score, 'views' = views
   const sortKey = sort === 'views' ? 'views' : sort === 'viral' ? 'viral_score' : null
 
-  type Row = {
-    id: string; product_name: string | null; title: string | null;
-    niche: string | null; viral_score: number; views: number;
-    likes: number; shares: number; author: string;
-    cover_url: string | null; cover_storage_url: string | null; video_url: string | null;
-  }
-
   let products: Array<{
     id: string; productName: string; niche: string; viralScore: number;
     views: number; likes: number; shares: number; author: string;
@@ -66,67 +164,23 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
   let total = 0
 
   try {
-    const supabase = await createClient()
+    const result = await queryD1Products({ q, niche, sortKey, offset })
+      ?? await querySupabaseProducts({ q, niche, sortKey, offset })
 
-    let query = supabase
-      .from('tiktok_videos')
-      .select('id,product_name,title,niche,viral_score,views,likes,shares,author,cover_url,cover_storage_url,video_url', { count: 'exact' })
-      .is('deleted_at', null)
-      .range(offset, offset + PER_PAGE - 1)
-
-    // Sort
-    if (sortKey) {
-      query = query.order(sortKey, { ascending: false })
-    } else {
-      // Featured: admin sort_order first, then viral_score fallback
-      query = query
-        .order('sort_order', { ascending: true, nullsFirst: false })
-        .order('viral_score', { ascending: false })
-    }
-
-    if (q)                  query = query.ilike('title', `%${q}%`)
-    if (niche && niche !== 'All') query = query.eq('niche', niche)
-
-    let { data, count, error } = await query
-
-    // Graceful fallback: cover_storage_url column doesn't exist yet (migration pending)
-    // Retry without it so the products page never goes blank before migration is run.
-    if (error?.code === '42703') {
-      console.warn('[products] cover_storage_url column missing — run migration 20260523_cover_storage.sql')
-      const fbQuery = supabase
-        .from('tiktok_videos')
-        .select('id,product_name,title,niche,viral_score,views,likes,shares,author,cover_url,video_url', { count: 'exact' })
-        .is('deleted_at', null)
-        .range(offset, offset + PER_PAGE - 1)
-      const sorted = sortKey
-        ? fbQuery.order(sortKey, { ascending: false })
-        : fbQuery.order('sort_order', { ascending: true, nullsFirst: false }).order('viral_score', { ascending: false })
-      const filtered = q ? sorted.ilike('title', `%${q}%`) : sorted
-      const filtered2 = (niche && niche !== 'All') ? filtered.eq('niche', niche) : filtered
-      const fb = await filtered2
-      data  = fb.data as typeof data
-      count = fb.count
-      error = fb.error
-    }
-
-    if (error) {
-      console.error('[products] query error:', error)
-    } else {
-      total = count ?? 0
-      products = ((data ?? []) as Row[]).map(r => ({
-        id:          r.id,
-        productName: r.product_name ?? r.title ?? '',
-        niche:       r.niche ?? 'General',
-        viralScore:  r.viral_score ?? 0,
-        views:       r.views ?? 0,
-        likes:       r.likes ?? 0,
-        shares:      r.shares ?? 0,
-        author:      r.author ?? '',
-        cover_url:         r.cover_url         ?? null,
-        cover_storage_url: (r as Row).cover_storage_url ?? null,
-        video_url:         r.video_url         ?? null,
-      }))
-    }
+    total = result.total
+    products = result.rows.map(r => ({
+      id:          r.id,
+      productName: r.product_name ?? r.title ?? '',
+      niche:       r.niche ?? 'General',
+      viralScore:  r.viral_score ?? 0,
+      views:       r.views ?? 0,
+      likes:       r.likes ?? 0,
+      shares:      r.shares ?? 0,
+      author:      r.author ?? '',
+      cover_url:         r.cover_url ?? null,
+      cover_storage_url: r.cover_storage_url ?? null,
+      video_url:         r.video_url ?? null,
+    }))
   } catch (err) {
     console.error('[products] fetch failed:', err)
   }

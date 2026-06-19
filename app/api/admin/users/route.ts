@@ -11,7 +11,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 
 async function isAdmin(): Promise<boolean> {
   try {
@@ -19,7 +19,7 @@ async function isAdmin(): Promise<boolean> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return false
     try {
-      const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
+      const dbUser = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (dbUser?.role === 'ADMIN') return true
     } catch {}
     return user.email === process.env.ADMIN_EMAIL

@@ -13,6 +13,7 @@
 import { NextResponse }         from 'next/server'
 import { revalidatePath }       from 'next/cache'
 import { createServiceClient }  from '@/lib/supabase/server'
+import { isCurrentUserAdmin }    from '@/lib/auth/admin'
 import { generateViralSlug }    from '@/lib/seoSlug'
 import { callVideoBreakdown }   from '@/lib/ai/parserPrompt'
 import { createHash }           from 'crypto'
@@ -25,6 +26,10 @@ function urlHash(input: string): string {
 }
 
 export async function POST(req: Request) {
+  if (!await isCurrentUserAdmin()) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   if (!process.env.GEMINI_API_KEY) {
     return NextResponse.json({ error: 'GEMINI_API_KEY not configured' }, { status: 503 })
   }

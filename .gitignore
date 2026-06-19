@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# cloudflare local/deployment artifacts
+.wrangler/
+cloudflare/export/
+cloudflare/d1/import-data.sql
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

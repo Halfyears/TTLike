@@ -5,7 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 
 async function isAdmin(): Promise<boolean> {
   try {
@@ -13,7 +13,7 @@ async function isAdmin(): Promise<boolean> {
     const { data: { user } } = await sb.auth.getUser()
     if (!user) return false
     try {
-      const u = await prisma.user.findUnique({ where: { email: user.email! } })
+      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (u?.role === 'ADMIN') return true
     } catch {}
     return user.email === process.env.ADMIN_EMAIL
@@ -41,7 +41,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
   }
 
   try {
-    const link = await prisma.affiliateLink.update({ where: { id }, data: update })
+    const link = await d1Db.affiliateLink.update({ where: { id }, data: update })
     return NextResponse.json({ link })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })
@@ -55,7 +55,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const { id } = await params
 
   try {
-    await prisma.affiliateLink.delete({ where: { id } })
+    await d1Db.affiliateLink.delete({ where: { id } })
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: String(e) }, { status: 500 })

@@ -88,7 +88,7 @@ export default async function AdminScriptsPage() {
 
   // ── Stats ──────────────────────────────────────────────────────────────────
   const total        = scripts.length
-  const weekAgo      = Date.now() - 7 * 86_400_000
+  const weekAgo      = new Date().getTime() - 7 * 86_400_000
   const thisWeek     = scripts.filter(s => new Date(s.created_at).getTime() > weekAgo).length
   const deleted      = scripts.filter(s => s.deleted_at !== null).length
   const uniqueUsers  = new Set(scripts.map(s => s.user_id)).size

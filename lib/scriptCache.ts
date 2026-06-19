@@ -78,9 +78,17 @@ export function applyPersonalization(
   offer?: string,
   ctaType?: string,
 ): CachedScript[] {
-  if (!brandName && !offer) return scripts
+  if (!brandName && !offer && !ctaType) return scripts
+
+  const ctaTypeText: Record<string, string> = {
+    bio:     'Link in bio',
+    comment: 'Comment for details',
+    dm:      'DM for the link',
+    shop:    'Shop now',
+  }
 
   const ctaSuffix = [
+    ctaType ? ctaTypeText[ctaType] ?? ctaType : '',
     brandName ? `Shop ${brandName}` : '',
     offer      ? offer              : '',
   ].filter(Boolean).join(' · ')
@@ -91,6 +99,7 @@ export function applyPersonalization(
       term ? text.toLowerCase().includes(term.toLowerCase()) : true
 
     const needsAppend =
+      (ctaType && !alreadyHas(s.cta, ctaTypeText[ctaType] ?? ctaType)) ||
       (brandName && !alreadyHas(s.cta, brandName)) ||
       (offer && !alreadyHas(s.cta, offer))
 

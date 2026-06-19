@@ -14,7 +14,7 @@
 
 import { NextResponse }                      from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { prisma }                            from '@/lib/prisma'
+import { d1Db }                            from '@/lib/cloudflare/d1Compat'
 import { generateBreakdownPdf }              from '@/lib/pdf/generateBreakdownPdf'
 import type { VideoBreakdownPayload }        from '@/lib/types/intelligence'
 
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
   // ── Check pass balance (if not Scale tier) ────────────────────────────────
   let dbUser: { whitelabelPdfPasses: number } | null = null
   if (!isScale) {
-    dbUser = await prisma.user.findUnique({
+    dbUser = await d1Db.user.findUnique({
       where:  { email: user.email! },
       select: { whitelabelPdfPasses: true },
     })
@@ -66,6 +66,7 @@ export async function GET(req: Request) {
     .from('video_breakdowns')
     .select(`
       id,
+      user_id,
       payload,
       tiktok_videos!left(title, product_name, niche, viral_score)
     `)
@@ -73,6 +74,10 @@ export async function GET(req: Request) {
     .maybeSingle()
 
   if (bErr || !breakdownRow) {
+    return NextResponse.json({ error: 'Breakdown not found' }, { status: 404 })
+  }
+  const ownerId = (breakdownRow as { user_id?: string | null }).user_id
+  if (ownerId && ownerId !== user.id) {
     return NextResponse.json({ error: 'Breakdown not found' }, { status: 404 })
   }
 
@@ -98,7 +103,7 @@ export async function GET(req: Request) {
   // ── Decrement pass (non-Scale only, after successful HTML generation) ─────
   if (!isScale) {
     try {
-      await prisma.user.update({
+      await d1Db.user.update({
         where: { email: user.email! },
         data:  { whitelabelPdfPasses: { decrement: 1 } },
       })

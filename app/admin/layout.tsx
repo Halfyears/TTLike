@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 import { AdminShell } from './AdminShell'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -10,7 +10,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   let isAdmin = false
   try {
-    const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
+    const dbUser = await d1Db.user.findUnique({ where: { email: user.email! } })
     isAdmin = dbUser?.role === 'ADMIN'
   } catch {
     isAdmin = user.email === process.env.ADMIN_EMAIL

@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams }  from 'next/navigation'
 import Link                 from 'next/link'
 import {
-  ArrowLeft, Users, RefreshCw, ExternalLink,
+  ArrowLeft, Users, RefreshCw,
   AlertTriangle, ChevronRight,
 } from 'lucide-react'
 
@@ -72,7 +72,7 @@ export default function UserSourcesPage() {
     }
   }, [source])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { queueMicrotask(() => void load()) }, [load])
 
   const displaySource = source === '__direct__' ? '(direct / none)' : (source || 'All sources')
 

@@ -11,7 +11,6 @@ import { CommentsPanel } from './CommentsPanel'
 import { Card, CardContent } from '@/components/ui/Card'
 import { ViralScoreBadge } from '@/components/ui/ViralScoreBadge'
 import { Badge } from '@/components/ui/Badge'
-import { Button } from '@/components/ui/Button'
 import { LocalDate } from '@/components/ui/LocalDate'
 import { VideoBreakdownWithTier } from '@/components/VideoBreakdownWithTier'
 import { StructuralHealthReport } from '@/components/StructuralHealthReport'
@@ -19,6 +18,8 @@ import { formatNumber } from '@/lib/utils'
 import { syntheticScriptCount, scriptCountLabel } from '@/lib/utils/social-proof'
 import type { Metadata } from 'next'
 import { SITE_URL } from '@/lib/constants'
+import { getD1Database } from '@/lib/cloudflare/env'
+import { safeJsonLd } from '@/lib/security/jsonLd'
 
 export const dynamic = 'force-dynamic'
 
@@ -62,16 +63,22 @@ interface Props {
 // cache() deduplicates calls within a single request — generateMetadata and the
 // page component both call getVideo(id); cache() ensures only one DB round-trip.
 const getVideo = cache(async function getVideo(id: string) {
-  const url = new URL(`/rest/v1/tiktok_videos`, process.env.NEXT_PUBLIC_SUPABASE_URL)
+  const db = await getD1Database()
+  if (db) {
+    return db.prepare('SELECT * FROM tiktok_videos WHERE id = ? LIMIT 1').bind(id).first()
+  }
+
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!base || !anonKey) return null
+
+  const url = new URL('/rest/v1/tiktok_videos', base)
   url.searchParams.set('select', '*')
   url.searchParams.set('id', `eq.${id}`)
   url.searchParams.set('limit', '1')
 
   const res = await fetch(url.toString(), {
-    headers: {
-      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-    },
+    headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
     cache: 'no-store',
   })
   if (!res.ok) return null
@@ -80,7 +87,23 @@ const getVideo = cache(async function getVideo(id: string) {
 })
 
 async function getSimilar(niche: string, excludeId: string) {
-  const url = new URL(`/rest/v1/tiktok_videos`, process.env.NEXT_PUBLIC_SUPABASE_URL)
+  const db = await getD1Database()
+  if (db) {
+    const { results = [] } = await db.prepare(`
+      SELECT id, product_name, title, viral_score
+      FROM tiktok_videos
+      WHERE niche = ? AND id != ? AND deleted_at IS NULL
+      ORDER BY viral_score DESC
+      LIMIT 4
+    `).bind(niche, excludeId).all()
+    return results
+  }
+
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!base || !anonKey) return []
+
+  const url = new URL('/rest/v1/tiktok_videos', base)
   url.searchParams.set('select', 'id,product_name,title,viral_score')
   url.searchParams.set('niche', `eq.${niche}`)
   url.searchParams.set('id', `neq.${excludeId}`)
@@ -88,10 +111,7 @@ async function getSimilar(niche: string, excludeId: string) {
   url.searchParams.set('limit', '4')
 
   const res = await fetch(url.toString(), {
-    headers: {
-      apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-    },
+    headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
     cache: 'no-store',
   })
   if (!res.ok) return []
@@ -290,7 +310,6 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
         / Number(v.views)) * 100).toFixed(2)
     : '0'
 
-  const cloneHref  = `/dashboard/ai-scripts?from_video=${encodeURIComponent(String(v.id))}&suggested_title=${encodeURIComponent(cleanName)}&niche=${encodeURIComponent(niche)}&keywords=${encodeURIComponent(rawTitle)}`
   // Shoot-ready CTA: deep-link to Studio pre-filled with this video's URL
   const studioHref = v.video_url
     ? `/studio?url=${encodeURIComponent(String(v.video_url))}`
@@ -371,8 +390,8 @@ export default async function ProductDetailPage({ params, searchParams }: Props)
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
       {/* Structured data */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(productSchema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(faqSchema) }} />
 
       <Link href="/products" className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
         <ArrowLeft className="h-4 w-4" /> Back to Products

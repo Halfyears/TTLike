@@ -148,7 +148,7 @@ export default async function PipelineResultsPage({
               <div className="flex items-start gap-2">
                 <span className="text-[10px] font-bold text-violet-400 shrink-0 mt-0.5 uppercase tracking-wider">Hook</span>
                 <p className="text-sm text-violet-100 italic leading-snug">
-                  "{final_script.hook_line}"
+                  &ldquo;{final_script.hook_line}&rdquo;
                 </p>
               </div>
             )}

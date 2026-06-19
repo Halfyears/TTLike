@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { ArrowLeft, User, Image, Video, Mic, Copy, Clapperboard } from 'lucide-react'
+import { ArrowLeft, User, Image as ImageIcon, Video, Mic, Clapperboard } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
 import { LocalDate } from '@/components/ui/LocalDate'
 import type { DramaRow, CharacterRow, StoryboardRow } from '@/lib/studio/types'
@@ -124,7 +124,7 @@ export default async function DramaDetailPage({ params }: { params: Promise<{ id
                     <div className="bg-blue-50/50 rounded-lg p-3 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-blue-500">
-                          <Image className="h-2.5 w-2.5" />Image Prompt
+                          <ImageIcon className="h-2.5 w-2.5" />Image Prompt
                         </span>
                         <ServerCopyBtn text={board.image_prompt} />
                       </div>

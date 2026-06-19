@@ -196,7 +196,7 @@ export default function UserDetailPage() {
     }
   }, [userId])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { queueMicrotask(() => void load()) }, [load])
 
   // ── Loading / error ────────────────────────────────────────────────────────
   if (loading) {

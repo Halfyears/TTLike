@@ -37,7 +37,7 @@ export function SitemapSubmitPanel() {
     } catch { /* non-fatal */ }
   }, [])
 
-  useEffect(() => { loadStatus() }, [loadStatus])
+  useEffect(() => { queueMicrotask(() => void loadStatus()) }, [loadStatus])
 
   // ── Submit handler ───────────────────────────────────────────────────────────
   async function handleSubmit() {

@@ -72,9 +72,6 @@ function HookMachine() {
   const [error,       setError]      = useState<string | null>(null)
   const [showModal,   setShowModal]  = useState(false)
   const [modalCount,  setModalCount] = useState(0)
-  const [isLoggedIn,  setIsLoggedIn] = useState(false)
-  // authChecked prevents false-positive modal fires before session resolves
-  const [authChecked, setAuthChecked] = useState(false)
   // Refs mirror state so async analyse() always reads the latest value without stale closure
   const isLoggedInRef  = useRef(false)
   const authCheckedRef = useRef(false)
@@ -85,9 +82,7 @@ function HookMachine() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       isLoggedInRef.current  = !!session
       authCheckedRef.current = true
-      setIsLoggedIn(!!session)
-      setAuthChecked(true)
-    }).catch(() => { authCheckedRef.current = true; setAuthChecked(true) })
+    }).catch(() => { authCheckedRef.current = true })
   }, [])
 
   const maybeShowModal = useCallback((count: number) => {
@@ -101,7 +96,7 @@ function HookMachine() {
       setModalCount(count)
       setShowModal(true)
     }
-  }, [authChecked, isLoggedIn])
+  }, [])
 
   const analyse = async () => {
     if (!text.trim() || loading) return

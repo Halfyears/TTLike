@@ -16,7 +16,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 import { runAIWaterfall } from '@/lib/ai/providers'
 
 async function isAdmin(): Promise<boolean> {
@@ -25,7 +25,7 @@ async function isAdmin(): Promise<boolean> {
     const { data: { user } } = await sb.auth.getUser()
     if (!user) return false
     try {
-      const u = await prisma.user.findUnique({ where: { email: user.email! } })
+      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (u?.role === 'ADMIN') return true
     } catch {}
     return user.email === process.env.ADMIN_EMAIL
@@ -237,14 +237,14 @@ Write a blog post analyzing why this product/video stands out and how sellers or
   // Use breakdown_id suffix so we always get a valid, non-empty slug.
   const baseSlug = parsed.slug?.trim() || toSlug(parsed.title) || `breakdown-${breakdown_id.slice(0, 8)}`
   let slug = baseSlug
-  const existing = await prisma.blogPost.findUnique({ where: { slug }, select: { id: true } })
+  const existing = await d1Db.blogPost.findUnique({ where: { slug }, select: { id: true } })
   if (existing) slug = `${baseSlug}-${Date.now().toString(36)}`
 
   // ── 7. Save blog post to Prisma as PUBLISHED ──────────────────────────────────
   const VALID_CATEGORIES = ['Strategy', 'Research', 'Guide', 'AI']
   let post: { id: string; slug: string }
   try {
-    post = await prisma.blogPost.create({
+    post = await d1Db.blogPost.create({
       data: {
         title:      parsed.title.slice(0, 200),
         slug,

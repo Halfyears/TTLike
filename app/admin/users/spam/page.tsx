@@ -303,7 +303,7 @@ export default function SpamConfigPage() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { queueMicrotask(() => void load()) }, [load])
 
   async function handleToggle(id: string, enabled: boolean) {
     await fetch(`/api/admin/users/spam/${id}`, {

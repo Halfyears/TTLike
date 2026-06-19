@@ -142,7 +142,7 @@ export default async function StudioAdminPage() {
                 </tr>
               </thead>
               <tbody>
-                {dramas.map((d, i) => (
+                {dramas.map(d => (
                   <tr key={d.id}
                     className={`border-b border-gray-700/50 last:border-0 hover:bg-gray-750 transition-colors ${
                       d.status === 'FAILED' ? 'bg-red-950/10' : ''

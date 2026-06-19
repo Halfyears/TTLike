@@ -5,7 +5,7 @@
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 
 async function isAdmin(): Promise<boolean> {
   try {
@@ -13,7 +13,7 @@ async function isAdmin(): Promise<boolean> {
     const { data: { user } } = await sb.auth.getUser()
     if (!user) return false
     try {
-      const u = await prisma.user.findUnique({ where: { email: user.email! } })
+      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (u?.role === 'ADMIN') return true
     } catch {}
     return user.email === process.env.ADMIN_EMAIL
@@ -34,7 +34,7 @@ export async function GET() {
   if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
-    const links = await prisma.affiliateLink.findMany({
+    const links = await d1Db.affiliateLink.findMany({
       orderBy: { createdAt: 'desc' },
       take: 500,
     })
@@ -58,13 +58,13 @@ export async function POST(req: Request) {
   let code = (body.code?.trim() || generateCode()).toUpperCase()
 
   // If code already exists, append a suffix
-  const existing = await prisma.affiliateLink.findUnique({ where: { code } }).catch(() => null)
+  const existing = await d1Db.affiliateLink.findUnique({ where: { code } }).catch(() => null)
   if (existing) {
     code = code + '-' + Math.random().toString(36).substring(2, 5).toUpperCase()
   }
 
   try {
-    const link = await prisma.affiliateLink.create({
+    const link = await d1Db.affiliateLink.create({
       data: {
         code,
         destination: body.destination.trim(),

@@ -8,6 +8,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { SITE_URL } from '@/lib/constants'
 import { BlogImage } from '@/components/blog/BlogImage'
 import type { Metadata } from 'next'
+import { parseD1Json, queryD1First, queryD1Rows } from '@/lib/cloudflare/d1'
 
 export const dynamic = 'force-dynamic'
 
@@ -135,9 +136,41 @@ function buildSeoTitle(post: DbPost): string {
 }
 
 // ── Data fetch ─────────────────────────────────────────────────────────────────
+function normalizeTags(value: unknown): string[] {
+  const tags = parseD1Json<unknown>(value, [])
+  return Array.isArray(tags) ? tags.filter((tag): tag is string => typeof tag === 'string') : []
+}
+
 async function getPost(slug: string): Promise<DbPost | null> {
   // Try DB first
   try {
+    const d1Post = await queryD1First<Record<string, unknown>>(
+      `SELECT id, slug, title, excerpt, content, category, tags, cover_image,
+              author_name, seo_title, seo_desc, published_at, view_count
+         FROM blog_posts
+        WHERE slug = ? AND status = 'PUBLISHED'
+        LIMIT 1`,
+      [slug],
+    )
+
+    if (d1Post) {
+      return {
+        id:           d1Post.id           as string,
+        slug:         d1Post.slug         as string,
+        title:        d1Post.title        as string,
+        excerpt:      d1Post.excerpt      as string | null,
+        content:      d1Post.content      as string,
+        category:     d1Post.category     as string | null,
+        tags:         normalizeTags(d1Post.tags),
+        cover_image:  d1Post.cover_image  as string | null,
+        author_name:  (d1Post.author_name as string | null) ?? 'TTLike Team',
+        seo_title:    d1Post.seo_title    as string | null,
+        seo_desc:     d1Post.seo_desc     as string | null,
+        published_at: d1Post.published_at as string | null,
+        view_count:   Number(d1Post.view_count ?? 0),
+      }
+    }
+
     const service = createServiceClient()
     const { data, error } = await service
       .from('blog_posts')
@@ -155,7 +188,7 @@ async function getPost(slug: string): Promise<DbPost | null> {
         excerpt:      d.excerpt      as string | null,
         content:      d.content      as string,
         category:     d.category     as string | null,
-        tags:         (d.tags        as string[] | null) ?? [],
+        tags:         normalizeTags(d.tags),
         cover_image:  d.cover_image  as string | null,
         author_name:  (d.author_name as string | null) ?? 'TTLike Team',
         seo_title:    d.seo_title    as string | null,
@@ -172,6 +205,18 @@ async function getPost(slug: string): Promise<DbPost | null> {
 
 async function getRelatedPosts(currentSlug: string, category: string | null): Promise<Array<{ slug: string; title: string }>> {
   try {
+    const d1Related = await queryD1Rows<{ slug: string; title: string }>(
+      `SELECT slug, title
+         FROM blog_posts
+        WHERE status = 'PUBLISHED'
+          AND slug != ?
+          ${category ? 'AND category = ?' : ''}
+        ORDER BY published_at DESC
+        LIMIT 3`,
+      category ? [currentSlug, category] : [currentSlug],
+    )
+    if (d1Related && d1Related.length > 0) return d1Related
+
     const service = createServiceClient()
     const q = service
       .from('blog_posts')

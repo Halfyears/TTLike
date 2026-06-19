@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Activity, CheckCircle, XCircle, RefreshCw, Play, Database, Clock, Image, AlertTriangle, ToggleLeft, ToggleRight, Shield, Settings2, Cpu, Ban } from 'lucide-react'
+import { Activity, CheckCircle, XCircle, RefreshCw, Play, Database, Clock, Image as ImageIcon, AlertTriangle, ToggleLeft, ToggleRight, Shield, Settings2, Cpu, Ban } from 'lucide-react'
 import { fmtDateTime } from '@/lib/dateUtils'
 
 interface ScraperLog {
@@ -76,9 +76,8 @@ export default function ScraperPage() {
   const [configLoading,       setConfigLoading]       = useState(false)
   const [configMsg,           setConfigMsg]           = useState<{ ok: boolean; text: string } | null>(null)
 
-  const supabase = createClient()
-
   const fetchData = useCallback(async () => {
+    const supabase = createClient()
     setRefreshing(true)
     try {
       const [logsRes, lastRunRes, lastSuccessRes, lastErrorRes, countRes] = await Promise.all([
@@ -127,9 +126,11 @@ export default function ScraperPage() {
   }, [])
 
   useEffect(() => {
-    fetchData()
-    fetchFallback()
-    fetchConfig()
+    queueMicrotask(() => {
+      void fetchData()
+      void fetchFallback()
+      void fetchConfig()
+    })
     const id = setInterval(fetchData, 5 * 60 * 1000)
     return () => clearInterval(id)
   }, [fetchData, fetchFallback, fetchConfig])
@@ -558,7 +559,7 @@ export default function ScraperPage() {
       {/* Cache Covers panel */}
       <div className="bg-gray-800 border border-gray-700 rounded-xl p-5 mb-8">
         <div className="flex items-center gap-2 mb-1">
-          <Image className="h-5 w-5 text-pink-400" />
+          <ImageIcon className="h-5 w-5 text-pink-400" />
           <h2 className="text-white font-semibold">Cache Cover Images</h2>
         </div>
         <p className="text-gray-400 text-sm mb-4">
@@ -584,7 +585,7 @@ export default function ScraperPage() {
             disabled={caching}
             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-pink-500 text-white text-sm font-semibold hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <Image className={`h-4 w-4 ${caching ? 'animate-pulse' : ''}`} />
+            <ImageIcon className={`h-4 w-4 ${caching ? 'animate-pulse' : ''}`} />
             {caching ? 'Caching…' : 'Cache New Covers'}
           </button>
 

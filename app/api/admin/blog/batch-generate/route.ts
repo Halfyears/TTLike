@@ -3,7 +3,7 @@
  *
  * Accepts an array of topics and uses the AI waterfall
  * (Groq → Gemini → GitHub) to generate a full blog post for each.
- * Posts are saved as DRAFT to blog_posts via Prisma.
+ * Posts are saved as DRAFT to blog_posts via d1Db.
  *
  * Request body:
  *   { topics: string[] }   — max 10 per call
@@ -14,7 +14,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 import { runAIWaterfall } from '@/lib/ai/providers'
 
 async function isAdmin(): Promise<boolean> {
@@ -23,7 +23,7 @@ async function isAdmin(): Promise<boolean> {
     const { data: { user } } = await sb.auth.getUser()
     if (!user) return false
     try {
-      const u = await prisma.user.findUnique({ where: { email: user.email! } })
+      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (u?.role === 'ADMIN') return true
     } catch {}
     return user.email === process.env.ADMIN_EMAIL
@@ -138,14 +138,14 @@ export async function POST(req: NextRequest) {
       // 4. Ensure slug is unique — fallback covers all-non-ASCII titles (e.g. Chinese)
       const baseSlug = parsed.slug?.trim() || toSlug(parsed.title) || `post-${Date.now().toString(36)}`
       let slug = baseSlug
-      const existing = await prisma.blogPost.findUnique({ where: { slug }, select: { id: true } })
+      const existing = await d1Db.blogPost.findUnique({ where: { slug }, select: { id: true } })
       if (existing) {
         slug = `${baseSlug}-${Date.now().toString(36)}`
       }
 
       // 5. Save to DB as DRAFT
       const validCategories = ['Strategy', 'Research', 'Guide', 'AI']
-      const post = await prisma.blogPost.create({
+      const post = await d1Db.blogPost.create({
         data: {
           title:      parsed.title.slice(0, 200),
           slug,

@@ -33,6 +33,51 @@ interface GatewayConfig {
 // ── Sentinel for "don't overwrite existing" ───────────────────────────────────
 const SENTINEL = '__unchanged__'
 
+function InputRow({
+  label, value, onChange, placeholder, show, onToggleShow, masked, hasValue,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  show?: boolean
+  onToggleShow?: () => void
+  masked: string | null
+  hasValue: boolean
+}) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-400 mb-1.5">
+        {label}
+        {hasValue && (
+          <span className="ml-2 text-[10px] font-mono text-emerald-400 bg-emerald-900/20 px-2 py-0.5 rounded">
+            {masked ?? '****'} (set)
+          </span>
+        )}
+      </label>
+      <div className="relative">
+        <input
+          type={show === false ? 'password' : 'text'}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={hasValue ? 'Leave blank to keep existing value' : placeholder}
+          className="w-full bg-gray-700/60 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white
+            placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500 pr-10"
+        />
+        {onToggleShow && (
+          <button
+            type="button"
+            onClick={onToggleShow}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
+          >
+            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Single gateway form ───────────────────────────────────────────────────────
 function GatewayForm({ config, onSaved }: { config: GatewayConfig; onSaved: () => void }) {
   const isStripe  = config.provider === 'stripe'
@@ -83,49 +128,6 @@ function GatewayForm({ config, onSaved }: { config: GatewayConfig; onSaved: () =
       setSaving(false)
     }
   }
-
-  const InputRow = ({
-    label, value, onChange, placeholder, show, onToggleShow, masked, hasValue,
-  }: {
-    label: string
-    value: string
-    onChange: (v: string) => void
-    placeholder: string
-    show?: boolean
-    onToggleShow?: () => void
-    masked: string | null
-    hasValue: boolean
-  }) => (
-    <div>
-      <label className="block text-xs font-medium text-gray-400 mb-1.5">
-        {label}
-        {hasValue && (
-          <span className="ml-2 text-[10px] font-mono text-emerald-400 bg-emerald-900/20 px-2 py-0.5 rounded">
-            {masked ?? '****'} (set)
-          </span>
-        )}
-      </label>
-      <div className="relative">
-        <input
-          type={show === false ? 'password' : 'text'}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder={hasValue ? 'Leave blank to keep existing value' : placeholder}
-          className="w-full bg-gray-700/60 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white
-            placeholder:text-gray-500 focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500 pr-10"
-        />
-        {onToggleShow && (
-          <button
-            type="button"
-            onClick={onToggleShow}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300"
-          >
-            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        )}
-      </div>
-    </div>
-  )
 
   return (
     <div className="bg-gray-800 border border-gray-700 rounded-xl overflow-hidden">
@@ -297,7 +299,7 @@ export default function FinanceConfigPage() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { queueMicrotask(() => void load()) }, [load])
 
   return (
     <div className="max-w-4xl space-y-6">

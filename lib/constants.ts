@@ -1,6 +1,6 @@
 export const PAYMENT_ENABLED = true
 
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://ttlike.com'
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://ttlike.com').replace(/\/$/, '')
 export const SITE_NAME = 'TTLike'
 export const SITE_DESCRIPTION = 'AI-powered TikTok viral intelligence for dropshippers and UGC creators'
 

@@ -1,8 +1,25 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const SESSION_COOKIE_NAMES = ['ttlike_session', 'ttlike-session', 'session']
+
+function hasSupabaseEnv() {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
+
+  if (!hasSupabaseEnv()) {
+    const sessionCookie = SESSION_COOKIE_NAMES
+      .map(name => request.cookies.get(name)?.value)
+      .find(Boolean)
+
+    return {
+      supabaseResponse,
+      user: sessionCookie ? { id: 'cloudflare-session' } : null,
+    }
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

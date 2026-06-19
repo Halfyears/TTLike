@@ -7,6 +7,8 @@ import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
 import { VideoAnalysis } from '@/components/VideoAnalysis'
 import { isUuid, generateViralSlug } from '@/lib/seoSlug'
 import { createServiceClient } from '@/lib/supabase/server'
+import { safeJsonLd } from '@/lib/security/jsonLd'
+import { parseD1Json, queryD1First, runD1 } from '@/lib/cloudflare/d1'
 
 // ── Data fetching ──────────────────────────────────────────────────────────────
 
@@ -15,6 +17,13 @@ type BreakdownWithVideo = {
   payload:    VideoBreakdownPayload
   created_at: string
   video:      Record<string, unknown>
+}
+
+type D1BreakdownRow = {
+  seo_slug: string | null
+  payload: unknown
+  created_at: string
+  video_id: string | null
 }
 
 /**
@@ -50,6 +59,59 @@ async function getBreakdown(slug: string): Promise<BreakdownWithVideo | null> {
       viral_score:       0,
     }
   }
+
+  async function resultFromD1Row(row: D1BreakdownRow): Promise<BreakdownWithVideo | null> {
+    const breakdown = parseD1Json<VideoBreakdownPayload | null>(row.payload, null)
+    if (!breakdown) return null
+
+    const hasContent = breakdown.viral_formulas?.length > 0
+      || !!((breakdown as unknown as Record<string, unknown>).analysis)
+    if (!hasContent) return null
+
+    const video = row.video_id
+      ? await queryD1First<Record<string, unknown>>(
+        `SELECT id, title, product_name, niche, cover_url, cover_storage_url,
+                video_url, author, views, likes, shares, viral_score
+           FROM tiktok_videos
+          WHERE id = ? AND deleted_at IS NULL
+          LIMIT 1`,
+        [row.video_id],
+      )
+      : null
+
+    const finalVideo = video ?? syntheticVideoFromSourceMeta(breakdown)
+    if (!finalVideo) return null
+
+    return { seo_slug: row.seo_slug, payload: breakdown, created_at: row.created_at, video: finalVideo }
+  }
+
+  const d1BySlug = await queryD1First<D1BreakdownRow>(
+    `SELECT seo_slug, payload, created_at, video_id
+       FROM video_breakdowns
+      WHERE seo_slug = ?
+      LIMIT 1`,
+    [slug],
+  )
+  if (d1BySlug) {
+    const result = await resultFromD1Row(d1BySlug)
+    if (result) return result
+  }
+
+  if (isUuid(slug)) {
+    const d1ByUuid = await queryD1First<D1BreakdownRow>(
+      `SELECT seo_slug, payload, created_at, video_id
+         FROM video_breakdowns
+        WHERE video_id = ? OR id = ?
+        LIMIT 1`,
+      [slug, slug],
+    )
+    if (d1ByUuid) {
+      const result = await resultFromD1Row(d1ByUuid)
+      if (result) return result
+    }
+  }
+
+  if (!base || !anonKey) return null
 
   // Primary: look up by seo_slug
   const bySlug = new URL('/rest/v1/video_breakdowns', base)
@@ -182,7 +244,12 @@ export default async function ViralBreakdownPage({ params }: Props) {
       targetSlug = generateViralSlug({ productName, niche, strategyTitle, videoId: dbVideoId })
 
       // Persist slug to DB (fire-and-forget — page still renders either way)
-      try {
+      const updatedD1 = await runD1(
+        'UPDATE video_breakdowns SET seo_slug = ?, updated_at = CURRENT_TIMESTAMP WHERE video_id = ? AND seo_slug IS NULL',
+        [targetSlug, dbVideoId],
+      )
+
+      if (!updatedD1) try {
         const service = createServiceClient()
         await service
           .from('video_breakdowns')
@@ -230,7 +297,7 @@ export default async function ViralBreakdownPage({ params }: Props) {
       {/* JSON-LD */}
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
       />
 
       <div className="mx-auto max-w-3xl px-4 sm:px-6 py-8 sm:py-10">

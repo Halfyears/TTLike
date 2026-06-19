@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse }  from 'next/server'
 import type { NextRequest } from 'next/server'
-import { prisma }        from '@/lib/prisma'
+import { d1Db }        from '@/lib/cloudflare/d1Compat'
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       if (user?.email) {
         try {
           const meta = user.user_metadata ?? {}
-          await prisma.user.upsert({
+          await d1Db.user.upsert({
             where: { email: user.email },
             create: {
               id: user.id,
@@ -55,18 +55,18 @@ export async function GET(request: NextRequest) {
           try {
             if (!user?.email) return
 
-            const affiliateLink = await prisma.affiliateLink.findUnique({ where: { code: refCode } })
+            const affiliateLink = await d1Db.affiliateLink.findUnique({ where: { code: refCode } })
             if (!affiliateLink?.isActive) return
 
             // Atomic: only updates when affiliateCode IS NULL — prevents double-grant on concurrent retries
-            const updated = await prisma.user.updateMany({
+            const updated = await d1Db.user.updateMany({
               where: { email: user.email, affiliateCode: null },
               data:  { affiliateCode: refCode, whitelabelPdfPasses: { increment: 1 } },
             })
 
             if (updated.count > 0) {
               // First attribution — also increment affiliate conversions
-              await prisma.affiliateLink.update({
+              await d1Db.affiliateLink.update({
                 where: { code: refCode },
                 data:  { conversions: { increment: 1 } },
               })

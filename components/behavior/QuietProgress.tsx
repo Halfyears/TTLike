@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useBehaviorStore } from '@/lib/behavior/state-machine'
 import { BADGE_LABELS } from '@/lib/behavior/badge-types'
@@ -34,7 +34,6 @@ function fmtAge(iso: string): string {
  */
 export function QuietProgress({ variant = 'sidebar' }: { variant?: 'sidebar' | 'inline' }) {
   const [all,      setAll]      = useState<BadgeEntry[]>([])
-  const [visible,  setVisible]  = useState<BadgeEntry[]>([])
   const [expanded, setExpanded] = useState(false)
 
   const behaviorState = useBehaviorStore((s) => s.state)
@@ -50,7 +49,7 @@ export function QuietProgress({ variant = 'sidebar' }: { variant?: 'sidebar' | '
     } catch { /* silent — non-critical */ }
   }, [])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => { queueMicrotask(() => void load()) }, [load])
 
   // Refetch 1500ms after COMPLETE to let check-badges POST commit first
   useEffect(() => {
@@ -60,18 +59,17 @@ export function QuietProgress({ variant = 'sidebar' }: { variant?: 'sidebar' | '
   }, [behaviorState, load])
 
   // ── Session isolation ─────────────────────────────────────────────────────
-  useEffect(() => {
-    if (all.length === 0) { setVisible([]); return }
+  const visible = useMemo(() => {
+    if (all.length === 0) return []
     if (session.startedAt !== null) {
       // Active session: show only badges earned since session start
       const sessionBadges = all.filter(
         (b) => new Date(b.createdAt).getTime() >= session.startedAt!
       )
-      setVisible(sessionBadges.slice(0, 5))
-    } else {
-      // No active session: show 3 most recent historical badges
-      setVisible(all.slice(0, 3))
+      return sessionBadges.slice(0, 5)
     }
+    // No active session: show 3 most recent historical badges
+    return all.slice(0, 3)
   }, [all, session.startedAt])
 
   // ── Auto-expand after COMPLETE ────────────────────────────────────────────

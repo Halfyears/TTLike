@@ -1,4 +1,4 @@
-import { prisma }             from '@/lib/prisma'
+import { d1Db }             from '@/lib/cloudflare/d1Compat'
 import { createServiceClient } from '@/lib/supabase/server'
 import { SEOFlywheelPanel }    from '@/components/admin/SEOFlywheelPanel'
 import type { BreakdownForFlywheel } from '@/components/admin/SEOFlywheelPanel'
@@ -18,7 +18,7 @@ export default async function AdminBlogPage() {
     excerpt: string | null; tags: string[]; authorName: string
   }> = []
   try {
-    const raw = await prisma.blogPost.findMany({
+    const raw = await d1Db.blogPost.findMany({
       orderBy: { createdAt: 'desc' },
       take:    100,
       select:  {

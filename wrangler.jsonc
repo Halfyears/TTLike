@@ -1,0 +1,61 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "ttlike",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-06-18",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ttlike",
+      "database_id": "replace-with-cloudflare-d1-database-id"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "COVERS_BUCKET",
+      "bucket_name": "ttlike-covers"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "TTLIKE_KV",
+      "id": "replace-with-cloudflare-kv-id"
+    },
+    {
+      "binding": "TTLIKE_SESSIONS",
+      "id": "replace-with-cloudflare-sessions-kv-id"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "TTLIKE_JOBS",
+        "queue": "ttlike-jobs"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "ttlike-jobs",
+        "max_batch_size": 1,
+        "max_retries": 3
+      }
+    ]
+  },
+  "triggers": {
+    "crons": ["0 7,19 * * *"]
+  },
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "http://localhost:8787",
+    "AUTH_PROVIDER": "cloudflare-d1",
+    "STORAGE_PROVIDER": "cloudflare-r2",
+    "R2_PUBLIC_COVERS_PATH": "/api/assets/covers"
+  }
+}

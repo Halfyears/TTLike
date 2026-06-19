@@ -12,7 +12,7 @@
 
 import { NextResponse }                      from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { prisma }                            from '@/lib/prisma'
+import { d1Db }                            from '@/lib/cloudflare/d1Compat'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,7 +25,7 @@ export async function GET() {
     }
 
     // Fetch passes from Prisma (has affiliateCode / whitelabelPdfPasses)
-    const dbUser = await prisma.user.findUnique({
+    const dbUser = await d1Db.user.findUnique({
       where:  { email: user.email! },
       select: { whitelabelPdfPasses: true },
     })

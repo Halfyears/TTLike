@@ -49,7 +49,7 @@ export function BatchTrigger() {
           </h2>
           <p className="text-xs text-gray-400 mt-0.5 max-w-lg">
             Auto-generate V2.5 Inspiration Engine breakdowns for the highest viral-score
-            videos that haven't been analyzed yet. Safe to run multiple times.
+            videos that haven&apos;t been analyzed yet. Safe to run multiple times.
           </p>
         </div>
 

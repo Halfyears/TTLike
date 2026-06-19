@@ -13,7 +13,7 @@ export function ViralStudioCard() {
   const pathname = usePathname()
 
   // Reset loading if user navigates back to dashboard without completing the flow
-  useEffect(() => { setLoading(false) }, [pathname])
+  useEffect(() => { queueMicrotask(() => setLoading(false)) }, [pathname])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

@@ -11,7 +11,7 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Zap, Loader2, CheckCircle, AlertTriangle,
-  ChevronDown, ChevronUp, ExternalLink, X, Plus,
+  ChevronDown, ChevronUp, ExternalLink, X,
 } from 'lucide-react'
 
 type AsyncStatus = 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED'
@@ -31,16 +31,6 @@ interface PipelineResult {
   job_id?:       string
   breakdown_id?: string
   viral_status?: AsyncStatus
-}
-
-interface VideoContext {
-  product_name:  string | null
-  niche:         string | null
-  category:      string
-  pain_points:   string[]
-  has_timeline:  boolean
-  formula_count: number
-  ref_price?:    number
 }
 
 interface Props {
@@ -71,8 +61,9 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
   // Auto-load context on mount
   useEffect(() => {
     let cancelled = false
-    setCtxLoading(true)
-    fetch(`/api/admin/pipeline/video-context?video_id=${videoId}`)
+    queueMicrotask(() => {
+      setCtxLoading(true)
+      fetch(`/api/admin/pipeline/video-context?video_id=${videoId}`)
       .then(r => r.json())
       .then((raw: unknown) => {
         if (cancelled) return
@@ -88,9 +79,9 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
           setPrice(String(ctx['ref_price']))
       })
       .catch(() => {/* silent — user can fill manually */})
-      .finally(() => { if (!cancelled) setCtxLoading(false) })
+        .finally(() => { if (!cancelled) setCtxLoading(false) })
+    })
     return () => { cancelled = true }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId])
 
   // ── Pain tag helpers ────────────────────────────────────────────────────────
@@ -361,7 +352,7 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
                   )}
                   <div className="mt-2 p-2 bg-gray-700/50 rounded border border-gray-600">
                     <span className="text-gray-500 text-[10px] uppercase tracking-wide">Hook line</span>
-                    <p className="text-white font-medium mt-0.5 text-sm">"{result.hook_line}"</p>
+                    <p className="text-white font-medium mt-0.5 text-sm">&ldquo;{result.hook_line}&rdquo;</p>
                   </div>
                   <div><span className="text-gray-500">Script lines:</span> {result.total_lines}</div>
                 </div>

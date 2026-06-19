@@ -25,7 +25,7 @@ export function AnalysisWaitScreen({ breakdownId, onCompleted, onFailed }: Analy
   const [stepIndex, setStepIndex]           = useState(0)
   const [elapsed, setElapsed]               = useState(0)
 
-  const startRef      = useRef(Date.now())
+  const startRef      = useRef<number | null>(null)
   const doneRef       = useRef(false)
   // Stable refs for callbacks — avoids poll restart when parent re-renders
   const onCompletedRef = useRef(onCompleted)
@@ -37,23 +37,25 @@ export function AnalysisWaitScreen({ breakdownId, onCompleted, onFailed }: Analy
 
   // ── Elapsed ticker ──────────────────────────────────────────────────────────
   useEffect(() => {
+    startRef.current = Date.now()
     const id = setInterval(
-      () => setElapsed(Math.floor((Date.now() - startRef.current) / 1000)),
+      () => {
+        const elapsedMs = Date.now() - (startRef.current ?? Date.now())
+        setElapsed(Math.floor(elapsedMs / 1000))
+        setStepIndex(current => {
+          let next = 0
+          for (let i = LAST_STEP - 1; i >= 0; i--) {
+            if (STEPS[i]!.minMs <= elapsedMs) { next = i; break }
+          }
+          return next > current && next < LAST_STEP ? next : current
+        })
+      },
       500,
     )
     return () => clearInterval(id)
   }, [])
 
   // ── Time-based step advancement (stops at LAST_STEP - 1) ───────────────────
-  useEffect(() => {
-    const now = Date.now() - startRef.current
-    let next = 0
-    for (let i = LAST_STEP - 1; i >= 0; i--) {
-      if (STEPS[i]!.minMs <= now) { next = i; break }
-    }
-    if (next > stepIndex && next < LAST_STEP) setStepIndex(next)
-  })
-
   // ── Polling — only re-runs when breakdownId changes ─────────────────────────
   const pollFn = useCallback(async () => {
     let cancelled = false

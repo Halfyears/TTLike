@@ -8,11 +8,16 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient }       from '@/lib/supabase/server'
+import { isCurrentUserAdmin }        from '@/lib/auth/admin'
 
 const CONFIG_KEY = 'ai_prompt_override'
 
 // ── GET ───────────────────────────────────────────────────────────────────────
 export async function GET() {
+  if (!await isCurrentUserAdmin()) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const service = createServiceClient()
     const { data, error } = await service
@@ -37,6 +42,10 @@ export async function GET() {
 
 // ── PUT ───────────────────────────────────────────────────────────────────────
 export async function PUT(req: NextRequest) {
+  if (!await isCurrentUserAdmin()) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const { value } = await req.json() as { value?: string }
     if (typeof value !== 'string') {

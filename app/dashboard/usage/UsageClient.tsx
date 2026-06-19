@@ -192,7 +192,7 @@ export function UsageClient() {
     }
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { queueMicrotask(() => void load()) }, [])
 
   if (loading) return (
     <div className="space-y-4 animate-pulse">

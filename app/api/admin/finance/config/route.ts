@@ -5,8 +5,7 @@
 
 import { NextResponse }  from 'next/server'
 import { createClient }  from '@/lib/supabase/server'
-import { prisma }        from '@/lib/prisma'
-import { Prisma }        from '@prisma/client'
+import { d1Db }        from '@/lib/cloudflare/d1Compat'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +16,7 @@ async function isAdmin(): Promise<boolean> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return false
     try {
-      const dbUser = await prisma.user.findUnique({ where: { email: user.email! } })
+      const dbUser = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (dbUser?.role === 'ADMIN') return true
     } catch {}
     return user.email === process.env.ADMIN_EMAIL
@@ -35,7 +34,7 @@ function maskKey(val: string | null | undefined): string | null {
 export async function GET() {
   if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const rows = await prisma.paymentConfig.findMany({
+  const rows = await d1Db.paymentConfig.findMany({
     orderBy: { provider: 'asc' },
   })
 
@@ -85,7 +84,7 @@ export async function POST(req: Request) {
   const SENTINEL = '__unchanged__'
 
   // Fetch existing to preserve keys when sentinel sent
-  const existing = await prisma.paymentConfig.findUnique({ where: { provider } })
+  const existing = await d1Db.paymentConfig.findUnique({ where: { provider } })
 
   // Guard: disallow explicit empty-string submission for sensitive fields that are already set
   // (frontend sends SENTINEL for unchanged fields; empty string is always a mistake here)
@@ -102,7 +101,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const updated = await prisma.paymentConfig.upsert({
+  const updated = await d1Db.paymentConfig.upsert({
     where:  { provider },
     create: {
       provider,
@@ -111,7 +110,7 @@ export async function POST(req: Request) {
       publicKey:     publicKey && publicKey !== SENTINEL ? publicKey : null,
       webhookSecret: webhookSecret && webhookSecret !== SENTINEL ? webhookSecret : null,
       clientId:      clientId && clientId !== SENTINEL ? clientId : null,
-      extraConfig:   extraConfig ? extraConfig as Prisma.InputJsonValue : undefined,
+      extraConfig:   extraConfig ? extraConfig as Record<string, unknown> : undefined,
       isEnabled:     isEnabled ?? false,
     },
     update: {
@@ -120,7 +119,7 @@ export async function POST(req: Request) {
       ...(publicKey !== undefined && publicKey !== SENTINEL && { publicKey }),
       ...(webhookSecret !== undefined && webhookSecret !== SENTINEL && { webhookSecret }),
       ...(clientId !== undefined && clientId !== SENTINEL && { clientId }),
-      ...(extraConfig !== undefined && { extraConfig: extraConfig as Prisma.InputJsonValue }),
+      ...(extraConfig !== undefined && { extraConfig: extraConfig as Record<string, unknown> }),
       ...(isEnabled !== undefined && { isEnabled }),
       updatedAt: new Date(),
       // Preserve existing keys if sentinel sent

@@ -440,7 +440,7 @@ export default function AdminVideosPage() {
   }, [supabase])
 
   useEffect(() => {
-    fetchAll()
+    queueMicrotask(() => void fetchAll())
 
     // ── Supabase Realtime: re-fetch when rows are inserted or updated ──────
     const channel = supabase
@@ -595,7 +595,7 @@ export default function AdminVideosPage() {
 
   // Reset to page 1 whenever the underlying list changes shape
   useEffect(() => {
-    setPage(1)
+    queueMicrotask(() => setPage(1))
   }, [tab, search, niche])
 
   const totalPages = Math.max(1, Math.ceil(currentList.length / PAGE_SIZE))

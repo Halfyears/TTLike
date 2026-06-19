@@ -20,8 +20,8 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
-import { Copy, Check, Share2 } from 'lucide-react'
-import type { TTLikeHookResponse, HookVariant } from '@/lib/types/hooks'
+import { Check, Share2 } from 'lucide-react'
+import type { HookVariant } from '@/lib/types/hooks'
 
 // ── Re-export for consumers who import HookVariant from here ──────────────────
 export type { HookVariant }

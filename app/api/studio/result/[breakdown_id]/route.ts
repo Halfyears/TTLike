@@ -32,12 +32,15 @@ export async function GET(
 
   const { data, error } = await service
     .from('video_breakdowns')
-    .select('id, viral_status, viral_error, payload, video_id')
+    .select('id, user_id, viral_status, viral_error, payload, video_id')
     .eq('id', breakdown_id)
     .maybeSingle()
 
   if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 })
   if (!data)  return NextResponse.json({ ok: false, error: 'Result not found' }, { status: 404 })
+  if ((data as { user_id?: string | null }).user_id !== user.id) {
+    return NextResponse.json({ ok: false, error: 'Result not found' }, { status: 404 })
+  }
 
   if (data.viral_status !== 'COMPLETED') {
     return NextResponse.json({ ok: false, error: `Analysis not ready: ${data.viral_status}` }, { status: 202 })

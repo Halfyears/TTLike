@@ -2,11 +2,11 @@
  * POST /api/admin/run-scraper
  *
  * Runs the TikTok scraper inline (no GitHub Actions required).
- * Calls RapidAPI tiktok-scraper7 directly from Vercel, upserts results
- * to tiktok_videos, caches cover images to Supabase Storage, and writes
+ * Calls RapidAPI tiktok-scraper7 directly from the app runtime, upserts results
+ * to tiktok_videos, caches cover images to permanent storage, and writes
  * a scraper_logs entry — identical behaviour to the Python script.
  *
- * Required env: RAPIDAPI_KEY, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ * Required env: RAPIDAPI_KEY plus the active database/storage provider env vars.
  * Auth: admin session (same isAdmin() pattern across all admin routes)
  *
  * Returns: { success, fetched, upserted, covers_cached, duration_ms, errors[] }
@@ -15,7 +15,8 @@
 import { NextResponse }      from 'next/server'
 import { createClient }      from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { prisma }            from '@/lib/prisma'
+import { d1Db }            from '@/lib/cloudflare/d1Compat'
+import { cacheCoverImage, saveCoverStorageUrl } from '@/lib/imageStorage'
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 async function isAdmin(): Promise<boolean> {
@@ -24,7 +25,7 @@ async function isAdmin(): Promise<boolean> {
     const { data: { user } } = await sb.auth.getUser()
     if (!user) return false
     try {
-      const u = await prisma.user.findUnique({ where: { email: user.email! } })
+      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (u?.role === 'ADMIN') return true
     } catch {}
     return user.email === process.env.ADMIN_EMAIL
@@ -35,7 +36,6 @@ async function isAdmin(): Promise<boolean> {
 const RAPIDAPI_KEY  = process.env.RAPIDAPI_KEY ?? ''
 const RAPIDAPI_HOST = 'tiktok-scraper7.p.rapidapi.com'
 const BASE_URL      = `https://${RAPIDAPI_HOST}`
-const COVERS_BUCKET = 'covers'
 const MAX_AGE_DAYS  = 120
 const PER_HASHTAG   = 20
 
@@ -230,33 +230,12 @@ async function fetchHashtag(tag: string, count: number, errors: string[]): Promi
 
 // ── Cover caching ─────────────────────────────────────────────────────────────
 async function cacheCover(
-  service: ReturnType<typeof createServiceClient>,
   dbId: string,
   coverUrl: string,
-  supabaseUrl: string,
 ): Promise<boolean> {
-  try {
-    const imgRes = await fetch(coverUrl, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
-      signal: AbortSignal.timeout(10_000),
-    })
-    if (!imgRes.ok) return false
-    const buf         = await imgRes.arrayBuffer()
-    const contentType = imgRes.headers.get('content-type') ?? 'image/webp'
-    const ext         = contentType.includes('jpeg') ? 'jpg' : contentType.includes('png') ? 'png' : 'webp'
-    const storagePath = `${dbId}.${ext}`
-
-    const { error } = await service.storage.from(COVERS_BUCKET).upload(storagePath, buf, {
-      contentType,
-      cacheControl: '31536000',
-      upsert:       true,
-    })
-    if (error) return false
-
-    const publicUrl = `${supabaseUrl}/storage/v1/object/public/${COVERS_BUCKET}/${storagePath}`
-    await service.from('tiktok_videos').update({ cover_storage_url: publicUrl }).eq('id', dbId)
-    return true
-  } catch { return false }
+  const storageUrl = await cacheCoverImage(dbId, coverUrl)
+  if (!storageUrl) return false
+  return saveCoverStorageUrl(dbId, storageUrl)
 }
 
 // ── Main handler ──────────────────────────────────────────────────────────────
@@ -267,14 +246,13 @@ export async function POST() {
 
   if (!RAPIDAPI_KEY) {
     return NextResponse.json(
-      { error: 'RAPIDAPI_KEY not configured in Vercel environment variables.' },
+      { error: 'RAPIDAPI_KEY not configured in environment variables.' },
       { status: 503 }
     )
   }
 
   const startMs  = Date.now()
   const service  = createServiceClient()
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
   const errors:  string[] = []
   const allVideos = new Map<string, VideoRow>()
 
@@ -323,7 +301,7 @@ export async function POST() {
 
       for (const row of (rows ?? []) as Array<{ id: string; cover_url: string | null }>) {
         if (!row.cover_url) continue
-        const ok = await cacheCover(service, row.id, row.cover_url, supabaseUrl)
+        const ok = await cacheCover(row.id, row.cover_url)
         if (ok) coversCached++
       }
     }

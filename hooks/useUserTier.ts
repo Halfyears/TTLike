@@ -56,7 +56,7 @@ export function useUserTier() {
     }
   }, [])
 
-  useEffect(() => { refresh() }, [refresh])
+  useEffect(() => { queueMicrotask(() => void refresh()) }, [refresh])
 
   return { tier: state, refreshTier: refresh }
 }

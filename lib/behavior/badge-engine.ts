@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 import type { SessionContext } from './state-machine'
 import type { BadgeType } from './badge-types'
 
@@ -13,7 +13,7 @@ export async function checkAndIssueBadges(
   userId: string,
   session: Pick<SessionContext, 'takeCount' | 'storyboardClicked' | 'copyUsed'>,
 ): Promise<BadgeType[]> {
-  const existing = await prisma.badgeLog.findMany({
+  const existing = await d1Db.badgeLog.findMany({
     where:   { userId },
     orderBy: { createdAt: 'desc' },
     select:  { badgeType: true, createdAt: true },
@@ -49,7 +49,7 @@ export async function checkAndIssueBadges(
   }
 
   if (toCreate.length > 0) {
-    await prisma.badgeLog.createMany({ data: toCreate })
+    await d1Db.badgeLog.createMany({ data: toCreate })
   }
 
   return issued

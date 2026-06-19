@@ -110,10 +110,12 @@ export function AIScriptGenerator() {
     const kw    = searchParams.get('keywords')
     const n     = searchParams.get('niche')
     const vid   = searchParams.get('from_video')
-    if (title) setProductName(cleanProductName(title))
-    if (kw)    setKeywords(cleanKeywords(kw))
-    if (n)     setNiches([n])
-    if (vid)   setSourceVideoId(vid)
+    queueMicrotask(() => {
+      if (title) setProductName(cleanProductName(title))
+      if (kw)    setKeywords(cleanKeywords(kw))
+      if (n)     setNiches([n])
+      if (vid)   setSourceVideoId(vid)
+    })
   }, [searchParams])
 
   // ── Auto-fetch suggestions when product name is known ─────────────────────
@@ -153,7 +155,7 @@ export function AIScriptGenerator() {
     const n = searchParams.get('niche') ?? ''
     if (title) {
       hasAutoFilled.current = true
-      fetchSuggestions(title, n, kw)
+      queueMicrotask(() => void fetchSuggestions(title, n, kw))
     }
   }, [searchParams, fetchSuggestions])
 

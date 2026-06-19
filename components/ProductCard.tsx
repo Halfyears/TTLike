@@ -6,9 +6,6 @@ import { Eye, Heart, Share2, Play, ExternalLink } from 'lucide-react'
 import { ViralScoreBadge }  from '@/components/ui/ViralScoreBadge'
 import { Badge }            from '@/components/ui/Badge'
 import { formatNumber }     from '@/lib/utils'
-import { isTikTokUrlExpired } from '@/lib/tiktokImg'
-// NOTE: isTikTokUrlExpired is still used for admin/breakdown pages (non-user-facing).
-// ProductCard intentionally attempts the URL regardless — onError handles actual 403s.
 
 interface ProductCardProps {
   id: string

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { prisma } from '@/lib/prisma'
+import { d1Db } from '@/lib/cloudflare/d1Compat'
 
 async function isAdmin(): Promise<boolean> {
   try {
@@ -14,7 +14,7 @@ async function isAdmin(): Promise<boolean> {
     const { data: { user } } = await sb.auth.getUser()
     if (!user) return false
     try {
-      const u = await prisma.user.findUnique({ where: { email: user.email! } })
+      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (u?.role === 'ADMIN') return true
     } catch {}
     return user.email === process.env.ADMIN_EMAIL
@@ -27,7 +27,7 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
   if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
   try {
-    const post = await prisma.blogPost.findUnique({ where: { id } })
+    const post = await d1Db.blogPost.findUnique({ where: { id } })
     if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 })
     return NextResponse.json({ post })
   } catch (e) {
@@ -70,13 +70,13 @@ export async function PUT(req: NextRequest, { params }: RouteCtx) {
     data.status = body.status
     // Set publishedAt when first transitioning to PUBLISHED
     if (body.status === 'PUBLISHED') {
-      const existing = await prisma.blogPost.findUnique({ where: { id }, select: { publishedAt: true } })
+      const existing = await d1Db.blogPost.findUnique({ where: { id }, select: { publishedAt: true } })
       if (!existing?.publishedAt) data.publishedAt = new Date()
     }
   }
 
   try {
-    const post = await prisma.blogPost.update({ where: { id }, data })
+    const post = await d1Db.blogPost.update({ where: { id }, data })
     return NextResponse.json({ post })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
@@ -98,7 +98,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteCtx) {
 
   try {
     // Soft-delete: set status to ARCHIVED
-    await prisma.blogPost.update({
+    await d1Db.blogPost.update({
       where: { id },
       data:  { status: 'ARCHIVED' },
     })

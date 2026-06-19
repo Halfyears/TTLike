@@ -157,15 +157,15 @@ export default function AboutPage() {
               inconsistent, and easy to miss the wave entirely.
             </p>
             <p>
-              The problem is even sharper for affiliate creators — people who don't hold
+              The problem is even sharper for affiliate creators — people who don&apos;t hold
               inventory and depend entirely on picking the right product at the right moment.
-              Choose a product that's already past peak, and you've wasted your shoot day.
-              Choose one that's quietly trending, and a single video can earn for weeks.
+              Choose a product that&apos;s already past peak, and you&apos;ve wasted your shoot day.
+              Choose one that&apos;s quietly trending, and a single video can earn for weeks.
             </p>
             <p>
               We built TTLike to automate the research layer — so you can spend your time
               creating, not cataloguing. Our platform continuously scores and analyses
-              TikTok's most-engaged product videos, then uses AI to extract the exact script
+              TikTok&apos;s most-engaged product videos, then uses AI to extract the exact script
               patterns that drove those results. The outcome: ranked products with
               ready-to-film scripts, in the time it used to take just to find one worth testing.
             </p>
