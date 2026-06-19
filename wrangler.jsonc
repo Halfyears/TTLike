@@ -41,6 +41,11 @@
     "NEXT_PUBLIC_SITE_URL": "http://localhost:8787",
     "AUTH_PROVIDER": "cloudflare-d1",
     "STORAGE_PROVIDER": "cloudflare-r2",
-    "R2_PUBLIC_COVERS_PATH": "/api/assets/covers"
+    "R2_PUBLIC_COVERS_PATH": "/api/assets/covers",
+    "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_YWxsb3dpbmctZ3VsbC04Ni5jbGVyay5hY2NvdW50cy5kZXYk",
+    "NEXT_PUBLIC_CLERK_SIGN_IN_URL": "/auth/login",
+    "NEXT_PUBLIC_CLERK_SIGN_UP_URL": "/auth/signup",
+    "NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL": "/dashboard",
+    "NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL": "/dashboard"
   }
 }
