@@ -15,17 +15,17 @@
     {
       "binding": "DB",
       "database_name": "ttlike",
-      "database_id": "359753fd-06e0-4726-95e8-01091885525d"
+      "database_id": "70e9d7e8-9002-43d0-93f5-cb1ea171f7e0"
     }
   ],
   "kv_namespaces": [
     {
       "binding": "TTLIKE_KV",
-      "id": "8adfde2b46b14f908cc4eb71549204ed"
+      "id": "aa4e402960144fcf9267cb1103500b36"
     },
     {
       "binding": "TTLIKE_SESSIONS",
-      "id": "c9bc3db7e5da482780602ad2e517098d"
+      "id": "572f2f9867a14831b517fa5b7b063ed5"
     }
   ],
   "triggers": {
