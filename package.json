@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build && opennextjs-cloudflare build --skipNextBuild",
+    "build": "opennextjs-cloudflare build",
     "next:build": "next build",
     "preview": "npm run build && opennextjs-cloudflare preview",
     "deploy": "npm run build && wrangler deploy",
