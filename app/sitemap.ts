@@ -12,6 +12,19 @@ type ViralRouteRow = {
   created_at: string
 }
 
+async function d1SitemapRows<T>(query: string): Promise<T[] | null> {
+  const db = await getD1Database()
+  if (!db) return null
+
+  try {
+    const { results = [] } = await db.prepare(query).all<T>()
+    return results
+  } catch (error) {
+    console.warn('[sitemap] D1 query skipped:', error)
+    return []
+  }
+}
+
 async function supabaseRest<T>(
   table: string,
   params: Record<string, string>,
@@ -32,17 +45,14 @@ async function supabaseRest<T>(
 }
 
 async function listProducts(): Promise<ProductRouteRow[]> {
-  const db = await getD1Database()
-  if (db) {
-    const { results = [] } = await db.prepare(`
+  const d1Rows = await d1SitemapRows<ProductRouteRow>(`
       SELECT id, updated_at
       FROM tiktok_videos
       WHERE deleted_at IS NULL
       ORDER BY viral_score DESC
       LIMIT 200
-    `).all<ProductRouteRow>()
-    return results
-  }
+    `)
+  if (d1Rows) return d1Rows
 
   return supabaseRest<ProductRouteRow>('tiktok_videos', {
     select: 'id,updated_at',
@@ -52,17 +62,14 @@ async function listProducts(): Promise<ProductRouteRow[]> {
 }
 
 async function listBlogPosts(): Promise<BlogRouteRow[]> {
-  const db = await getD1Database()
-  if (db) {
-    const { results = [] } = await db.prepare(`
+  const d1Rows = await d1SitemapRows<BlogRouteRow>(`
       SELECT slug, updated_at
       FROM blog_posts
       WHERE status = 'PUBLISHED'
       ORDER BY created_at DESC
       LIMIT 200
-    `).all<BlogRouteRow>()
-    return results
-  }
+    `)
+  if (d1Rows) return d1Rows
 
   return supabaseRest<BlogRouteRow>('blog_posts', {
     select: 'slug,updated_at',
@@ -73,18 +80,15 @@ async function listBlogPosts(): Promise<BlogRouteRow[]> {
 }
 
 async function listViralBreakdowns(): Promise<ViralRouteRow[]> {
-  const db = await getD1Database()
-  if (db) {
-    const { results = [] } = await db.prepare(`
+  const d1Rows = await d1SitemapRows<ViralRouteRow>(`
       SELECT vb.video_id, vb.seo_slug, vb.created_at
       FROM video_breakdowns vb
       INNER JOIN tiktok_videos tv ON tv.id = vb.video_id
       WHERE COALESCE(tv.views, 0) > 0
       ORDER BY vb.created_at DESC
       LIMIT 200
-    `).all<ViralRouteRow>()
-    return results
-  }
+    `)
+  if (d1Rows) return d1Rows
 
   return supabaseRest<ViralRouteRow>('video_breakdowns', {
     select: 'video_id,seo_slug,created_at,tiktok_videos!inner(views)',
