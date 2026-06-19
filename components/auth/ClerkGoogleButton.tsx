@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useSignIn } from '@clerk/nextjs'
+import { useSignIn, useUser } from '@clerk/nextjs'
 import { Button } from '@/components/ui/Button'
 import { GoogleIcon } from '@/components/auth/GoogleIcon'
 
@@ -11,11 +11,21 @@ import { GoogleIcon } from '@/components/auth/GoogleIcon'
  */
 export function ClerkGoogleButton({ redirect }: { redirect: string }) {
   const { signIn, isLoaded } = useSignIn()
+  const { isSignedIn } = useUser()
   const [loading, setLoading] = useState(false)
 
   async function handleClick() {
-    if (!isLoaded) return
     setLoading(true)
+
+    // Clerk already has an active session (e.g. a previous OAuth round-trip
+    // succeeded but our own session bridge failed) — skip straight to the
+    // bridge instead of re-triggering OAuth, which Clerk rejects.
+    if (isSignedIn) {
+      window.location.href = `/api/auth/clerk-bridge?next=${encodeURIComponent(redirect)}`
+      return
+    }
+
+    if (!isLoaded) return
     await signIn.authenticateWithRedirect({
       strategy: 'oauth_google',
       redirectUrl: '/auth/sso-callback',
