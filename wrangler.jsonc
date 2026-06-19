@@ -15,23 +15,17 @@
     {
       "binding": "DB",
       "database_name": "ttlike",
-      "database_id": "replace-with-cloudflare-d1-database-id"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "COVERS_BUCKET",
-      "bucket_name": "ttlike-covers"
+      "database_id": "359753fd-06e0-4726-95e8-01091885525d"
     }
   ],
   "kv_namespaces": [
     {
       "binding": "TTLIKE_KV",
-      "id": "replace-with-cloudflare-kv-id"
+      "id": "8adfde2b46b14f908cc4eb71549204ed"
     },
     {
       "binding": "TTLIKE_SESSIONS",
-      "id": "replace-with-cloudflare-sessions-kv-id"
+      "id": "c9bc3db7e5da482780602ad2e517098d"
     }
   ],
   "queues": {
@@ -55,7 +49,7 @@
   "vars": {
     "NEXT_PUBLIC_SITE_URL": "http://localhost:8787",
     "AUTH_PROVIDER": "cloudflare-d1",
-    "STORAGE_PROVIDER": "cloudflare-r2",
+    "STORAGE_PROVIDER": "disabled",
     "R2_PUBLIC_COVERS_PATH": "/api/assets/covers"
   }
 }

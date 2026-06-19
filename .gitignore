@@ -38,6 +38,7 @@ yarn-error.log*
 
 # cloudflare local/deployment artifacts
 .wrangler/
+.open-next/
 cloudflare/export/
 cloudflare/d1/import-data.sql
 
