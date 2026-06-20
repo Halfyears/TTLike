@@ -32,8 +32,17 @@ async function coreMiddleware(request: NextRequest) {
   }
 
   if (isAdminRoute && user) {
+    // request.nextUrl.origin can resolve to the Next.js server's internal
+    // localhost address on Workers/OpenNext rather than the public hostname
+    // (same issue fixed in app/api/auth/clerk-bridge/route.ts) — this self
+    // fetch would then fail, get swallowed by the catch below, and silently
+    // bounce every admin to /dashboard. Use the Host header instead.
+    const host = request.headers.get('host')
+    const proto = request.headers.get('x-forwarded-proto') ?? 'https'
+    const origin = host ? `${proto}://${host}` : request.nextUrl.origin
+
     const { data: profile } = await fetch(
-      `${request.nextUrl.origin}/api/admin/check`,
+      `${origin}/api/admin/check`,
       { headers: { cookie: request.headers.get('cookie') ?? '' } }
     ).then(r => r.json()).catch(() => ({ data: null }))
 
