@@ -10,12 +10,13 @@ import { GoogleIcon } from '@/components/auth/GoogleIcon'
  * auth path) — always mounted inside <ClerkProvider>, so useSignIn() is safe.
  */
 export function ClerkGoogleButton({ redirect }: { redirect: string }) {
-  const { signIn, isLoaded } = useSignIn()
-  const { isSignedIn } = useUser()
+  const { signIn, isLoaded: signInLoaded } = useSignIn()
+  const { isSignedIn, isLoaded: userLoaded } = useUser()
   const [loading, setLoading] = useState(false)
+  const ready = signInLoaded && userLoaded
 
   async function handleClick() {
-    setLoading(true)
+    if (!ready) return
 
     // Clerk already has an active session (e.g. a previous OAuth round-trip
     // succeeded but our own session bridge failed) — skip straight to the
@@ -25,7 +26,7 @@ export function ClerkGoogleButton({ redirect }: { redirect: string }) {
       return
     }
 
-    if (!isLoaded) return
+    setLoading(true)
     await signIn.authenticateWithRedirect({
       strategy: 'oauth_google',
       redirectUrl: '/auth/sso-callback',
@@ -34,7 +35,7 @@ export function ClerkGoogleButton({ redirect }: { redirect: string }) {
   }
 
   return (
-    <Button type="button" variant="secondary" className="w-full" onClick={handleClick} loading={loading}>
+    <Button type="button" variant="secondary" className="w-full" onClick={handleClick} loading={loading || !ready}>
       <GoogleIcon />
       Continue with Google
     </Button>
