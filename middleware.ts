@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest, type NextFetchEvent } from 'next/server
 import { clerkMiddleware } from '@clerk/nextjs/server'
 import { updateSession } from '@/lib/supabase/proxy'
 import { PROTECTED_ROUTES, AUTH_ROUTES, ADMIN_ROUTES } from '@/lib/constants'
-import { resolveSiteOrigin } from '@/lib/cloudflare/origin'
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 const CLERK_ENABLED = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY)
 
@@ -33,33 +33,13 @@ async function coreMiddleware(request: NextRequest) {
   }
 
   if (isAdminRoute && user) {
-    const checkUrl = `${resolveSiteOrigin(request)}/api/admin/check`
-    const cookieHeader = request.headers.get('cookie') ?? ''
-    let debugInfo = ''
-    const { data: profile } = await fetch(
-      checkUrl,
-      { headers: { cookie: cookieHeader }, cache: 'no-store' }
-    ).then(async r => {
-      const text = await r.text()
-      debugInfo = `status=${r.status} body=${text}`
-      return JSON.parse(text)
-    }).catch((e) => {
-      debugInfo = `fetch-error=${e instanceof Error ? e.message : String(e)}`
-      return { data: null }
-    })
-
-    if (!profile?.isAdmin) {
-      // TEMP DEBUG: header values must be ASCII-safe or .set() throws —
-      // encode before attaching. Remove once root-caused.
-      const res = NextResponse.redirect(new URL('/dashboard', request.url))
-      try {
-        res.headers.set('x-debug-check-url', encodeURIComponent(checkUrl))
-        res.headers.set('x-debug-cookie-len', String(cookieHeader.length))
-        res.headers.set('x-debug-result', encodeURIComponent(debugInfo.slice(0, 300)))
-      } catch (e) {
-        console.error('[middleware] failed to set debug headers:', e instanceof Error ? e.message : e)
-      }
-      return res
+    // Check in-process instead of self-fetching /api/admin/check: Cloudflare
+    // blocks a Worker fetching its own *.workers.dev URL as a loop-prevention
+    // measure (error 1042), so that self-fetch never succeeded on this
+    // preview domain. isCurrentUserAdmin() already routes Supabase vs D1
+    // correctly via lib/supabase/server.ts, with zero network round trip.
+    if (!await isCurrentUserAdmin()) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }
 
