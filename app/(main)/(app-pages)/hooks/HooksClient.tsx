@@ -8,7 +8,6 @@ import { Card, CardContent } from '@/components/ui/Card'
 import { HOOK_TYPES } from '@/lib/constants'
 import ActionableHookCard from '@/components/ActionableHookCard'
 import { SignupPromptModal } from '@/components/hooks/SignupPromptModal'
-import { createClient } from '@/lib/supabase/client'
 import type { TTLikeHookResponse } from '@/lib/types/hooks'
 
 // ── Anonymous generation tracking ─────────────────────────────────────────────
@@ -76,11 +75,11 @@ function HookMachine() {
   const isLoggedInRef  = useRef(false)
   const authCheckedRef = useRef(false)
 
-  // Check auth status once on mount
+  // Check auth status once on mount. The browser Supabase client has no real
+  // session under the Cloudflare/D1 auth path — ask the server instead.
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      isLoggedInRef.current  = !!session
+    fetch('/api/user/profile').then(res => {
+      isLoggedInRef.current  = res.ok
       authCheckedRef.current = true
     }).catch(() => { authCheckedRef.current = true })
   }, [])

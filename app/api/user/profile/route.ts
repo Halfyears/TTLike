@@ -1,4 +1,12 @@
 /**
+ * GET /api/user/profile
+ * Returns the authenticated user's identity. Client components must call
+ * this instead of the browser Supabase client's auth.getUser() — that client
+ * has no real session under the Cloudflare/D1 auth path (no browser-side D1
+ * access), so it always reports signed-out there. This route runs server-side
+ * via lib/supabase/server.ts, which already picks Supabase vs the D1 facade
+ * correctly based on AUTH_PROVIDER.
+ *
  * PATCH /api/user/profile
  * Updates the authenticated user's display name in Supabase Auth metadata.
  * Body: { name: string }
@@ -6,6 +14,22 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+
+export async function GET() {
+  const sb = await createClient()
+  const { data: { user } } = await sb.auth.getUser()
+  if (!user) return NextResponse.json({ user: null }, { status: 401 })
+
+  return NextResponse.json({
+    user: {
+      id:         user.id,
+      email:      user.email ?? null,
+      name:       (user.user_metadata as Record<string, unknown> | null)?.name ?? null,
+      avatar_url: (user.user_metadata as Record<string, unknown> | null)?.avatar_url ?? null,
+      role:       (user.user_metadata as Record<string, unknown> | null)?.role ?? null,
+    },
+  })
+}
 
 export async function PATCH(req: NextRequest) {
   const sb = await createClient()

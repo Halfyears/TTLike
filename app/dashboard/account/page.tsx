@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   User, Mail, CreditCard, LogOut, Check, Loader2,
   ExternalLink, Shield, ChevronRight, AlertTriangle, BarChart2,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/Card'
-import { createClient } from '@/lib/supabase/client'
 import type { TierResponse } from '@/app/api/user/tier/route'
 
 // ── Plan config ────────────────────────────────────────────────────────────────
@@ -36,8 +35,6 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function AccountPage() {
   const router   = useRouter()
-  // Stable Supabase client — created once, not on every render
-  const supabase = useMemo(() => createClient(), [])
 
   // ── User state ────────────────────────────────────────────────────────────
   const [email,       setEmail]       = useState('')
@@ -65,11 +62,15 @@ export default function AccountPage() {
     let mounted = true
 
     void (async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      // The browser Supabase client has no real session under the
+      // Cloudflare/D1 auth path — ask the server, which routes correctly.
+      const res  = await fetch('/api/user/profile')
+      const data = await res.json() as { user: { name: string | null; email: string | null } | null }
+      const user = data.user
       if (!mounted) return                          // component unmounted (e.g. sign-out navigated away)
       if (!user) { router.push('/auth/login'); return }
 
-      const displayName = (user.user_metadata?.name as string | undefined) ?? ''
+      const displayName = user.name ?? ''
       const userEmail   = user.email ?? ''
       setEmail(userEmail)
       setName(displayName)
@@ -139,7 +140,9 @@ export default function AccountPage() {
   async function handleSignOut() {
     setSigningOut(true)
     try {
-      await supabase.auth.signOut()
+      // Sign-out must happen server-side: it clears an httpOnly cookie under
+      // the Cloudflare/D1 auth path, which the browser client can't touch.
+      await fetch('/api/auth/signout', { method: 'POST' })
       router.push('/')
       setTimeout(() => router.refresh(), 100)
     } catch {
