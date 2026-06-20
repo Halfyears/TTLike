@@ -18,10 +18,16 @@ const ALLOWED_NEXT = new Set(['/dashboard', '/studio', '/products', '/hooks', '/
 const SESSION_TTL_DAYS = 30
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const rawNext = searchParams.get('next') ?? '/dashboard'
   const next = ALLOWED_NEXT.has(rawNext) ? rawNext : '/dashboard'
-  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || origin
+
+  // request.url's origin can resolve to the Next.js server's internal
+  // localhost address on Workers/OpenNext rather than the public hostname —
+  // prefer the Host header (reliably set by Cloudflare) as the fallback.
+  const host = request.headers.get('host')
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https'
+  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || (host ? `${proto}://${host}` : new URL(request.url).origin)
 
   // currentUser() resolves the session itself — calling auth() separately
   // would re-verify the same JWT a second time, doubling CPU work per request.
@@ -61,7 +67,9 @@ export async function GET(request: NextRequest) {
        updated_at = CURRENT_TIMESTAMP`,
   ).bind(clerkUserId, email, name, avatarUrl).run()
 
-  const sessionId = crypto.randomUUID()
+  // Bare crypto.randomUUID() is unreliable in this Workers/OpenNext runtime
+  // (see lib/cloudflare/d1Compat.ts) — use the same defensive fallback.
+  const sessionId = globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 86_400_000).toISOString()
   await db.prepare(
     `INSERT INTO auth_sessions (id, user_id, expires_at) VALUES (?, ?, ?)`,

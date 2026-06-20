@@ -14,7 +14,10 @@ export async function GET(request: NextRequest) {
 
   // Prefer explicit site URL (set in Vercel env) to avoid localhost redirects
   // when the server-side request.url resolves to an internal or preview address.
-  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || origin
+  // Fall back to the Host header (reliable on Workers/OpenNext) before origin.
+  const host = request.headers.get('host')
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https'
+  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || (host ? `${proto}://${host}` : origin)
 
   if (code) {
     const supabase = await createClient()
