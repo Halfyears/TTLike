@@ -38,7 +38,8 @@
     "crons": ["0 7,19 * * *"]
   },
   "vars": {
-    "NEXT_PUBLIC_SITE_URL": "http://localhost:8787",
+    "NEXT_PUBLIC_SITE_URL": "https://ttlike.jifeng-67a.workers.dev",
+    "ADMIN_EMAIL": "jifeng@gmail.com",
     "AUTH_PROVIDER": "cloudflare-d1",
     "STORAGE_PROVIDER": "cloudflare-r2",
     "R2_PUBLIC_COVERS_PATH": "/api/assets/covers",

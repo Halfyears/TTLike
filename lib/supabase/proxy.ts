@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { getD1Database } from '@/lib/cloudflare/env'
 
 const SESSION_COOKIE_NAMES = ['ttlike_session', 'ttlike-session', 'session']
 
@@ -18,10 +19,24 @@ export async function updateSession(request: NextRequest) {
       .map(name => request.cookies.get(name)?.value)
       .find(Boolean)
 
-    return {
-      supabaseResponse,
-      user: sessionCookie ? { id: 'cloudflare-session' } : null,
+    // Mirror the real check in lib/cloudflare/supabaseFacade.ts auth.getUser()
+    // — a cookie merely being present isn't enough; it must reference a
+    // non-expired auth_sessions row, or middleware admits requests that the
+    // page-level facade then rejects (visible as a redirect flash/loop).
+    let user: { id: string } | null = null
+    if (sessionCookie) {
+      try {
+        const db = await getD1Database()
+        const row = await db?.prepare(
+          `SELECT 1 FROM auth_sessions WHERE id = ? AND expires_at > CURRENT_TIMESTAMP LIMIT 1`,
+        ).bind(sessionCookie).first()
+        if (row) user = { id: 'cloudflare-session' }
+      } catch {
+        user = null
+      }
     }
+
+    return { supabaseResponse, user }
   }
 
   const supabase = createServerClient(

@@ -2,22 +2,17 @@ import { createClient } from '@/lib/supabase/server'
 import { NextResponse }  from 'next/server'
 import type { NextRequest } from 'next/server'
 import { d1Db }        from '@/lib/cloudflare/d1Compat'
+import { resolveSiteOrigin } from '@/lib/cloudflare/origin'
 
 export async function GET(request: NextRequest) {
-  const { searchParams, origin } = new URL(request.url)
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
 
   // Guard against open-redirect: only allow known app routes.
   const ALLOWED_NEXT = new Set(['/dashboard', '/studio', '/products', '/hooks', '/trending', '/blog', '/pricing'])
   const rawNext = searchParams.get('next') ?? '/dashboard'
   const next = ALLOWED_NEXT.has(rawNext) ? rawNext : '/dashboard'
-
-  // Prefer explicit site URL (set in Vercel env) to avoid localhost redirects
-  // when the server-side request.url resolves to an internal or preview address.
-  // Fall back to the Host header (reliable on Workers/OpenNext) before origin.
-  const host = request.headers.get('host')
-  const proto = request.headers.get('x-forwarded-proto') ?? 'https'
-  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || (host ? `${proto}://${host}` : origin)
+  const siteOrigin = resolveSiteOrigin(request)
 
   if (code) {
     const supabase = await createClient()

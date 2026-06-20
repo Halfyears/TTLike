@@ -14,8 +14,11 @@ export async function GET() {
     try {
       const dbUser = await d1Db.user.findUnique({ where: { email: user.email! } })
       if (dbUser) isAdmin = dbUser.role === 'ADMIN'
-    } catch {
-      // DB not connected - fall back to env check
+    } catch (e) {
+      // DB not connected, or a real query/schema bug — log it so a silent
+      // lockout (every ADMIN-role user failing closed to env-check-only,
+      // which is unset on Cloudflare) is at least visible in Workers logs.
+      console.error('[admin/check] d1Db.user.findUnique failed:', e instanceof Error ? e.message : e)
     }
 
     return NextResponse.json({ data: { isAdmin, email: user.email } })

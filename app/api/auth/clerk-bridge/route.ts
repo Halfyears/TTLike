@@ -13,6 +13,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { currentUser } from '@clerk/nextjs/server'
 import { getD1Database } from '@/lib/cloudflare/env'
+import { resolveSiteOrigin } from '@/lib/cloudflare/origin'
 
 const ALLOWED_NEXT = new Set(['/dashboard', '/studio', '/products', '/hooks', '/trending', '/blog', '/pricing'])
 const SESSION_TTL_DAYS = 30
@@ -21,13 +22,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const rawNext = searchParams.get('next') ?? '/dashboard'
   const next = ALLOWED_NEXT.has(rawNext) ? rawNext : '/dashboard'
-
-  // request.url's origin can resolve to the Next.js server's internal
-  // localhost address on Workers/OpenNext rather than the public hostname —
-  // prefer the Host header (reliably set by Cloudflare) as the fallback.
-  const host = request.headers.get('host')
-  const proto = request.headers.get('x-forwarded-proto') ?? 'https'
-  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || (host ? `${proto}://${host}` : new URL(request.url).origin)
+  const siteOrigin = resolveSiteOrigin(request)
 
   try {
 
@@ -65,9 +60,16 @@ export async function GET(request: NextRequest) {
         `UPDATE auth_users SET raw_user_meta_data = ?, last_sign_in_at = CURRENT_TIMESTAMP WHERE id = ?`,
       ).bind(metadata, appUserId).run()
     } else {
+      // ON CONFLICT(id) guards against a reused/collided Clerk id (e.g. a
+      // stale test row) — without it this throws a primary-key error that
+      // surfaces only as a generic "session sync failed" redirect.
       await db.prepare(
         `INSERT INTO auth_users (id, email, raw_user_meta_data, provider, last_sign_in_at)
-         VALUES (?, ?, ?, 'google', CURRENT_TIMESTAMP)`,
+         VALUES (?, ?, ?, 'google', CURRENT_TIMESTAMP)
+         ON CONFLICT(id) DO UPDATE SET
+           email = excluded.email,
+           raw_user_meta_data = excluded.raw_user_meta_data,
+           last_sign_in_at = CURRENT_TIMESTAMP`,
       ).bind(appUserId, email, metadata).run()
     }
 

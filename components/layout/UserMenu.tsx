@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { ChevronUp, Settings, CreditCard, LogOut } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { signOutEverywhere } from '@/lib/auth/signOutEverywhere'
 
 interface UserMenuProps {
   email:    string
@@ -26,11 +27,7 @@ export function UserMenu({ email, initials }: UserMenuProps) {
 
   async function handleSignOut() {
     setOpen(false)
-    // Sign-out must happen server-side: it clears an httpOnly cookie under
-    // the Cloudflare/D1 auth path, which the browser Supabase client (a no-op
-    // stub there) can't touch.
-    await fetch('/api/auth/signout', { method: 'POST' })
-    await (window as unknown as { Clerk?: { signOut?: () => Promise<void> } }).Clerk?.signOut?.().catch(() => {})
+    await signOutEverywhere()
     // push first, then refresh — avoids a race where refresh re-runs a protected
     // Server Component (e.g. /studio redirects to /auth/login) before navigation lands
     router.push('/')
