@@ -41,7 +41,7 @@ async function coreMiddleware(request: NextRequest) {
       { headers: { cookie: cookieHeader }, cache: 'no-store' }
     ).then(async r => {
       const text = await r.text()
-      debugInfo = `status=${r.status} body=${text.slice(0, 200)}`
+      debugInfo = `status=${r.status} body=${text}`
       return JSON.parse(text)
     }).catch((e) => {
       debugInfo = `fetch-error=${e instanceof Error ? e.message : String(e)}`
@@ -49,12 +49,16 @@ async function coreMiddleware(request: NextRequest) {
     })
 
     if (!profile?.isAdmin) {
-      // TEMP DEBUG: surface why the admin self-fetch didn't pan out instead
-      // of silently redirecting. Remove once root-caused.
+      // TEMP DEBUG: header values must be ASCII-safe or .set() throws —
+      // encode before attaching. Remove once root-caused.
       const res = NextResponse.redirect(new URL('/dashboard', request.url))
-      res.headers.set('x-debug-check-url', checkUrl)
-      res.headers.set('x-debug-cookie-len', String(cookieHeader.length))
-      res.headers.set('x-debug-result', debugInfo.slice(0, 200))
+      try {
+        res.headers.set('x-debug-check-url', encodeURIComponent(checkUrl))
+        res.headers.set('x-debug-cookie-len', String(cookieHeader.length))
+        res.headers.set('x-debug-result', encodeURIComponent(debugInfo.slice(0, 300)))
+      } catch (e) {
+        console.error('[middleware] failed to set debug headers:', e instanceof Error ? e.message : e)
+      }
       return res
     }
   }
