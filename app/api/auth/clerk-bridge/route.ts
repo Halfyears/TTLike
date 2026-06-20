@@ -18,17 +18,18 @@ const ALLOWED_NEXT = new Set(['/dashboard', '/studio', '/products', '/hooks', '/
 const SESSION_TTL_DAYS = 30
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const rawNext = searchParams.get('next') ?? '/dashboard'
-    const next = ALLOWED_NEXT.has(rawNext) ? rawNext : '/dashboard'
+  const { searchParams } = new URL(request.url)
+  const rawNext = searchParams.get('next') ?? '/dashboard'
+  const next = ALLOWED_NEXT.has(rawNext) ? rawNext : '/dashboard'
 
-    // request.url's origin can resolve to the Next.js server's internal
-    // localhost address on Workers/OpenNext rather than the public hostname —
-    // prefer the Host header (reliably set by Cloudflare) as the fallback.
-    const host = request.headers.get('host')
-    const proto = request.headers.get('x-forwarded-proto') ?? 'https'
-    const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || (host ? `${proto}://${host}` : new URL(request.url).origin)
+  // request.url's origin can resolve to the Next.js server's internal
+  // localhost address on Workers/OpenNext rather than the public hostname —
+  // prefer the Host header (reliably set by Cloudflare) as the fallback.
+  const host = request.headers.get('host')
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https'
+  const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || (host ? `${proto}://${host}` : new URL(request.url).origin)
+
+  try {
 
     // currentUser() resolves the session itself — calling auth() separately
     // would re-verify the same JWT a second time, doubling CPU work per request.
@@ -48,15 +49,27 @@ export async function GET(request: NextRequest) {
     const avatarUrl = user.imageUrl ?? null
     const metadata = JSON.stringify({ name, avatar_url: avatarUrl, clerk_user_id: clerkUserId })
 
-    // auth_users.id is our own primary key — reuse the Clerk user id directly.
-    await db.prepare(
-      `INSERT INTO auth_users (id, email, raw_user_meta_data, provider, last_sign_in_at)
-       VALUES (?, ?, ?, 'google', CURRENT_TIMESTAMP)
-       ON CONFLICT(id) DO UPDATE SET
-         email = excluded.email,
-         raw_user_meta_data = excluded.raw_user_meta_data,
-         last_sign_in_at = CURRENT_TIMESTAMP`,
-    ).bind(clerkUserId, email, metadata).run()
+    // auth_users.email is UNIQUE. If this email already has a row (e.g.
+    // migrated from Supabase under a different id), reuse that existing id
+    // for everything below instead of inserting a second row under the new
+    // Clerk id — otherwise every table FK'd to the old id (users,
+    // user_billing_tiers, etc.) would be orphaned from this login.
+    const existing = await db
+      .prepare(`SELECT id FROM auth_users WHERE email = ?`)
+      .bind(email)
+      .first<{ id: string }>()
+    const appUserId = existing?.id ?? clerkUserId
+
+    if (existing) {
+      await db.prepare(
+        `UPDATE auth_users SET raw_user_meta_data = ?, last_sign_in_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      ).bind(metadata, appUserId).run()
+    } else {
+      await db.prepare(
+        `INSERT INTO auth_users (id, email, raw_user_meta_data, provider, last_sign_in_at)
+         VALUES (?, ?, ?, 'google', CURRENT_TIMESTAMP)`,
+      ).bind(appUserId, email, metadata).run()
+    }
 
     await db.prepare(
       `INSERT INTO users (id, email, name, avatar_url)
@@ -66,7 +79,7 @@ export async function GET(request: NextRequest) {
          name = COALESCE(excluded.name, users.name),
          avatar_url = COALESCE(excluded.avatar_url, users.avatar_url),
          updated_at = CURRENT_TIMESTAMP`,
-    ).bind(clerkUserId, email, name, avatarUrl).run()
+    ).bind(appUserId, email, name, avatarUrl).run()
 
     // Bare crypto.randomUUID() is unreliable in this Workers/OpenNext runtime
     // (see lib/cloudflare/d1Compat.ts) — use the same defensive fallback.
@@ -74,7 +87,7 @@ export async function GET(request: NextRequest) {
     const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 86_400_000).toISOString()
     await db.prepare(
       `INSERT INTO auth_sessions (id, user_id, expires_at) VALUES (?, ?, ?)`,
-    ).bind(sessionId, clerkUserId, expiresAt).run()
+    ).bind(sessionId, appUserId, expiresAt).run()
 
     const response = NextResponse.redirect(`${siteOrigin}${next}`)
     response.cookies.set('ttlike_session', sessionId, {
@@ -86,9 +99,7 @@ export async function GET(request: NextRequest) {
     })
     return response
   } catch (e) {
-    // TEMP DEBUG: surface the real error instead of a bare 500 so we can
-    // diagnose the Workers runtime failure. Remove once root-caused.
-    const message = e instanceof Error ? `${e.name}: ${e.message}\n${e.stack ?? ''}` : String(e)
-    return new NextResponse(message, { status: 200, headers: { 'content-type': 'text/plain' } })
+    console.error('[clerk-bridge] session sync failed:', e instanceof Error ? e.message : e)
+    return NextResponse.redirect(`${siteOrigin}/auth/login?error=auth_callback_error`)
   }
 }
