@@ -5,7 +5,6 @@ import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Menu, X, Zap, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 
@@ -25,10 +24,13 @@ export function Navbar({ user }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const router   = useRouter()
   const pathname = usePathname()
-  const supabase = createClient()
 
   async function handleSignOut() {
-    await supabase.auth.signOut()
+    // Sign-out must happen server-side: it clears an httpOnly cookie under
+    // the Cloudflare/D1 auth path, which the browser Supabase client (a no-op
+    // stub there) can't touch.
+    await fetch('/api/auth/signout', { method: 'POST' })
+    await (window as unknown as { Clerk?: { signOut?: () => Promise<void> } }).Clerk?.signOut?.().catch(() => {})
     router.push('/')
     router.refresh()
   }

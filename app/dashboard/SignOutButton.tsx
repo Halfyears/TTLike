@@ -1,15 +1,17 @@
 'use client'
 
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 
 export function SignOutButton() {
   const router = useRouter()
-  const supabase = createClient()
 
   async function handleSignOut() {
-    await supabase.auth.signOut()
+    // Sign-out must happen server-side: it clears an httpOnly cookie under
+    // the Cloudflare/D1 auth path, which the browser Supabase client (a no-op
+    // stub there) can't touch.
+    await fetch('/api/auth/signout', { method: 'POST' })
+    await (window as unknown as { Clerk?: { signOut?: () => Promise<void> } }).Clerk?.signOut?.().catch(() => {})
     router.push('/auth/login')
     router.refresh()
   }

@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { ChevronUp, Settings, CreditCard, LogOut } from 'lucide-react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 interface UserMenuProps {
@@ -15,7 +14,6 @@ export function UserMenu({ email, initials }: UserMenuProps) {
   const [open, setOpen] = useState(false)
   const ref             = useRef<HTMLDivElement>(null)
   const router          = useRouter()
-  const supabase        = createClient()
 
   // Close on outside click
   useEffect(() => {
@@ -28,7 +26,11 @@ export function UserMenu({ email, initials }: UserMenuProps) {
 
   async function handleSignOut() {
     setOpen(false)
-    await supabase.auth.signOut()
+    // Sign-out must happen server-side: it clears an httpOnly cookie under
+    // the Cloudflare/D1 auth path, which the browser Supabase client (a no-op
+    // stub there) can't touch.
+    await fetch('/api/auth/signout', { method: 'POST' })
+    await (window as unknown as { Clerk?: { signOut?: () => Promise<void> } }).Clerk?.signOut?.().catch(() => {})
     // push first, then refresh — avoids a race where refresh re-runs a protected
     // Server Component (e.g. /studio redirects to /auth/login) before navigation lands
     router.push('/')
