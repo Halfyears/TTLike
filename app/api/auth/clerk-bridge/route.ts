@@ -11,7 +11,7 @@
 
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { auth, currentUser } from '@clerk/nextjs/server'
+import { currentUser } from '@clerk/nextjs/server'
 import { getD1Database } from '@/lib/cloudflare/env'
 
 const ALLOWED_NEXT = new Set(['/dashboard', '/studio', '/products', '/hooks', '/trending', '/blog', '/pricing'])
@@ -23,14 +23,12 @@ export async function GET(request: NextRequest) {
   const next = ALLOWED_NEXT.has(rawNext) ? rawNext : '/dashboard'
   const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || origin
 
-  const { userId: clerkUserId } = await auth()
-  if (!clerkUserId) {
-    return NextResponse.redirect(`${siteOrigin}/auth/login?error=auth_callback_error`)
-  }
-
+  // currentUser() resolves the session itself — calling auth() separately
+  // would re-verify the same JWT a second time, doubling CPU work per request.
   const user = await currentUser()
+  const clerkUserId = user?.id
   const email = user?.emailAddresses?.[0]?.emailAddress
-  if (!email) {
+  if (!clerkUserId || !email) {
     return NextResponse.redirect(`${siteOrigin}/auth/login?error=auth_callback_error`)
   }
 
