@@ -143,6 +143,10 @@ export default function AccountPage() {
       // Sign-out must happen server-side: it clears an httpOnly cookie under
       // the Cloudflare/D1 auth path, which the browser client can't touch.
       await fetch('/api/auth/signout', { method: 'POST' })
+      // Also clear Clerk's own client-side session (Cloudflare/D1 path only)
+      // — otherwise the next "Continue with Google" click silently reuses
+      // the lingering Clerk session and signs back into the same account.
+      await (window as unknown as { Clerk?: { signOut?: () => Promise<void> } }).Clerk?.signOut?.()
       router.push('/')
       setTimeout(() => router.refresh(), 100)
     } catch {
