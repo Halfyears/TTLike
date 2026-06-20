@@ -36,6 +36,13 @@ const SESSION_COOKIE_NAMES = ['ttlike_session', 'ttlike-session', 'session']
 const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/
 
 function isSupabaseConfigured() {
+  // AUTH_PROVIDER is the explicit toggle (set in wrangler.jsonc for the
+  // Cloudflare deployment) — always honor it over inferring from env presence.
+  // Without this, the committed .env placeholder values for
+  // NEXT_PUBLIC_SUPABASE_URL/ANON_KEY (non-empty strings, just fake) make
+  // this check true even on Cloudflare/D1, silently routing every query back
+  // to a nonexistent "placeholder.supabase.co" project.
+  if (process.env.AUTH_PROVIDER === 'cloudflare-d1') return false
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 }
 

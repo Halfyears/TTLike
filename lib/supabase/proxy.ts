@@ -4,6 +4,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 const SESSION_COOKIE_NAMES = ['ttlike_session', 'ttlike-session', 'session']
 
 function hasSupabaseEnv() {
+  // See lib/cloudflare/supabaseFacade.ts isSupabaseConfigured() — AUTH_PROVIDER
+  // must win over the committed .env placeholder values for the Supabase vars.
+  if (process.env.AUTH_PROVIDER === 'cloudflare-d1') return false
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 }
 
