@@ -33,16 +33,29 @@ async function coreMiddleware(request: NextRequest) {
   }
 
   if (isAdminRoute && user) {
+    const checkUrl = `${resolveSiteOrigin(request)}/api/admin/check`
+    const cookieHeader = request.headers.get('cookie') ?? ''
+    let debugInfo = ''
     const { data: profile } = await fetch(
-      `${resolveSiteOrigin(request)}/api/admin/check`,
-      { headers: { cookie: request.headers.get('cookie') ?? '' }, cache: 'no-store' }
-    ).then(r => r.json()).catch((e) => {
-      console.error('[middleware] admin check self-fetch failed:', e instanceof Error ? e.message : e)
+      checkUrl,
+      { headers: { cookie: cookieHeader }, cache: 'no-store' }
+    ).then(async r => {
+      const text = await r.text()
+      debugInfo = `status=${r.status} body=${text.slice(0, 200)}`
+      return JSON.parse(text)
+    }).catch((e) => {
+      debugInfo = `fetch-error=${e instanceof Error ? e.message : String(e)}`
       return { data: null }
     })
 
     if (!profile?.isAdmin) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      // TEMP DEBUG: surface why the admin self-fetch didn't pan out instead
+      // of silently redirecting. Remove once root-caused.
+      const res = NextResponse.redirect(new URL('/dashboard', request.url))
+      res.headers.set('x-debug-check-url', checkUrl)
+      res.headers.set('x-debug-cookie-len', String(cookieHeader.length))
+      res.headers.set('x-debug-result', debugInfo.slice(0, 200))
+      return res
     }
   }
 
