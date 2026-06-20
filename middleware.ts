@@ -35,8 +35,11 @@ async function coreMiddleware(request: NextRequest) {
   if (isAdminRoute && user) {
     const { data: profile } = await fetch(
       `${resolveSiteOrigin(request)}/api/admin/check`,
-      { headers: { cookie: request.headers.get('cookie') ?? '' } }
-    ).then(r => r.json()).catch(() => ({ data: null }))
+      { headers: { cookie: request.headers.get('cookie') ?? '' }, cache: 'no-store' }
+    ).then(r => r.json()).catch((e) => {
+      console.error('[middleware] admin check self-fetch failed:', e instanceof Error ? e.message : e)
+      return { data: null }
+    })
 
     if (!profile?.isAdmin) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
