@@ -15,22 +15,10 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { d1Db } from '@/lib/cloudflare/d1Compat'
 import { runAIWaterfall } from '@/lib/ai/providers'
-
-async function isAdmin(): Promise<boolean> {
-  try {
-    const sb = await createClient()
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) return false
-    try {
-      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
-      if (u?.role === 'ADMIN') return true
-    } catch {}
-    return user.email === process.env.ADMIN_EMAIL
-  } catch { return false }
-}
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 /** Strip hashtags, emoji, and stray symbols from a product/title string. */
 function cleanProductName(text: string): string {
@@ -125,7 +113,7 @@ interface GeneratedPost {
 }
 
 export async function POST(req: Request) {
-  if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!await isCurrentUserAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let body: { breakdown_id?: string }
   try { body = await req.json() } catch {

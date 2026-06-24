@@ -4,25 +4,12 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { d1Db } from '@/lib/cloudflare/d1Compat'
-
-async function isAdmin(): Promise<boolean> {
-  try {
-    const sb = await createClient()
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) return false
-    try {
-      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
-      if (u?.role === 'ADMIN') return true
-    } catch {}
-    return user.email === process.env.ADMIN_EMAIL
-  } catch { return false }
-}
+import { createServiceClient } from '@/lib/supabase/server'
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 // ── GET ────────────────────────────────────────────────────────────────────────
 export async function GET() {
-  if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await isCurrentUserAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const service = createServiceClient()
 
@@ -43,7 +30,7 @@ export async function GET() {
 
 // ── POST ───────────────────────────────────────────────────────────────────────
 export async function POST(req: Request) {
-  if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await isCurrentUserAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
 

@@ -8,7 +8,7 @@
  * when posting the same product multiple times.
  */
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Shuffle, Lock, Copy, Check, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useUserTier } from '@/hooks/useUserTier'
 import type { TTLikeHookResponse, HookVariant } from '@/lib/types/hooks'
@@ -37,11 +37,15 @@ const EMOTION_COLORS: Record<string, string> = {
 
 function VariantRow({ variant }: { variant: HookVariant }) {
   const [copied, setCopied] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current) }, [])
 
   function handleCopy() {
     navigator.clipboard.writeText(variant.text).then(() => {
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      if (timerRef.current) clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => setCopied(false), 2000)
     })
   }
 

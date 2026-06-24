@@ -607,17 +607,21 @@ class D1RpcBuilder<T = unknown> implements PromiseLike<QueryResult<T>> {
       if (this.name === 'ensure_billing_tier') {
         const uid = String(this.params.uid ?? '')
         if (!uid) return { data: null, error: { message: 'ensure_billing_tier requires uid' }, count: null }
+        // Free-tier limit must match the canonical value (Postgres column DEFAULT
+        // and lib/constants.ts TIER_LIMITS.free.video_analysis) — was 3 here, 5 there.
         await db.prepare(
           `INSERT OR IGNORE INTO user_billing_tiers(id, user_id, tier, video_analysis_used, video_analysis_limit)
-           VALUES (?, ?, 'free', 0, 3)`,
+           VALUES (?, ?, 'free', 0, 5)`,
         ).bind(uid, uid).run()
         return { data: null, error: null, count: null }
       }
 
       if (this.name === 'increment_analysis_credit') {
         const uid = String(this.params.uid ?? '')
+        // Conditional on the limit so concurrent requests can't push usage past
+        // the plan cap (mirrors the Postgres increment_analysis_credit fix).
         await db.prepare(
-          'UPDATE user_billing_tiers SET video_analysis_used = video_analysis_used + 1, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?',
+          'UPDATE user_billing_tiers SET video_analysis_used = video_analysis_used + 1, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND video_analysis_used < video_analysis_limit',
         ).bind(uid).run()
         return { data: null, error: null, count: null }
       }
@@ -625,9 +629,12 @@ class D1RpcBuilder<T = unknown> implements PromiseLike<QueryResult<T>> {
       if (this.name === 'set_user_tier') {
         const uid = String(this.params.uid ?? '')
         const tier = String(this.params.new_tier ?? 'free')
+        // Limits must match the canonical values in supabase/migrations/20260523_billing_tiers.sql
+        // and lib/constants.ts TIER_LIMITS (creator=50, scale=500) — this previously
+        // granted 100/300, double/under-charging paid tiers on the D1 deployment.
         await db.prepare(
           `INSERT INTO user_billing_tiers(id, user_id, tier, video_analysis_used, video_analysis_limit)
-           VALUES (?, ?, ?, 0, CASE WHEN ? = 'scale' THEN 300 WHEN ? = 'creator' THEN 100 ELSE 3 END)
+           VALUES (?, ?, ?, 0, CASE WHEN ? = 'scale' THEN 500 WHEN ? = 'creator' THEN 50 ELSE 5 END)
            ON CONFLICT(user_id) DO UPDATE SET
              tier = excluded.tier,
              video_analysis_limit = excluded.video_analysis_limit,

@@ -4,29 +4,16 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { d1Db }       from '@/lib/cloudflare/d1Compat'
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
-
-async function isAdmin(): Promise<boolean> {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return false
-    try {
-      const dbUser = await d1Db.user.findUnique({ where: { email: user.email! } })
-      if (dbUser?.role === 'ADMIN') return true
-    } catch {}
-    return user.email === process.env.ADMIN_EMAIL
-  } catch { return false }
-}
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await isCurrentUserAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id } = await params
   const body = await req.json() as Partial<{
@@ -58,7 +45,7 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await isCurrentUserAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const { id } = await params
   await d1Db.spamRule.delete({ where: { id } })

@@ -5,26 +5,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { d1Db } from '@/lib/cloudflare/d1Compat'
-
-async function isAdmin(): Promise<boolean> {
-  try {
-    const sb = await createClient()
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) return false
-    try {
-      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
-      if (u?.role === 'ADMIN') return true
-    } catch {}
-    return user.email === process.env.ADMIN_EMAIL
-  } catch { return false }
-}
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 type RouteCtx = { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: RouteCtx) {
-  if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!await isCurrentUserAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
   try {
     const post = await d1Db.blogPost.findUnique({ where: { id } })
@@ -36,7 +23,7 @@ export async function GET(_req: NextRequest, { params }: RouteCtx) {
 }
 
 export async function PUT(req: NextRequest, { params }: RouteCtx) {
-  if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!await isCurrentUserAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
 
   let body: {
@@ -93,7 +80,7 @@ export async function PUT(req: NextRequest, { params }: RouteCtx) {
 }
 
 export async function DELETE(_req: NextRequest, { params }: RouteCtx) {
-  if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!await isCurrentUserAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const { id } = await params
 
   try {

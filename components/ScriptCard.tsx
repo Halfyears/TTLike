@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Copy, Check, Film } from 'lucide-react'
 
 interface Script {
@@ -67,18 +67,27 @@ export function ScriptCard({ script, index, brandName = '', offer = '' }: Script
   const [copied,       setCopied]       = useState(false)
   const [copiedCapCut, setCopiedCapCut] = useState(false)
   const highlightTerms = [brandName, offer].filter(Boolean)
+  const copiedTimerRef       = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const copiedCapCutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => {
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+    if (copiedCapCutTimerRef.current) clearTimeout(copiedCapCutTimerRef.current)
+  }, [])
 
   function handleCopy() {
     navigator.clipboard.writeText(script.fullScript).then(() => {
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000)
     })
   }
 
   function handleCopyCapCut() {
     navigator.clipboard.writeText(formatForCapCut(script, index)).then(() => {
       setCopiedCapCut(true)
-      setTimeout(() => setCopiedCapCut(false), 2000)
+      if (copiedCapCutTimerRef.current) clearTimeout(copiedCapCutTimerRef.current)
+      copiedCapCutTimerRef.current = setTimeout(() => setCopiedCapCut(false), 2000)
     })
   }
 

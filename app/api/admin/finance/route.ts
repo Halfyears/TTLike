@@ -8,39 +8,27 @@
  *   4. ltv_ranking   — top 100 users by net contribution (LTV − COGS)
  *
  * Uses service-role client throughout (bypasses RLS).
- * Requires admin authentication (same isAdmin() pattern as /api/admin/users).
+ * Requires admin authentication (same isCurrentUserAdmin() pattern as /api/admin/users).
  */
 
 import { NextResponse }          from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { d1Db }                from '@/lib/cloudflare/d1Compat'
+import { createServiceClient } from '@/lib/supabase/server'
 import { stripe }                from '@/lib/stripe'
 import {
   computeTokenCost, planMonthlyValue, PLAN_MONTHLY_VALUE,
 } from '@/lib/finance/metrics'
 import type { FinanceData }      from '@/lib/finance/types'
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
-async function isAdmin(): Promise<boolean> {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return false
-    try {
-      const dbUser = await d1Db.user.findUnique({ where: { email: user.email! } })
-      if (dbUser?.role === 'ADMIN') return true
-    } catch { /* D1 not available */ }
-    return user.email === process.env.ADMIN_EMAIL
-  } catch { return false }
-}
 
 // FinanceData is defined in @/lib/finance/types — imported above.
 
 // ── Handler ───────────────────────────────────────────────────────────────────
 export async function GET() {
-  if (!(await isAdmin())) {
+  if (!(await isCurrentUserAdmin())) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

@@ -82,6 +82,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, breakdown_id: existing.id, status: 'COMPLETED', fromCache: true })
   }
 
+  // Already in flight (e.g. double-click) — don't re-trigger a second pipeline run
+  // and don't double-charge quota for the same breakdown_id.
+  if (existing?.id && (existing as { viral_status?: string }).viral_status === 'PROCESSING') {
+    return NextResponse.json({ ok: true, breakdown_id: existing.id, status: 'QUEUED', alreadyProcessing: true })
+  }
+
   if (existing?.id) {
     breakdown_id = existing.id
     await service.from('video_breakdowns')

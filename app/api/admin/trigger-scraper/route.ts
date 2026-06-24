@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { d1Db } from '@/lib/cloudflare/d1Compat'
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 const WORKFLOW_FILE = 'fetch_tiktok.yml'
 const REPO          = 'Halfyears/TTLike'
@@ -11,13 +11,7 @@ export async function POST() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let isAdmin = user.email === process.env.ADMIN_EMAIL
-  try {
-    const dbUser = await d1Db.user.findUnique({ where: { email: user.email! } })
-    if (dbUser) isAdmin = dbUser.role === 'ADMIN'
-  } catch { /* DB not connected — fall back to env check */ }
-
-  if (!isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await isCurrentUserAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   // ── GH_TOKEN guard ────────────────────────────────────────────────────────
   const token = process.env.GH_TOKEN

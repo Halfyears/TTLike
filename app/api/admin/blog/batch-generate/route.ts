@@ -13,22 +13,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { d1Db } from '@/lib/cloudflare/d1Compat'
 import { runAIWaterfall } from '@/lib/ai/providers'
-
-async function isAdmin(): Promise<boolean> {
-  try {
-    const sb = await createClient()
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) return false
-    try {
-      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
-      if (u?.role === 'ADMIN') return true
-    } catch {}
-    return user.email === process.env.ADMIN_EMAIL
-  } catch { return false }
-}
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 /** Slugify a title. Non-ASCII chars (Chinese, emoji) are replaced with spaces
  *  to preserve word boundaries rather than collapsing them to nothing. */
@@ -72,7 +59,7 @@ interface GeneratedPost {
 }
 
 export async function POST(req: NextRequest) {
-  if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!await isCurrentUserAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let body: { topics?: string[] }
   try { body = await req.json() } catch {

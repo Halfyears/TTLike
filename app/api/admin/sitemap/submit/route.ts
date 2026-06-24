@@ -15,23 +15,10 @@
 
 import { NextResponse }                      from 'next/server'
 import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { d1Db }                            from '@/lib/cloudflare/d1Compat'
 import { SITE_URL }                          from '@/lib/constants'
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 export const dynamic = 'force-dynamic'
-
-async function isAdmin(): Promise<boolean> {
-  try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return false
-    try {
-      const dbUser = await d1Db.user.findUnique({ where: { email: user.email! } })
-      if (dbUser?.role === 'ADMIN') return true
-    } catch { /* D1 unavailable */ }
-    return user.email === process.env.ADMIN_EMAIL
-  } catch { return false }
-}
 
 interface EngineResult {
   engine:  string
@@ -42,7 +29,7 @@ interface EngineResult {
 }
 
 export async function POST() {
-  if (!(await isAdmin())) {
+  if (!(await isCurrentUserAdmin())) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { FileText, Copy, Check, Download, Lock } from 'lucide-react'
 import type { ScriptLayer } from '@/lib/utils/result-transform'
 import { useUserTier } from '@/hooks/useUserTier'
@@ -62,6 +62,9 @@ function downloadTxt(content: string, filename: string) {
 function CapCutExportButton({ script }: { script: ScriptLayer }) {
   const { tier } = useUserTier()
   const [downloaded, setDownloaded] = useState(false)
+  const downloadedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => { if (downloadedTimerRef.current) clearTimeout(downloadedTimerRef.current) }, [])
 
   if (tier.loading) {
     return <div className="h-8 w-28 bg-gray-100 rounded-lg animate-pulse" />
@@ -99,7 +102,8 @@ function CapCutExportButton({ script }: { script: ScriptLayer }) {
     const filename = `ttlike-capcut-${Date.now()}.txt`
     downloadTxt(content, filename)
     setDownloaded(true)
-    setTimeout(() => setDownloaded(false), 3000)
+    if (downloadedTimerRef.current) clearTimeout(downloadedTimerRef.current)
+    downloadedTimerRef.current = setTimeout(() => setDownloaded(false), 3000)
   }
 
   return (
@@ -119,6 +123,9 @@ function CapCutExportButton({ script }: { script: ScriptLayer }) {
 
 export function ScriptLayerCard({ script, onCopy }: ScriptLayerCardProps) {
   const [copied, setCopied] = useState(false)
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => { if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current) }, [])
 
   function buildPlainText() {
     return script.lines.map(l =>
@@ -130,7 +137,8 @@ export function ScriptLayerCard({ script, onCopy }: ScriptLayerCardProps) {
     try {
       await navigator.clipboard.writeText(buildPlainText())
       setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+      copiedTimerRef.current = setTimeout(() => setCopied(false), 2000)
       onCopy?.()
     } catch {}
   }

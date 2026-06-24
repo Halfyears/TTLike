@@ -4,24 +4,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { d1Db } from '@/lib/cloudflare/d1Compat'
-
-async function isAdmin(): Promise<boolean> {
-  try {
-    const sb = await createClient()
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) return false
-    try {
-      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
-      if (u?.role === 'ADMIN') return true
-    } catch {}
-    return user.email === process.env.ADMIN_EMAIL
-  } catch { return false }
-}
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 export async function GET() {
-  if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!await isCurrentUserAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
     const posts = await d1Db.blogPost.findMany({
@@ -41,7 +28,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!await isCurrentUserAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   let body: {
     title?: string; slug?: string; content?: string; excerpt?: string

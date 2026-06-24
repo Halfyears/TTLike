@@ -47,6 +47,7 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
   const [showDetail,  setShowDetail]  = useState(false)
   const [ctxLoading,  setCtxLoading]  = useState(true)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const mountedRef = useRef(true)
 
   // Form state
   const [category,        setCategory]        = useState(niche ?? '')
@@ -113,6 +114,7 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
       try {
         const res  = await fetch(`/api/admin/viral-analysis-async/status?breakdown_id=${breakdown_id}`)
         const json = await res.json()
+        if (!mountedRef.current) return
         const status: AsyncStatus = json.viral_status ?? 'PROCESSING'
 
         if (status === 'COMPLETED') {
@@ -142,7 +144,13 @@ export function ViralPipelinePanel({ videoId, productName, niche }: Props) {
   }
 
   // Cleanup on unmount
-  useEffect(() => () => { if (pollRef.current) clearInterval(pollRef.current) }, [])
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      if (pollRef.current) clearInterval(pollRef.current)
+    }
+  }, [])
 
   // ── Pipeline runner ──────────────────────────────────────────────────────────
   async function runPipeline() {

@@ -132,12 +132,11 @@ export async function GET(
 
   const service = createServiceClient()
 
-  const { data: video } = await service
-    .from('tiktok_videos').select('id, title, product_name, niche').eq('id', video_id).maybeSingle()
+  const [{ data: video }, { data: breakdown }] = await Promise.all([
+    service.from('tiktok_videos').select('id, title, product_name, niche').eq('id', video_id).maybeSingle(),
+    service.from('video_breakdowns').select('payload').eq('video_id', video_id).maybeSingle(),
+  ])
   if (!video) return NextResponse.json({ ok: false, error: 'Video not found' }, { status: 404 })
-
-  const { data: breakdown } = await service
-    .from('video_breakdowns').select('payload').eq('video_id', video_id).maybeSingle()
 
   const payload     = breakdown?.payload as VideoBreakdownPayload | null
   const formulas    = payload?.viral_formulas ?? []

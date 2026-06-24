@@ -139,6 +139,7 @@ export const viralAnalysisPipelineTask = task({
         .from('video_breakdowns')
         .update({ payload: updatedPayload })
         .eq('id', breakdown_id)
+        .not('viral_status', 'in', '("COMPLETED")')
 
       if (updateErr) {
         logger.error('Failed to persist transcript', { error: updateErr.message })

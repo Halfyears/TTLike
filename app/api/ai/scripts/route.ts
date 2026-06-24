@@ -86,14 +86,16 @@ export async function POST(request: Request) {
       const cached = await getCachedScripts(supabase, d.sourceVideoId, cacheKey)
 
       if (cached && cached.hitCount < REGEN_THRESHOLD) {
-        incrementCacheHit(supabase, cached.cacheId)
+        incrementCacheHit(supabase, cached.cacheId).catch(err =>
+          console.error('Cache hit-count increment failed:', err instanceof Error ? err.message : err))
         scripts   = applyPersonalization(cached.scripts, d.brandName, d.offer, d.ctaType)
         fromCache = true
       } else {
         const result = await generateWithRetry()
         scripts    = result.scripts
         aiProvider = result.provider
-        saveCachedScripts(supabase, d.sourceVideoId, cacheKey, scripts)
+        saveCachedScripts(supabase, d.sourceVideoId, cacheKey, scripts).catch(err =>
+          console.error('Script cache save failed:', err instanceof Error ? err.message : err))
       }
     } else {
       const result = await generateWithRetry()

@@ -27,9 +27,13 @@ export function Navbar({ user }: NavbarProps) {
   const pathname = usePathname()
 
   async function handleSignOut() {
-    await signOutEverywhere()
-    router.push('/')
-    router.refresh()
+    try {
+      await signOutEverywhere()
+      router.push('/')
+      router.refresh()
+    } catch (err) {
+      console.error('Sign out failed:', err)
+    }
   }
 
   return (

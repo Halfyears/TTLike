@@ -4,21 +4,8 @@
  */
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { d1Db } from '@/lib/cloudflare/d1Compat'
-
-async function isAdmin(): Promise<boolean> {
-  try {
-    const sb = await createClient()
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) return false
-    try {
-      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
-      if (u?.role === 'ADMIN') return true
-    } catch {}
-    return user.email === process.env.ADMIN_EMAIL
-  } catch { return false }
-}
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 function generateCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
@@ -31,7 +18,7 @@ function generateCode(): string {
 
 // ── GET ────────────────────────────────────────────────────────────────────────
 export async function GET() {
-  if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await isCurrentUserAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   try {
     const links = await d1Db.affiliateLink.findMany({
@@ -46,7 +33,7 @@ export async function GET() {
 
 // ── POST ───────────────────────────────────────────────────────────────────────
 export async function POST(req: Request) {
-  if (!(await isAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (!(await isCurrentUserAdmin())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
   const body = await req.json()
 

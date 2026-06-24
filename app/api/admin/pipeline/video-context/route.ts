@@ -8,22 +8,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createServiceClient } from '@/lib/supabase/server'
-import { d1Db } from '@/lib/cloudflare/d1Compat'
+import { createServiceClient } from '@/lib/supabase/server'
 import type { VideoBreakdownPayload } from '@/lib/types/intelligence'
-
-async function isAdmin(): Promise<boolean> {
-  try {
-    const sb = await createClient()
-    const { data: { user } } = await sb.auth.getUser()
-    if (!user) return false
-    try {
-      const u = await d1Db.user.findUnique({ where: { email: user.email! } })
-      if (u?.role === 'ADMIN') return true
-    } catch {}
-    return user.email === process.env.ADMIN_EMAIL
-  } catch { return false }
-}
+import { isCurrentUserAdmin } from '@/lib/auth/admin'
 
 /**
  * Extract concise pain point phrases from a viral formula mechanism string.
@@ -64,7 +51,7 @@ function extractPainPoint(mechanism: string): string {
 }
 
 export async function GET(req: NextRequest) {
-  if (!await isAdmin()) {
+  if (!await isCurrentUserAdmin()) {
     return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
   }
 
